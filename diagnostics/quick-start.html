@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE Diagnostics Quick Start</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+        .test-card {
+            background: #ecf0f1;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            border-left: 5px solid #3498db;
+        }
+        .test-card h3 {
+            margin-top: 0;
+            color: #2980b9;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        button:active {
+            background: #1c5985;
+        }
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin: 10px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .info {
+            background: #d1ecf1;
+            border-left: 5px solid #17a2b8;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.ready {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.running {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .emoji {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        .step {
+            counter-increment: step;
+            position: relative;
+            padding-left: 40px;
+            margin: 20px 0;
+        }
+        .step::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #3498db;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .steps {
+            counter-reset: step;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span class="emoji">🔬</span>SSE Connection Issues - Diagnostic Quick Start</h1>
+
+        <div class="info">
+            <strong>📋 Purpose:</strong> Run diagnostic tests to identify root causes of:
+            <ul>
+                <li>SSE reconnection loops</li>
+                <li>503 Service Unavailable errors</li>
+                <li>Progress state showing undefined/undefined</li>
+                <li>Submit button handler timing issues</li>
+            </ul>
+        </div>
+
+        <h2>🚀 Quick Start Instructions</h2>
+
+        <div class="steps">
+            <div class="step">
+                <strong>Open Your Application</strong><br>
+                Navigate to your deployed Cloud Run application in Chrome or Firefox
+            </div>
+
+            <div class="step">
+                <strong>Open Developer Tools</strong><br>
+                Press F12 or right-click → Inspect → Console tab
+            </div>
+
+            <div class="step">
+                <strong>Click a Test Below</strong><br>
+                Each button copies the test code to your clipboard
+            </div>
+
+            <div class="step">
+                <strong>Paste in Console</strong><br>
+                Paste the code into the browser console and press Enter
+            </div>
+
+            <div class="step">
+                <strong>Follow Test Instructions</strong><br>
+                Each test will log instructions on what to do next
+            </div>
+
+            <div class="step">
+                <strong>Run Report Function</strong><br>
+                After observing behavior, run the report function shown in console
+            </div>
+
+            <div class="step">
+                <strong>Share Results</strong><br>
+                Copy the console output and share it back for analysis
+            </div>
+        </div>
+
+        <h2>🧪 Available Tests</h2>
+
+        <div class="test-card">
+            <h3><span class="emoji">🔄</span>Test 1: SSE Reconnection Loop</h3>
+            <p><strong>Detects:</strong> Race condition causing connection to reopen after job completion</p>
+            <p><strong>Run this if:</strong> You see repeating "connection opened / closed" messages</p>
+            <button onclick="copyToClipboard('test1')">📋 Copy Test Script</button>
+            <button onclick="copyToClipboard('report1')">📊 Copy Report Command</button>
+            <div class="code-block" id="report1" style="display: none;">getTestReport()</div>
+        </div>
+
+        <div class="test-card">
+            <h3><span class="emoji">⚠️</span>Test 2: 503 Error Handling</h3>
+            <p><strong>Detects:</strong> Improper handling of Cloud Run 503 errors and retry behavior</p>
+            <p><strong>Run this if:</strong> You see 503 Service Unavailable errors during reconnection</p>
+            <button onclick="copyToClipboard('test2')">📋 Copy Test Script</button>
+            <button onclick="copyToClipboard('report2')">📊 Copy Report Commands</button>
+            <div class="code-block" id="report2" style="display: none;">get503Report(); getReconnectTimings();</div>
+        </div>
+
+        <div class="test-card">
+            <h3><span class="emoji">📊</span>Test 3: Progress State undefined/undefined</h3>
+            <p><strong>Detects:</strong> Missing or undefined progress values in state management</p>
+            <p><strong>Run this if:</strong> Logs show "Saved job state: undefined/undefined"</p>
+            <button onclick="copyToClipboard('test3')">📋 Copy Test Script</button>
+            <button onclick="copyToClipboard('report3')">📊 Copy Report Commands</button>
+            <div class="code-block" id="report3" style="display: none;">getProgressStateReport(); inspectJobStates();</div>
+        </div>
+
+        <div class="test-card">
+            <h3><span class="emoji">🔘</span>Test 4: Submit Handler Timing</h3>
+            <p><strong>Detects:</strong> Timing issues with submit button handler attachment</p>
+            <p><strong>Run this if:</strong> Debug shows "submitBtnHandlerAttached: false"</p>
+            <button onclick="copyToClipboard('test4')">📋 Copy Test Script</button>
+            <button onclick="copyToClipboard('report4')">📊 Copy Report Command</button>
+            <div class="code-block" id="report4" style="display: none;">getSubmitHandlerReport()</div>
+        </div>
+
+        <h2>📄 Test Scripts</h2>
+
+        <div class="warning">
+            <strong>⚠️ Important:</strong> Run tests ONE AT A TIME for best results. Reload the page between tests to ensure clean state.
+        </div>
+
+        <div id="test1" style="display: none;">
+            <pre>// Test 1 script will be loaded from test-sse-reconnect-race.js</pre>
+        </div>
+
+        <div id="test2" style="display: none;">
+            <pre>// Test 2 script will be loaded from test-503-handling.js</pre>
+        </div>
+
+        <div id="test3" style="display: none;">
+            <pre>// Test 3 script will be loaded from test-progress-state-undefined.js</pre>
+        </div>
+
+        <div id="test4" style="display: none;">
+            <pre>// Test 4 script will be loaded from test-submit-handler-timing.js</pre>
+        </div>
+
+        <h2>📖 Documentation</h2>
+
+        <p>For detailed instructions and interpretation guide:</p>
+        <ul>
+            <li><strong>RUN_ALL_TESTS.md</strong> - Complete testing guide with examples</li>
+            <li><strong>DIAGNOSTIC_SUMMARY.md</strong> - Problem analysis and expected fixes</li>
+        </ul>
+
+        <div class="success">
+            <strong>✅ Next Steps:</strong>
+            <ol>
+                <li>Run the tests in your deployed application</li>
+                <li>Copy the console output and report results</li>
+                <li>Share the outputs for analysis</li>
+                <li>Receive targeted fixes based on confirmed issues</li>
+            </ol>
+        </div>
+
+        <h2>❓ Need Help?</h2>
+
+        <div class="info">
+            <p><strong>Can't load test scripts?</strong></p>
+            <ul>
+                <li>Open the .js files in a text editor</li>
+                <li>Copy the entire file contents</li>
+                <li>Paste directly into browser console</li>
+            </ul>
+
+            <p><strong>No output appearing?</strong></p>
+            <ul>
+                <li>Check console isn't filtered (show all messages)</li>
+                <li>Ensure application JavaScript has loaded</li>
+                <li>Try refreshing the page</li>
+            </ul>
+
+            <p><strong>Tests interfering with each other?</strong></p>
+            <ul>
+                <li>Reload page between tests</li>
+                <li>Run in incognito/private window</li>
+                <li>Clear console between runs</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        async function copyToClipboard(testId) {
+            let text = '';
+
+            if (testId.startsWith('report')) {
+                // Copy report command
+                text = document.getElementById(testId).textContent;
+            } else {
+                // Load test script
+                try {
+                    const scriptMap = {
+                        'test1': 'test-sse-reconnect-race.js',
+                        'test2': 'test-503-handling.js',
+                        'test3': 'test-progress-state-undefined.js',
+                        'test4': 'test-submit-handler-timing.js'
+                    };
+
+                    const response = await fetch(scriptMap[testId]);
+                    text = await response.text();
+                } catch (error) {
+                    alert('Failed to load test script. Please open the .js file and copy manually.');
+                    return;
+                }
+            }
+
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('✅ Copied to clipboard! Paste into browser console.');
+            } catch (error) {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('✅ Copied to clipboard! Paste into browser console.');
+            }
+        }
+    </script>
+</body>
+</html>

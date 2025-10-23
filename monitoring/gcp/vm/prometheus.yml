@@ -1,0 +1,238 @@
+#=============================================================================
+# Prometheus Configuration for docmosis-tornado-vm
+#
+# This Prometheus instance running on the VM scrapes metrics from:
+# 1. Local services (NGINX, Docmosis) - Fast, no network latency
+# 2. Cloud Run services (node-server, python-pipeline) - Via HTTPS with auth
+# 3. Prometheus itself - Self-monitoring
+#
+# All metrics are forwarded to Google Managed Prometheus for:
+# - Long-term storage (30+ days)
+# - High availability
+# - Global querying from Grafana
+#
+# Local retention: 7 days (for fast recent queries)
+# Managed Prometheus: 30+ days (for historical analysis)
+#
+#=============================================================================
+
+global:
+  # How frequently to scrape targets by default
+  scrape_interval: 30s      # Scrape every 30 seconds (good balance of freshness vs cost)
+
+  # How frequently to evaluate alerting rules
+  evaluation_interval: 30s  # Evaluate rules every 30 seconds
+
+  # Timeout for scraping
+  scrape_timeout: 10s       # Give up after 10 seconds
+
+  # External labels attached to all time series
+  # These help identify the source of metrics in Managed Prometheus
+  external_labels:
+    cluster: 'docmosis-tornado-vm'
+    environment: 'production'
+    region: 'us-central1'
+    project: 'docmosis-tornado'
+
+#=============================================================================
+# REMOTE WRITE - Forward metrics to Google Managed Prometheus
+#=============================================================================
+
+remote_write:
+  # Google Managed Service for Prometheus
+  # Sends all scraped metrics to GCP for long-term storage
+  - url: "https://monitoring.googleapis.com/v1/projects/docmosis-tornado/location/global/prometheus/api/v1/write"
+
+    # Queue configuration for reliability
+    queue_config:
+      capacity: 10000              # Max samples in memory queue
+      max_shards: 5                # Parallel write shards
+      min_shards: 1                # Start with 1 shard
+      max_samples_per_send: 500    # Batch size per request
+      batch_send_deadline: 5s      # Send batch after 5s even if not full
+      min_backoff: 30ms            # Min retry backoff
+      max_backoff: 5s              # Max retry backoff
+
+    # Metadata configuration
+    metadata_config:
+      send: true                   # Send metric metadata
+      send_interval: 1m            # Send metadata every minute
+
+    # Write relabeling (optional - clean up before sending)
+    write_relabel_configs:
+      # Add source label to identify VM collector
+      - target_label: 'source'
+        replacement: 'docmosis-tornado-vm'
+
+#=============================================================================
+# SCRAPE CONFIGURATIONS
+#=============================================================================
+
+scrape_configs:
+
+  #---------------------------------------------------------------------------
+  # 1. PROMETHEUS SELF-MONITORING
+  #    Monitor Prometheus itself to ensure collector is healthy
+  #---------------------------------------------------------------------------
+  - job_name: 'prometheus'
+
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          instance: 'prometheus-vm'
+          service_type: 'monitoring'
+
+  #---------------------------------------------------------------------------
+  # 2. NGINX EXPORTER
+  #    Scrape NGINX metrics from nginx-prometheus-exporter
+  #---------------------------------------------------------------------------
+  - job_name: 'nginx-gateway'
+
+    scrape_interval: 15s  # NGINX changes frequently, scrape more often
+
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+        labels:
+          instance: 'nginx-gateway'
+          service_type: 'gateway'
+          service_name: 'nginx'
+
+    # Relabel to add friendly names
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        target_label: 'component'
+        replacement: 'nginx'
+
+  #---------------------------------------------------------------------------
+  # 3. DOCMOSIS TORNADO (LOCAL)
+  #    If Docmosis exposes metrics, scrape them here
+  #    Currently uses Docker proxy to access port 8080 on host
+  #---------------------------------------------------------------------------
+  - job_name: 'docmosis-tornado'
+
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+    # Try to scrape metrics from Docmosis
+    # If Docmosis doesn't expose /metrics, these scrapes will fail (that's OK)
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          instance: 'docmosis-tornado'
+          service_type: 'application'
+          service_name: 'docmosis'
+
+    # Override metrics path if Docmosis uses different endpoint
+    metrics_path: '/metrics'
+
+    # Optional: Add basic auth if Docmosis requires it
+    # basic_auth:
+    #   username: 'docmosis'
+    #   password: 'your-password'
+
+  #---------------------------------------------------------------------------
+  # 4. CLOUD RUN - NODE-SERVER
+  #    Scrape metrics from Node.js Express application on Cloud Run
+  #---------------------------------------------------------------------------
+  - job_name: 'cloud-run-node-server'
+
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+    metrics_path: '/metrics'
+    scheme: https
+
+    static_configs:
+      - targets: ['node-server-zyiwmzwenq-uc.a.run.app']
+        labels:
+          instance: 'node-server'
+          service_type: 'application'
+          service_name: 'legal-form-backend'
+          platform: 'cloud-run'
+          region: 'us-central1'
+
+    # Cloud Run service-to-service authentication
+    # Uses VM's service account (must have run.invoker role)
+    authorization:
+      type: Bearer
+      credentials_file: /var/run/secrets/cloud.google.com/service-account.json
+
+    # Optional: Relabel metrics to add context
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'http_.*'
+        target_label: 'layer'
+        replacement: 'application'
+
+  #---------------------------------------------------------------------------
+  # 5. CLOUD RUN - PYTHON-PIPELINE
+  #    Scrape metrics from Python pipeline service on Cloud Run
+  #---------------------------------------------------------------------------
+  - job_name: 'cloud-run-python-pipeline'
+
+    scrape_interval: 60s  # Pipeline less active, scrape less frequently
+    scrape_timeout: 15s   # Pipeline may be slower to respond
+
+    metrics_path: '/metrics'
+    scheme: https
+
+    static_configs:
+      - targets: ['python-pipeline-zyiwmzwenq-uc.a.run.app']
+        labels:
+          instance: 'python-pipeline'
+          service_type: 'application'
+          service_name: 'document-pipeline'
+          platform: 'cloud-run'
+          region: 'us-central1'
+
+    # Cloud Run service-to-service authentication
+    authorization:
+      type: Bearer
+      credentials_file: /var/run/secrets/cloud.google.com/service-account.json
+
+    # Optional: Skip if endpoint doesn't exist (pipeline may not have metrics yet)
+    # Uncomment to disable:
+    # honor_labels: true
+    # scrape_interval: 0
+
+#=============================================================================
+# ALERTING CONFIGURATION (Optional - for future use)
+#=============================================================================
+
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+#=============================================================================
+# RULE FILES (Optional - for recording rules and alerts)
+#=============================================================================
+
+# rule_files:
+#   - '/etc/prometheus/rules/*.yml'
+
+#=============================================================================
+# NOTES
+#=============================================================================
+#
+# Service Account Requirements:
+# - VM must have service account with these roles:
+#   - roles/monitoring.metricWriter (for remote_write to Managed Prometheus)
+#   - roles/run.invoker (to scrape Cloud Run services)
+#
+# Authentication:
+# - Local services (NGINX, Docmosis): No auth needed (internal network)
+# - Cloud Run services: OAuth2 via service account credentials file
+#   (Auto-mounted by GCP Compute Engine at /var/run/secrets/...)
+#
+# Network Requirements:
+# - VM must have outbound HTTPS access to:
+#   - *.run.app (Cloud Run services)
+#   - monitoring.googleapis.com (Managed Prometheus)
+#
+# Troubleshooting:
+# - Check scrape status: http://localhost:9090/targets
+# - View metrics: http://localhost:9090/graph
+# - Check remote write: http://localhost:9090/api/v1/status/tsdb
+#
+#=============================================================================

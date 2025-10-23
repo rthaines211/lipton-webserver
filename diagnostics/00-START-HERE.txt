@@ -1,0 +1,107 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                           ║
+║                   SSE CONNECTION ISSUES DIAGNOSTIC SUITE                  ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+🎯 QUICK START - Choose Your Path:
+
+   PATH 1: Interactive (Easiest)
+   ════════════════════════════════
+   → Open: quick-start.html
+   → Click buttons to copy test scripts
+   → Paste in browser console
+   → Follow on-screen instructions
+
+   PATH 2: Read First (Recommended)
+   ════════════════════════════════
+   → Read: DIAGNOSTIC_SUMMARY.md
+   → Understand the issues
+   → Then follow PATH 1
+
+   PATH 3: Manual Testing (Advanced)
+   ════════════════════════════════
+   → Read: RUN_ALL_TESTS.md
+   → Copy test scripts manually
+   → Run in browser console
+
+📂 FILE GUIDE:
+
+   Documentation (Read These):
+   ═══════════════════════════
+   • README.md                  - Quick reference
+   • DIAGNOSTIC_SUMMARY.md      - Problem analysis & expected fixes
+   • RUN_ALL_TESTS.md          - Complete testing guide with examples
+
+   Interactive Tools:
+   ══════════════════
+   • quick-start.html          - Copy-paste test launcher (START HERE!)
+
+   Test Scripts (Copy to Console):
+   ════════════════════════════════
+   • test-sse-reconnect-race.js           - Diagnose connection loop
+   • test-503-handling.js                 - Diagnose 503 errors
+   • test-progress-state-undefined.js     - Diagnose undefined progress
+   • test-submit-handler-timing.js        - Diagnose handler timing
+
+🐛 ISSUES BEING DIAGNOSED:
+
+   Issue 1: SSE Reconnection Loop
+   ═══════════════════════════════
+   Symptom: Connection keeps opening/closing after job completes
+   Test:    test-sse-reconnect-race.js
+   Report:  getTestReport()
+
+   Issue 2: 503 Service Unavailable
+   ════════════════════════════════
+   Symptom: Transient 503 errors during reconnection
+   Test:    test-503-handling.js
+   Report:  get503Report() + getReconnectTimings()
+
+   Issue 3: Progress State undefined/undefined
+   ═══════════════════════════════════════════
+   Symptom: Logs show "undefined/undefined" instead of progress numbers
+   Test:    test-progress-state-undefined.js
+   Report:  getProgressStateReport() + inspectJobStates()
+
+   Issue 4: Submit Handler Not Detected
+   ════════════════════════════════════
+   Symptom: Debug shows submitBtnHandlerAttached: false
+   Test:    test-submit-handler-timing.js
+   Report:  getSubmitHandlerReport()
+
+📋 BASIC WORKFLOW:
+
+   1. Open quick-start.html in browser
+   2. Navigate to your deployed Cloud Run app
+   3. Open browser console (F12)
+   4. Click "Copy Test Script" button
+   5. Paste in console, press Enter
+   6. Submit a form in the app
+   7. Observe console output
+   8. Run report function shown in logs
+   9. Copy all output and share
+
+💡 TIPS:
+
+   • Run tests ONE AT A TIME
+   • Reload page between tests for clean state
+   • Use Chrome or Firefox for best results
+   • Tests don't modify your code - safe for production
+   • Can copy test files manually if needed
+
+❓ NEED HELP?
+
+   • See RUN_ALL_TESTS.md for detailed instructions
+   • See DIAGNOSTIC_SUMMARY.md for problem context
+   • Tests will log helpful instructions to console
+
+🚀 READY TO START:
+
+   Open quick-start.html and follow the interactive guide!
+
+═══════════════════════════════════════════════════════════════════════════
+
+Created: October 23, 2025
+Purpose: Diagnose GCP Cloud Run SSE connection issues
+Status:  Ready for testing

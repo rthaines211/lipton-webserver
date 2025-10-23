@@ -1,0 +1,105 @@
+# Deploy Documentation Website to GitHub Pages
+#
+# This workflow automatically builds and deploys the VitePress documentation
+# website whenever changes are pushed to the docs/ directory.
+#
+# Requirements:
+# 1. Enable GitHub Pages in repo settings: Settings > Pages > Source: GitHub Actions
+# 2. Ensure repository has "Read and write permissions" for workflows
+#
+# The documentation will be available at: https://your-username.github.io/legal-form-app/
+
+name: Deploy Documentation
+
+on:
+  # Trigger on push to main branch when docs change
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - '.github/workflows/deploy-docs.yml'
+      - 'package.json'
+      - 'package-lock.json'
+
+  # Allow manual deployment from Actions tab
+  workflow_dispatch:
+
+# Required permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only allow one concurrent deployment
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # ============================================
+  # Build Documentation
+  # ============================================
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch full git history for lastUpdated timestamps
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build documentation
+        run: npm run docs:build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/docs
+
+  # ============================================
+  # Deploy to GitHub Pages
+  # ============================================
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Comment on commit
+        if: github.event_name == 'push'
+        uses: peter-evans/commit-comment@v3
+        with:
+          body: |
+            ## 📚 Documentation Deployed!
+
+            Your documentation has been successfully deployed to GitHub Pages.
+
+            🌐 **Live URL:** ${{ steps.deployment.outputs.page_url }}
+
+            ⏱️ **Build Time:** ${{ job.status }}
+            📦 **Commit:** ${{ github.sha }}
+
+            ---
+
+            ### Next Steps:
+            - 📖 [View Documentation](${{ steps.deployment.outputs.page_url }})
+            - 🔍 [Search Documentation](${{ steps.deployment.outputs.page_url }}?q=search)
+            - 🚀 [Quick Start](${{ steps.deployment.outputs.page_url }}/QUICK_START)

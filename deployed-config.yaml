@@ -1,0 +1,101 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  annotations:
+    run.googleapis.com/build-enable-automatic-updates: 'false'
+    run.googleapis.com/build-id: 82e938a8-1ea5-4a29-bd76-9e15f864b42d
+    run.googleapis.com/build-image-uri: us-central1-docker.pkg.dev/docmosis-tornado/cloud-run-source-deploy/node-server
+    run.googleapis.com/build-name: projects/945419684329/locations/us-central1/builds/82e938a8-1ea5-4a29-bd76-9e15f864b42d
+    run.googleapis.com/build-source-location: gs://run-sources-docmosis-tornado-us-central1/services/node-server/1761233376.621243-6806cc49188b43e4a084d9cb0b40aa75.zip#1761233529328416
+    run.googleapis.com/client-name: gcloud
+    run.googleapis.com/client-version: 544.0.0
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+    run.googleapis.com/operation-id: 7c0b6872-aa4f-4a8b-952c-a75041fdbcd0
+    run.googleapis.com/urls: '["https://node-server-945419684329.us-central1.run.app","https://node-server-zyiwmzwenq-uc.a.run.app"]'
+    serving.knative.dev/creator: LiptonLegalGroup@gmail.com
+    serving.knative.dev/lastModifier: LiptonLegalGroup@gmail.com
+  creationTimestamp: '2025-10-22T17:28:17.709904Z'
+  generation: 33
+  labels:
+    cloud.googleapis.com/location: us-central1
+  name: node-server
+  namespace: '945419684329'
+  resourceVersion: AAZB1S7ViaE
+  selfLink: /apis/serving.knative.dev/v1/namespaces/945419684329/services/node-server
+  uid: 36e593c3-61c1-4928-bb70-29a7d7ac16f7
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '10'
+        autoscaling.knative.dev/minScale: '1'
+        run.googleapis.com/client-name: gcloud
+        run.googleapis.com/client-version: 544.0.0
+        run.googleapis.com/cloudsql-instances: docmosis-tornado:us-central1:legal-forms-db
+        run.googleapis.com/startup-cpu-boost: 'true'
+      labels:
+        client.knative.dev/nonce: flezovnyzc
+        run.googleapis.com/startupProbeType: Default
+    spec:
+      containerConcurrency: 80
+      containers:
+      - env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: DB_PASSWORD
+        - name: ACCESS_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: ACCESS_TOKEN
+        - name: PIPELINE_API_URL
+          value: https://python-pipeline-zyiwmzwenq-uc.a.run.app
+        - name: DB_USER
+          value: app-user
+        - name: DB_NAME
+          value: legal_forms_db
+        - name: DB_HOST
+          value: /cloudsql/docmosis-tornado:us-central1:legal-forms-db
+        image: us-central1-docker.pkg.dev/docmosis-tornado/cloud-run-source-deploy/node-server@sha256:aecdfe216150eafac209cccffe975571700315fd677da59743332254eead05e7
+        ports:
+        - containerPort: 8080
+          name: http1
+        resources:
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        startupProbe:
+          failureThreshold: 1
+          periodSeconds: 240
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 240
+      serviceAccountName: 945419684329-compute@developer.gserviceaccount.com
+      timeoutSeconds: 300
+  traffic:
+  - latestRevision: true
+    percent: 100
+status:
+  address:
+    url: https://node-server-zyiwmzwenq-uc.a.run.app
+  conditions:
+  - lastTransitionTime: '2025-10-23T15:35:29.849761Z'
+    status: 'True'
+    type: Ready
+  - lastTransitionTime: '2025-10-23T15:35:21.921125Z'
+    status: 'True'
+    type: ConfigurationsReady
+  - lastTransitionTime: '2025-10-23T15:35:29.811732Z'
+    status: 'True'
+    type: RoutesReady
+  latestCreatedRevisionName: node-server-00033-hhf
+  latestReadyRevisionName: node-server-00033-hhf
+  observedGeneration: 33
+  traffic:
+  - latestRevision: true
+    percent: 100
+    revisionName: node-server-00033-hhf
+  url: https://node-server-zyiwmzwenq-uc.a.run.app

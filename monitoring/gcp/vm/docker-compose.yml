@@ -1,0 +1,152 @@
+#=============================================================================
+# Docker Compose for Prometheus Metrics Collection on docmosis-tornado-vm
+#
+# This stack runs on the existing docmosis-tornado-vm alongside NGINX and Docmosis.
+# It collects metrics from:
+# - Local NGINX (via nginx-prometheus-exporter)
+# - Local Docmosis service (if metrics available)
+# - Cloud Run services (node-server, python-pipeline)
+#
+# Metrics are forwarded to Google Managed Prometheus for long-term storage.
+#
+# Usage:
+#   cd /home/ubuntu/monitoring
+#   docker-compose up -d          # Start in background
+#   docker-compose logs -f         # View logs
+#   docker-compose down            # Stop containers
+#
+# Access:
+#   Prometheus UI: http://localhost:9090 (internal only)
+#   NGINX Exporter: http://localhost:9113/metrics
+#
+# Prerequisites:
+#   - NGINX configured with stub_status endpoint
+#   - Service account with monitoring.metricWriter role attached to VM
+#
+#=============================================================================
+
+version: '3.8'
+
+services:
+  #
+  # NGINX Prometheus Exporter
+  # Scrapes NGINX stub_status and exposes metrics for Prometheus
+  #
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: nginx-exporter
+    restart: unless-stopped
+
+    ports:
+      - "9113:9113"  # Metrics endpoint
+
+    # Command arguments for exporter
+    # Points to NGINX stub_status endpoint (must be configured in NGINX)
+    command:
+      - '-nginx.scrape-uri=http://host.docker.internal/nginx_status'
+      - '-web.telemetry-path=/metrics'
+
+    # Allow access to host machine (for NGINX on host)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    networks:
+      - monitoring
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9113/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  #
+  # Prometheus
+  # Scrapes metrics from all sources and forwards to Google Managed Prometheus
+  #
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+
+    ports:
+      - "9090:9090"  # Web UI and API
+
+    volumes:
+      # Configuration files
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+      # Local data storage (7-day retention, older data in Managed Prometheus)
+      - prometheus-data:/prometheus
+
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'  # Keep 7 days local, rest in Managed Prometheus
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'  # Allow config reload via API
+      - '--web.enable-admin-api'  # Enable admin API for debugging
+
+    networks:
+      - monitoring
+
+    # Allow access to host machine and nginx-exporter
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    depends_on:
+      nginx-exporter:
+        condition: service_healthy
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+#=============================================================================
+# NETWORKS
+#=============================================================================
+
+networks:
+  monitoring:
+    name: monitoring
+    driver: bridge
+
+#=============================================================================
+# VOLUMES
+#=============================================================================
+
+volumes:
+  # Prometheus data volume
+  # Stores recent metrics locally (7-day retention)
+  # Older metrics are in Google Managed Prometheus
+  prometheus-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/ubuntu/monitoring/data/prometheus
+
+#=============================================================================
+# NOTES
+#=============================================================================
+#
+# Cost Optimization:
+# - 7-day local retention keeps recent data for fast queries
+# - Older data stored in Managed Prometheus (cheaper long-term storage)
+# - NGINX exporter is lightweight (< 10MB memory)
+#
+# Security:
+# - Prometheus and exporters run as non-root users
+# - No public exposure (internal network only)
+# - Service account credentials auto-mounted from VM metadata
+#
+# Monitoring Stack:
+# - This VM collector -> Google Managed Prometheus -> Grafana (Cloud Run)
+#
+#=============================================================================

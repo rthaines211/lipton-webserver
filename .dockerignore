@@ -1,0 +1,25 @@
+# Docker Build Context Optimization
+# Files and directories excluded from docker build context
+# Reduces image size, improves build performance, enhances security
+
+# Node modules directory (reinstalled during build via npm ci)
+node_modules
+
+# Debug logs
+npm-debug.log
+
+# Environment files (using Secrets Manager instead for Cloud Run)
+.env
+
+# Git metadata (not needed in production image)
+.git
+
+# macOS system files
+.DS_Store
+
+# Documentation files (reduce context size)
+*.md
+
+# Docker configuration files themselves
+Dockerfile
+.dockerignore

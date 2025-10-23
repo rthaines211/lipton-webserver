@@ -1,0 +1,334 @@
+======================================================================================
+              PHASE 2.4 TROUBLESHOOTING FLOWCHART - Decision Tree
+======================================================================================
+
+START: Unable to run "gcloud sql connect legal-forms-db --user=app-user --database=legal_forms_db"
+  |
+  v
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ STEP 1: Are you authenticated to GCP?                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Command: gcloud auth list                                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+  |
+  ├─→ NO: Run "gcloud auth login" and select your account
+  |
+  └─→ YES
+      |
+      v
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ STEP 2: Is your project set correctly?                                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Command: gcloud config get-value project                                    │
+│ Expected: Your GCP Project ID                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+  |
+  ├─→ WRONG: Run "gcloud config set project YOUR_PROJECT_ID"
+  |
+  └─→ CORRECT
+      |
+      v
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ STEP 3: Does the Cloud SQL instance exist and is it RUNNABLE?              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Command: gcloud sql instances describe legal-forms-db --format="value(state)"│
+│ Expected: RUNNABLE                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+  |
+  ├─→ NOT FOUND: Instance doesn't exist. Need to create it (Phase 2.1)
+  |   Run: gcloud sql instances create legal-forms-db \
+  |       --database-version=POSTGRES_15 \
+  |       --tier=db-f1-micro \
+  |       --region=us-central1 \
+  |       --root-password=$(gcloud secrets versions access latest --secret=db-password)
+  |
+  ├─→ CREATING/PENDING: Wait 5-10 minutes for creation to complete
+  |
+  ├─→ FAILED: Check error logs
+  |   Run: gcloud sql operations list --instance=legal-forms-db --limit=5
+  |   Then: Delete and recreate from Phase 2.1
+  |
+  └─→ RUNNABLE
+      |
+      v
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ STEP 4: Does the database "legal_forms_db" exist?                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Command: gcloud sql databases list --instance=legal-forms-db               │
+│ Expected: See "legal_forms_db" in the list                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+  |
+  ├─→ NOT FOUND: Create it
+  |   Run: gcloud sql databases create legal_forms_db --instance=legal-forms-db
+  |   Then: Wait 30 seconds and continue to STEP 5
+  |
+  └─→ EXISTS
+      |
+      v
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ STEP 5: Does the user "app-user" exist?                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Command: gcloud sql users list --instance=legal-forms-db                   │
+│ Expected: See "app-user" in the list                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+  |
+  ├─→ NOT FOUND: Create it
+  |   Run: gcloud sql users create app-user \
+  |       --instance=legal-forms-db \
+  |       --password=$(gcloud secrets versions access latest --secret=db-password)
+  |   Then: Wait 30 seconds and continue to STEP 6
+  |
+  └─→ EXISTS
+      |
+      v
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ STEP 6: Try connecting with gcloud sql connect                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Command: gcloud sql connect legal-forms-db --user=app-user --database=legal_forms_db│
+│ Then in psql: SELECT 1;                                                     │
+│ Then exit: \q                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+  |
+  ├─→ CONNECTION SUCCESSFUL!
+  |   |
+  |   v
+  |   Go to STEP 11: Verify Schema
+  |
+  ├─→ ERROR: "password authentication failed"
+  |   |
+  |   v
+  |   Go to STEP 7A: Fix Permissions (AUTH PROXY METHOD)
+  |
+  ├─→ ERROR: "connection refused" or "connection timeout"
+  |   |
+  |   v
+  |   Go to STEP 7B: Fix Network Issues
+  |
+  └─→ ERROR: "database does not exist"
+      |
+      v
+      Go back to STEP 4 (database creation failed)
+
+======================================================================================
+                         STEP 7A: FIX PERMISSIONS (via Proxy)
+======================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Terminal 1: Start Cloud SQL Proxy                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ $ curl -o cloud_sql_proxy \                                                 │
+│    https://dl.google.com/cloudsql/cloud_sql_proxy.darwin.amd64             │
+│ $ chmod +x cloud_sql_proxy                                                 │
+│ $ PROJECT_ID=$(gcloud config get-value project)                            │
+│ $ ./cloud_sql_proxy -instances=${PROJECT_ID}:us-central1:legal-forms-db=tcp:5432│
+│                                                                             │
+│ [Proxy should show: "Ready to accept connections"]                          │
+│ Keep this terminal open                                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+  |
+  v
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Terminal 2: Connect as postgres and grant permissions                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ $ DB_PASSWORD=$(gcloud secrets versions access latest --secret=db-password) │
+│ $ PGPASSWORD=$DB_PASSWORD psql -h localhost -p 5432 -U postgres -d legal_forms_db│
+│                                                                             │
+│ legal_forms_db=# GRANT CONNECT ON DATABASE legal_forms_db TO "app-user";  │
+│ legal_forms_db=# GRANT ALL PRIVILEGES ON SCHEMA public TO "app-user";     │
+│ legal_forms_db=# GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "app-user";│
+│ legal_forms_db=# GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "app-user";│
+│ legal_forms_db=# ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "app-user";│
+│ legal_forms_db=# ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO "app-user";│
+│ legal_forms_db=# \q                                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+  |
+  v
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Terminal 2: Test connection as app-user                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ $ PGPASSWORD=$DB_PASSWORD psql -h localhost -p 5432 -U app-user -d legal_forms_db│
+│ legal_forms_db=> SELECT 1;                                                  │
+│ legal_forms_db=> \q                                                         │
+│                                                                             │
+│ Expected: Returns "1" and connection works                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+  |
+  v
+  Go to STEP 11: Verify Schema
+
+======================================================================================
+                       STEP 7B: FIX NETWORK ISSUES
+======================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Check if instance has public IP and authorized networks                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ $ gcloud sql instances describe legal-forms-db \                            │
+│    --format="value(ipAddresses[0].ipAddress)"                              │
+│                                                                             │
+│ Expected: IP address like 1.2.3.4 (if using public IP)                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+  |
+  ├─→ NO PUBLIC IP
+  |   |
+  |   └─→ Instance might be in Private IP mode (expected for VPC)
+  |       Use Cloud SQL Proxy method (STEP 7A) instead
+  |
+  └─→ HAS PUBLIC IP
+      |
+      v
+      ┌─────────────────────────────────────────────────────────────────────────┐
+      │ Check authorized networks                                               │
+      ├─────────────────────────────────────────────────────────────────────────┤
+      │ $ gcloud sql instances describe legal-forms-db \                        │
+      │    --format="value(settings.ipConfiguration.authorizedNetworks[].value)"│
+      └─────────────────────────────────────────────────────────────────────────┘
+      |
+      ├─→ EMPTY LIST
+      |   |
+      |   └─→ No networks authorized. Add your IP:
+      |       $ MY_IP=$(curl -s https://api.ipify.org)
+      |       $ echo "Your IP: $MY_IP"
+      |       $ gcloud sql instances patch legal-forms-db \
+      |         --allowed-networks=$MY_IP \
+      |         --backup
+      |
+      └─→ NETWORKS LISTED
+          |
+          └─→ Verify your IP is in the list
+              If not, add it with the command above
+              If it is, may be firewall issue at network level
+
+  After adding networks, wait 30 seconds and try STEP 6 again
+
+======================================================================================
+                       STEP 11: VERIFY SCHEMA & COMPLETE
+======================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Verify tables exist                                                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ $ gcloud sql connect legal-forms-db --user=app-user --database=legal_forms_db│
+│ legal_forms_db=> \dt                                                        │
+│                                                                             │
+│ Expected: See tables: cases, parties, party_issue_selections                │
+└─────────────────────────────────────────────────────────────────────────────┘
+  |
+  ├─→ NO TABLES FOUND
+  |   |
+  |   v
+  |   Schema needs to be re-imported:
+  |
+  |   $ pg_dump -U ryanhaines -h localhost legal_forms_db --schema-only > schema.sql
+  |   $ PROJECT_ID=$(gcloud config get-value project)
+  |   $ gsutil cp schema.sql gs://${PROJECT_ID}-db-migration/
+  |   $ gcloud sql import sql legal-forms-db \
+  |     gs://${PROJECT_ID}-db-migration/schema.sql \
+  |     --database=legal_forms_db \
+  |     --user=postgres
+  |
+  |   Then wait 1-2 minutes for import to complete
+  |   Then re-run verification above
+  |
+  └─→ ALL TABLES FOUND
+      |
+      v
+      ┌─────────────────────────────────────────────────────────────────────┐
+      │ Verify user has permissions                                         │
+      ├─────────────────────────────────────────────────────────────────────┤
+      │ legal_forms_db=> SELECT COUNT(*) FROM cases;                        │
+      │ legal_forms_db=> SELECT COUNT(*) FROM parties;                      │
+      │ legal_forms_db=> SELECT COUNT(*) FROM party_issue_selections;       │
+      │                                                                     │
+      │ Expected: Returns 0 (or row counts if data exists)                  │
+      │ NOT Expected: permission denied errors                              │
+      └─────────────────────────────────────────────────────────────────────┘
+      |
+      └─→ ALL TESTS PASS
+          |
+          v
+          ┌─────────────────────────────────────────────────────────────────┐
+          │ PHASE 2.4 VALIDATION COMPLETE!                                  │
+          ├─────────────────────────────────────────────────────────────────┤
+          │ You can now:                                                    │
+          │ ✓ Connect to Cloud SQL instance                                │
+          │ ✓ Access app-user account                                      │
+          │ ✓ Query all required tables                                    │
+          │ ✓ Test read/write operations                                   │
+          │                                                                 │
+          │ NEXT STEP: Proceed to Phase 3 - Network Infrastructure          │
+          └─────────────────────────────────────────────────────────────────┘
+
+======================================================================================
+                              TROUBLESHOOTING QUICK LINKS
+======================================================================================
+
+File Reference by Error Type:
+
+ERROR: "password authentication failed"
+  -> See: PHASE_2_4_TROUBLESHOOTING_GUIDE.md (Step 6)
+  -> Run: phase_2_4_quick_commands.sh (Section 2.2)
+
+ERROR: "permission denied"
+  -> See: PHASE_2_4_TROUBLESHOOTING_GUIDE.md (Step 6)
+  -> SQL: phase_2_4_sql_commands.sql (Section 5)
+
+ERROR: "connection refused" or "connection timeout"
+  -> See: PHASE_2_4_TROUBLESHOOTING_GUIDE.md (Step 8)
+  -> Run: phase_2_4_quick_commands.sh (Section 1)
+
+ERROR: "database does not exist"
+  -> See: PHASE_2_4_TROUBLESHOOTING_GUIDE.md (Step 3)
+  -> Quick fix: gcloud sql databases create legal_forms_db --instance=legal-forms-db
+
+ERROR: "relations do not exist"
+  -> See: PHASE_2_4_TROUBLESHOOTING_GUIDE.md (Step 9)
+  -> Quick fix: Re-import schema (see STEP 11 above)
+
+======================================================================================
+                              TIME ESTIMATES
+======================================================================================
+
+Best Case (all created correctly):
+  STEP 1-2:  1 minute    (authentication check)
+  STEP 3-5:  2 minutes   (verify instance/db/user)
+  STEP 6:    2 minutes   (test connection)
+  STEP 11:   2 minutes   (verify schema)
+  TOTAL:     ~7 minutes
+
+Typical Case (1-2 things need fixing):
+  STEP 1-2:  1 minute
+  STEP 3-5:  3 minutes   (create missing items)
+  STEP 6:    2 minutes
+  STEP 7A:   5 minutes   (fix permissions)
+  STEP 11:   2 minutes
+  TOTAL:     ~13 minutes
+
+Worst Case (major issues):
+  STEP 1-2:  1 minute
+  STEP 3-5:  5 minutes   (wait for operations)
+  STEP 7A:   5 minutes   (permissions)
+  STEP 7B:   10 minutes  (network troubleshooting)
+  STEP 11:   10 minutes  (re-import schema)
+  TOTAL:     ~30 minutes
+
+======================================================================================
+                              SUCCESS CRITERIA
+======================================================================================
+
+Phase 2.4 is complete when:
+
+[✓] gcloud sql connect legal-forms-db --user=app-user --database=legal_forms_db
+    connects without errors
+
+[✓] \dt shows tables: cases, parties, party_issue_selections
+
+[✓] SELECT COUNT(*) FROM cases; returns without permission errors
+
+[✓] User can INSERT/UPDATE/DELETE in tables (or at least SELECT)
+
+[✓] No sensitive data (passwords, tokens) in connection output
+
+If all above pass, proceed to Phase 3: Network Infrastructure
+
+======================================================================================

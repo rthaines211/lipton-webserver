@@ -1,0 +1,401 @@
+/**
+ * VitePress Custom Styles
+ *
+ * Customizes the default VitePress theme to match the Legal Form Application brand.
+ * Override CSS variables to change colors, fonts, and spacing.
+ *
+ * @see https://vitepress.dev/guide/extending-default-theme#customizing-css
+ */
+
+/* ============================================
+   Brand Colors
+   ============================================ */
+:root {
+  /* Primary brand color - Blue */
+  --vp-c-brand-1: #3498db;
+  --vp-c-brand-2: #2980b9;
+  --vp-c-brand-3: #21618c;
+  --vp-c-brand-soft: rgba(52, 152, 219, 0.14);
+
+  /* Accent colors */
+  --vp-c-green-1: #27ae60;
+  --vp-c-green-2: #229954;
+  --vp-c-green-3: #1e8449;
+
+  /* Hero gradient */
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(
+    135deg,
+    #3498db 10%,
+    #9b59b6 50%,
+    #e74c3c 100%
+  );
+
+  /* Button colors */
+  --vp-button-brand-bg: var(--vp-c-brand-1);
+  --vp-button-brand-hover-bg: var(--vp-c-brand-2);
+  --vp-button-brand-active-bg: var(--vp-c-brand-3);
+
+  /* Link colors */
+  --vp-c-text-code: #e74c3c;
+}
+
+/* Dark mode specific colors */
+.dark {
+  --vp-c-brand-1: #5dade2;
+  --vp-c-brand-2: #3498db;
+  --vp-c-brand-3: #2980b9;
+  --vp-c-brand-soft: rgba(93, 173, 226, 0.14);
+}
+
+/* ============================================
+   Typography
+   ============================================ */
+:root {
+  --vp-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+
+  --vp-font-family-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono',
+    Menlo, Courier, monospace;
+}
+
+/* ============================================
+   Home Page Hero Customization
+   ============================================ */
+.VPHero .name {
+  font-size: 64px !important;
+}
+
+.VPHero .tagline {
+  font-size: 20px;
+  line-height: 1.5;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   Feature Cards
+   ============================================ */
+.VPFeature {
+  transition: all 0.3s ease;
+  border: 1px solid var(--vp-c-divider);
+}
+
+.VPFeature:hover {
+  transform: translateY(-4px);
+  border-color: var(--vp-c-brand-1);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.VPFeature .icon {
+  font-size: 32px;
+}
+
+/* ============================================
+   Custom Containers
+   ============================================ */
+.custom-block.tip {
+  border-color: var(--vp-c-brand-1);
+}
+
+.custom-block.tip .custom-block-title {
+  color: var(--vp-c-brand-1);
+}
+
+.custom-block.warning {
+  border-color: #f39c12;
+}
+
+.custom-block.warning .custom-block-title {
+  color: #f39c12;
+}
+
+.custom-block.danger {
+  border-color: #e74c3c;
+}
+
+.custom-block.danger .custom-block-title {
+  color: #e74c3c;
+}
+
+/* ============================================
+   Code Blocks
+   ============================================ */
+.vp-code-group {
+  margin: 16px 0;
+}
+
+.vp-code-group .tabs {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+div[class*='language-'] {
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+div[class*='language-'] code {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Code block copy button */
+.vp-code-group .copy {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.vp-code-group:hover .copy {
+  opacity: 1;
+}
+
+/* ============================================
+   Tables
+   ============================================ */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+table th {
+  background-color: var(--vp-c-bg-soft);
+  font-weight: 600;
+  text-align: left;
+  padding: 12px;
+  border-bottom: 2px solid var(--vp-c-divider);
+}
+
+table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+table tr:hover {
+  background-color: var(--vp-c-bg-soft);
+}
+
+/* ============================================
+   Badges
+   ============================================ */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 12px;
+  margin: 0 4px;
+}
+
+.badge.success {
+  background-color: var(--vp-c-green-soft);
+  color: var(--vp-c-green-1);
+}
+
+.badge.warning {
+  background-color: rgba(243, 156, 18, 0.14);
+  color: #f39c12;
+}
+
+.badge.danger {
+  background-color: rgba(231, 76, 60, 0.14);
+  color: #e74c3c;
+}
+
+/* ============================================
+   Search Customization
+   ============================================ */
+.VPLocalSearchBox {
+  --vp-local-search-highlight-bg: var(--vp-c-brand-soft);
+  --vp-local-search-highlight-text: var(--vp-c-brand-1);
+}
+
+/* ============================================
+   Sidebar Customization
+   ============================================ */
+.VPSidebar {
+  width: 280px;
+}
+
+.VPSidebarItem.level-0 {
+  font-weight: 600;
+}
+
+.VPSidebarItem.is-active > .item .link {
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+}
+
+/* ============================================
+   Navigation Bar
+   ============================================ */
+.VPNavBar {
+  backdrop-filter: blur(8px);
+}
+
+.VPNavBarMenu .text {
+  font-weight: 500;
+}
+
+/* ============================================
+   Footer
+   ============================================ */
+.VPFooter {
+  border-top: 1px solid var(--vp-c-divider);
+  padding-top: 32px;
+  margin-top: 64px;
+}
+
+/* ============================================
+   Custom Utility Classes
+   ============================================ */
+.text-center {
+  text-align: center;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 768px) {
+  .VPHero .name {
+    font-size: 48px !important;
+  }
+
+  .VPHero .tagline {
+    font-size: 16px;
+  }
+
+  table {
+    font-size: 14px;
+  }
+
+  table th,
+  table td {
+    padding: 8px;
+  }
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+@media print {
+  .VPNav,
+  .VPSidebar,
+  .VPDocFooter,
+  .VPFooter {
+    display: none;
+  }
+
+  .VPContent {
+    max-width: 100%;
+    padding: 0;
+  }
+}
+
+/* ============================================
+   Mermaid Diagram Styling
+   ============================================ */
+.mermaid {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ============================================
+   Accessibility Improvements
+   ============================================ */
+/* Focus visible for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip to content link */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--vp-c-brand-1);
+  color: white;
+  padding: 8px;
+  text-decoration: none;
+  z-index: 100;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* ============================================
+   Custom Animations
+   ============================================ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+/* ============================================
+   Code Syntax Highlighting Enhancements
+   ============================================ */
+.shiki {
+  padding: 16px !important;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.shiki code {
+  counter-reset: step;
+  counter-increment: step 0;
+}
+
+.shiki code .line::before {
+  content: counter(step);
+  counter-increment: step;
+  width: 1rem;
+  margin-right: 1.5rem;
+  display: inline-block;
+  text-align: right;
+  color: rgba(115, 138, 148, 0.4);
+}
+
+.shiki code .line.highlighted {
+  background-color: rgba(52, 152, 219, 0.1);
+  display: block;
+  margin: 0 -16px;
+  padding: 0 16px;
+  border-left: 3px solid var(--vp-c-brand-1);
+}

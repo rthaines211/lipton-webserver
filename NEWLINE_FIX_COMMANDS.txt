@@ -1,0 +1,125 @@
+================================================================================
+IMMEDIATE FIX: Remove Newline from Dropbox Token
+================================================================================
+
+The Problem:
+Your token has a newline character at the end, causing "Invalid header value"
+error in HTTP requests.
+
+The Solution:
+Re-upload the token WITHOUT a newline character.
+
+================================================================================
+OPTION 1: Use the Fix Script (Recommended)
+================================================================================
+
+./fix-dropbox-token-newline.sh "YOUR_FULL_TOKEN_HERE"
+
+Example:
+./fix-dropbox-token-newline.sh "sl.u.AGGPlGALIUEIpohkf843QT..."
+
+This script:
+1. Validates the token format
+2. Saves it WITHOUT newline
+3. Updates GCP secret
+4. Restarts the service
+5. Verifies it worked
+
+================================================================================
+OPTION 2: Manual Commands
+================================================================================
+
+# Step 1: Get your token from Dropbox
+# Go to: https://www.dropbox.com/developers/apps
+# Click your app → Settings → Generate access token
+# Copy the ENTIRE token
+
+# Step 2: Save to secret WITHOUT newline (use printf, not echo)
+printf "YOUR_TOKEN_HERE" | gcloud secrets versions add dropbox-token --data-file=-
+
+# Or use echo -n (no newline):
+echo -n "YOUR_TOKEN_HERE" | gcloud secrets versions add dropbox-token --data-file=-
+
+# Step 3: Restart service
+gcloud run services update python-pipeline \
+  --region=us-central1 \
+  --update-secrets=DROPBOX_ACCESS_TOKEN=dropbox-token:latest
+
+# Step 4: Verify (wait 30 seconds first)
+sleep 30
+gcloud run services logs read python-pipeline \
+  --region=us-central1 \
+  --limit=20 | grep -i "dropbox"
+
+================================================================================
+OPTION 3: Use Temporary File
+================================================================================
+
+# Step 1: Create temp file WITHOUT newline
+echo -n "YOUR_TOKEN_HERE" > /tmp/dropbox-token.txt
+
+# Step 2: Upload from file
+gcloud secrets versions add dropbox-token --data-file=/tmp/dropbox-token.txt
+
+# Step 3: Clean up
+rm /tmp/dropbox-token.txt
+
+# Step 4: Restart service
+gcloud run services update python-pipeline \
+  --region=us-central1 \
+  --update-secrets=DROPBOX_ACCESS_TOKEN=dropbox-token:latest
+
+# Step 5: Verify
+sleep 30
+gcloud run services logs read python-pipeline \
+  --region=us-central1 \
+  --limit=20 | grep -i "dropbox"
+
+================================================================================
+What Success Looks Like
+================================================================================
+
+BEFORE (Current - with newline):
+❌ Dropbox initialization failed: Invalid header value b'Bearer sl.u.ABC...XYZ\n'
+                                                                           ^^^
+
+AFTER (Fixed - no newline):
+✅ Dropbox service initialized
+   Base path: /Current Clients
+
+================================================================================
+Quick Test After Fix
+================================================================================
+
+1. Submit test form:
+   https://node-server-945419684329.us-central1.run.app
+
+2. Watch for uploads:
+   gcloud run services logs read python-pipeline \
+     --region=us-central1 \
+     --follow | grep "☁️"
+
+3. You should see:
+   ☁️  Uploaded to Dropbox: ... → /Current Clients/...
+   ✅ Dropbox upload successful
+
+4. Verify in Dropbox:
+   Open Dropbox → /Current Clients/ → Check for new folders
+
+================================================================================
+Why This Happened
+================================================================================
+
+When you ran:
+  echo "TOKEN" | gcloud secrets add ...
+
+The echo command automatically adds \n (newline) at the end.
+This newline becomes part of the secret value.
+When used in HTTP headers, it causes "Invalid header value" error.
+
+FIX: Use "echo -n" or "printf" instead:
+  echo -n "TOKEN" | gcloud secrets add ...
+  OR
+  printf "TOKEN" | gcloud secrets add ...
+
+================================================================================
