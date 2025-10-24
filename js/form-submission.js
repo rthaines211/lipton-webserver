@@ -145,15 +145,15 @@ async function skipEmailNotification() {
  */
 async function submitEmailNotification() {
     const emailInput = document.getElementById('notificationEmailInput');
-    const nameInput = document.getElementById('notification-name-input');
+    const nameInput = document.getElementById('notification-name-input'); // Optional field
 
-    if (!emailInput || !nameInput) {
-        console.error('Email input fields not found');
+    if (!emailInput) {
+        console.error('Email input field not found');
         return;
     }
 
     const email = emailInput.value.trim();
-    const name = nameInput.value.trim();
+    const name = nameInput ? nameInput.value.trim() : null; // Name is optional
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
