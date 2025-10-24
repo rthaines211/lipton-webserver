@@ -24,6 +24,6 @@ COPY . .
 EXPOSE 8080
 
 # Start Node.js application
-# Phase 1 Refactoring: Updated entry point to modular structure
-# server/index.js is the new main entry point for Express application
-CMD ["node", "server/index.js"]
+# Using server.js as main entry point (monolithic server with email feature)
+# Note: server/index.js refactoring is incomplete - requires form-routes.js
+CMD ["node", "server.js"]
