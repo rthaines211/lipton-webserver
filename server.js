@@ -52,6 +52,7 @@ const path = require('path');
 const { Pool } = require('pg');
 const axios = require('axios');
 const dropboxService = require('./dropbox-service');
+const emailService = require('./email-service');
 const { Storage } = require('@google-cloud/storage');
 
 // Monitoring and metrics
@@ -1336,6 +1337,79 @@ async function callNormalizationPipeline(structuredData, caseId) {
                 result: response.data,
                 webhookSummary: webhookSummary  // Add webhook details
             });
+
+            // ============================================
+            // EMAIL NOTIFICATION LOGIC
+            // ============================================
+            // Send email notification if user opted in
+            // This runs asynchronously and does not block the pipeline response
+
+            const shouldSendEmail = structuredData.raw_payload?.notificationEmail &&
+                                   structuredData.raw_payload?.notificationEmailOptIn === true;
+
+            if (shouldSendEmail) {
+                console.log(`📧 Preparing email notification for: ${structuredData.raw_payload.notificationEmail}`);
+
+                // Run email sending async (non-blocking)
+                (async () => {
+                    try {
+                        // Extract street address from form data (multiple possible locations)
+                        const streetAddress =
+                            structuredData.raw_payload['street-address'] ||
+                            structuredData.Full_Address?.StreetAddress ||
+                            structuredData.raw_payload['Full_Address.StreetAddress'] ||
+                            'your property';
+
+                        console.log(`📍 Property address: ${streetAddress}`);
+
+                        // Try to get Dropbox shared link (if Dropbox enabled)
+                        let dropboxLink = null;
+
+                        if (dropboxService.isEnabled()) {
+                            // Format folder path for Dropbox
+                            const folderPath = `/Apps/LegalFormApp/${streetAddress}`;
+                            console.log(`📁 Checking Dropbox folder: ${folderPath}`);
+
+                            dropboxLink = await dropboxService.createSharedLink(folderPath);
+
+                            if (dropboxLink) {
+                                console.log(`✅ Dropbox link generated successfully`);
+                            } else {
+                                console.log(`⚠️  Dropbox link generation failed (will send email without link)`);
+                            }
+                        } else {
+                            console.log(`ℹ️  Dropbox disabled (will send email without link)`);
+                        }
+
+                        // Send email notification
+                        const emailResult = await emailService.sendCompletionNotification({
+                            to: structuredData.raw_payload.notificationEmail,
+                            name: structuredData.raw_payload.notificationName || 'User',
+                            streetAddress: streetAddress,
+                            caseId: caseId,
+                            dropboxLink: dropboxLink,
+                            documentCount: webhookSummary?.total_sets || 32
+                        });
+
+                        if (emailResult.success) {
+                            console.log(`✅ Email notification sent successfully to ${structuredData.raw_payload.notificationEmail}`);
+                        } else {
+                            console.error(`❌ Email notification failed: ${emailResult.error}`);
+                        }
+
+                    } catch (emailError) {
+                        // Log error but don't fail the pipeline
+                        console.error('❌ Email notification error (non-blocking):', emailError);
+                    }
+                })();
+
+            } else {
+                console.log(`ℹ️  Email notification skipped (user did not opt in)`);
+            }
+
+            // ============================================
+            // END EMAIL NOTIFICATION LOGIC
+            // ============================================
 
             return {
                 success: true,

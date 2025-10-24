@@ -298,11 +298,71 @@ async function getAccountInfo() {
     }
 }
 
+/**
+ * Creates a shared link for a Dropbox folder
+ *
+ * If a shared link already exists for the folder, returns the existing link.
+ * Otherwise, creates a new shared link with public viewer access.
+ *
+ * @param {string} folderPath - Dropbox folder path (e.g., /Apps/LegalFormApp/123 Main Street/)
+ * @returns {Promise<string|null>} Shared link URL or null if fails/disabled
+ *
+ * @example
+ * const link = await createSharedLink('/Apps/LegalFormApp/123 Main Street');
+ * // Returns: 'https://www.dropbox.com/sh/abc123xyz/...'
+ */
+async function createSharedLink(folderPath) {
+    // Check if Dropbox is enabled
+    if (!dbx || !DROPBOX_CONFIG.enabled) {
+        console.log('ℹ️  Dropbox disabled, cannot create shared link');
+        return null;
+    }
+
+    try {
+        console.log(`📎 Creating shared link for: ${folderPath}`);
+
+        // Check if shared link already exists
+        const existingLinks = await dbx.sharingListSharedLinks({
+            path: folderPath,
+            direct_only: true
+        });
+
+        if (existingLinks.result.links.length > 0) {
+            const existingUrl = existingLinks.result.links[0].url;
+            console.log(`✅ Using existing Dropbox shared link: ${existingUrl}`);
+            return existingUrl;
+        }
+
+        // Create new shared link with public viewer access
+        const response = await dbx.sharingCreateSharedLinkWithSettings({
+            path: folderPath,
+            settings: {
+                requested_visibility: 'public',
+                audience: 'public',
+                access: 'viewer'
+            }
+        });
+
+        const newUrl = response.result.url;
+        console.log(`✅ Created new Dropbox shared link: ${newUrl}`);
+        return newUrl;
+
+    } catch (error) {
+        // Handle errors gracefully - return null instead of throwing
+        const errorMessage = error.error?.error_summary || error.message;
+        console.error(`❌ Failed to create Dropbox shared link: ${errorMessage}`);
+
+        // Return null on failure (graceful degradation)
+        return null;
+    }
+}
+
 module.exports = {
     uploadFile,
     uploadFiles,
     mapLocalPathToDropbox,
     getAccountInfo,
+    createSharedLink,
     isEnabled: () => DROPBOX_CONFIG.enabled && dbx !== null,
     config: DROPBOX_CONFIG
 };
