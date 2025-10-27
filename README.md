@@ -70,6 +70,57 @@ npm run test:report
 npx playwright test tests/simple-form-test.spec.js
 ```
 
+## Configuration
+
+### Environment Variables
+
+The application uses environment variables for configuration. All variables are defined in the `config/` directory:
+
+- **`config/production.env`** - Production Cloud Run configuration
+- **`config/staging.env`** - Staging environment configuration
+- **`config/development.env`** - Local development configuration
+
+For local development, copy the development config:
+```bash
+cp config/development.env .env
+```
+
+### Configuration Management
+
+- **Environment Variables Reference**: See [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md) for complete documentation of all variables
+- **Validation**: Run `npm run validate:env` to check your configuration
+- **Secrets**: Sensitive values (passwords, API keys) are managed in GCP Secret Manager
+
+**Key Variables:**
+- `NODE_ENV` - Application mode (development/staging/production)
+- `DB_*` - PostgreSQL database connection
+- `EMAIL_*` - SendGrid email notification settings
+- `DROPBOX_*` - Dropbox file upload configuration
+- `PIPELINE_API_*` - Python normalization pipeline settings
+
+## Deployment
+
+### Automated Deployment (Recommended)
+
+The application automatically deploys via GitHub Actions:
+- Push to `develop` → Deploys to development
+- Push to `main` → Deploys to staging (automatic) and production (manual approval)
+
+### Manual Deployment
+
+```bash
+# Deploy to production
+./scripts/deploy.sh production
+
+# Deploy to staging
+./scripts/deploy.sh staging
+
+# Fix production configuration
+./scripts/fix-cloud-run-env-vars.sh
+```
+
+**Complete deployment guide:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+
 ## Application Workflow
 
 1. **Fill Out Form**: Users complete the legal form with property, plaintiff, and defendant information

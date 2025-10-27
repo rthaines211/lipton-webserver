@@ -1,0 +1,26 @@
+#=============================================================================
+# Grafana Dashboard Provisioning Configuration
+#
+# This enables automatic loading of dashboard JSON files from the
+# dashboards directory.
+#
+# To add dashboards:
+# 1. Export dashboard JSON from Grafana UI
+# 2. Place in /etc/grafana/provisioning/dashboards/ directory
+# 3. Restart Grafana or wait for auto-reload
+#=============================================================================
+
+apiVersion: 1
+
+providers:
+  # Dashboard provider for JSON files
+  - name: 'Default'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

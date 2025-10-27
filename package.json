@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "validate:env": "node config/env-validator.js",
     "build": "node build.js",
     "build:prod": "NODE_ENV=production node build.js",
     "test": "playwright test",

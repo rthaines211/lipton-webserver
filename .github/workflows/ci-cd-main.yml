@@ -405,10 +405,39 @@ jobs:
       - name: ☁️ Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: 📋 Load Staging Configuration
+        id: load-config
+        run: |
+          # Convert config/staging.env to Cloud Run format
+          # Remove comments, empty lines, and PORT (Cloud Run sets this automatically)
+          ENV_VARS=$(cat config/staging.env | grep -v '^#' | grep -v '^$' | grep -v '^PORT=' | tr '\n' ',' | sed 's/,$//')
+          echo "env_vars=$ENV_VARS" >> $GITHUB_OUTPUT
+
+          # Count variables for logging
+          VAR_COUNT=$(echo "$ENV_VARS" | tr ',' '\n' | wc -l)
+          echo "📊 Loaded $VAR_COUNT environment variables from config/staging.env (PORT excluded)"
+
       - name: 🚀 Deploy to Cloud Run (Staging)
         run: |
           echo "Deploying to Cloud Run (Staging)..."
-          echo "✅ Would deploy to staging environment"
+
+          gcloud run deploy node-server-staging \
+            --image=${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/node-server:staging-${{ github.sha }} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --update-secrets="DB_PASSWORD=DB_PASSWORD_STAGING:latest,ACCESS_TOKEN=ACCESS_TOKEN_STAGING:latest,SENDGRID_API_KEY=sendgrid-api-key-staging:latest,DROPBOX_ACCESS_TOKEN=dropbox-token-staging:latest,DOCMOSIS_ACCESS_KEY=docmosis-key:latest" \
+            --set-env-vars="${{ steps.load-config.outputs.env_vars }}" \
+            --add-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db-staging" \
+            --service-account=945419684329-compute@developer.gserviceaccount.com \
+            --memory=1Gi \
+            --cpu=1 \
+            --timeout=300 \
+            --max-instances=10 \
+            --min-instances=0
+
+          echo "✅ Deployed to staging environment"
 
       - name: ✅ Run smoke tests
         run: |
@@ -440,10 +469,39 @@ jobs:
       - name: ☁️ Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: 📋 Load Production Configuration
+        id: load-config
+        run: |
+          # Convert config/production.env to Cloud Run format
+          # Remove comments, empty lines, and PORT (Cloud Run sets this automatically)
+          ENV_VARS=$(cat config/production.env | grep -v '^#' | grep -v '^$' | grep -v '^PORT=' | tr '\n' ',' | sed 's/,$//')
+          echo "env_vars=$ENV_VARS" >> $GITHUB_OUTPUT
+
+          # Count variables for logging
+          VAR_COUNT=$(echo "$ENV_VARS" | tr ',' '\n' | wc -l)
+          echo "📊 Loaded $VAR_COUNT environment variables from config/production.env (PORT excluded)"
+
       - name: 🚀 Deploy to Cloud Run (Production)
         run: |
           echo "Deploying to Cloud Run (Production)..."
-          echo "✅ Would deploy to production environment"
+
+          gcloud run deploy node-server \
+            --image=${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/node-server:production-${{ github.sha }} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --update-secrets="DB_PASSWORD=DB_PASSWORD:latest,ACCESS_TOKEN=ACCESS_TOKEN:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DOCMOSIS_ACCESS_KEY=docmosis-key:latest" \
+            --set-env-vars="${{ steps.load-config.outputs.env_vars }}" \
+            --add-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db" \
+            --service-account=945419684329-compute@developer.gserviceaccount.com \
+            --memory=1Gi \
+            --cpu=1 \
+            --timeout=300 \
+            --max-instances=10 \
+            --min-instances=0
+
+          echo "✅ Deployed to production environment"
 
       - name: ✅ Run production smoke tests
         run: |

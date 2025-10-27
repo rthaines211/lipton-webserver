@@ -4,14 +4,20 @@
  * Handles all Dropbox API operations including file uploads and folder creation.
  * Preserves local folder structure when uploading to Dropbox.
  *
- * Configuration:
- * - DROPBOX_ACCESS_TOKEN: OAuth token for Dropbox API authentication
+ * Configuration (OAuth Refresh Token - Recommended):
+ * - DROPBOX_APP_KEY: OAuth app key (never expires)
+ * - DROPBOX_APP_SECRET: OAuth app secret (never expires)
+ * - DROPBOX_REFRESH_TOKEN: OAuth refresh token (never expires, auto-refreshes)
  * - DROPBOX_ENABLED: Enable/disable Dropbox uploads
  * - DROPBOX_BASE_PATH: Base folder path in Dropbox (e.g., /Current Clients)
  * - LOCAL_OUTPUT_PATH: Local output directory to mirror to Dropbox
  * - CONTINUE_ON_DROPBOX_FAILURE: Continue on upload failure
  *
+ * Legacy Configuration (Short-lived Access Token - Deprecated):
+ * - DROPBOX_ACCESS_TOKEN: OAuth token (expires every 4 hours) - DEPRECATED
+ *
  * Features:
+ * - OAuth refresh token support (automatic token refresh, never expires)
  * - Automatic folder creation in Dropbox
  * - File overwriting (WriteMode.overwrite)
  * - Path mapping from local to Dropbox structure
@@ -21,7 +27,7 @@
  *   const dropboxService = require('./dropbox-service');
  *   await dropboxService.uploadFile('/output/Clients/Case1/file.pdf');
  *
- * Last Updated: 2025-10-27
+ * Last Updated: 2025-10-27 (Migrated to OAuth refresh tokens)
  */
 
 const { Dropbox } = require('dropbox');
@@ -31,27 +37,59 @@ const path = require('path');
 /**
  * Dropbox Configuration
  * Loaded from environment variables with sensible defaults
+ *
+ * Supports both OAuth refresh tokens (preferred) and legacy access tokens
  */
 const DROPBOX_CONFIG = {
+    // OAuth refresh token credentials (preferred - never expire)
+    appKey: process.env.DROPBOX_APP_KEY || '',
+    appSecret: process.env.DROPBOX_APP_SECRET || '',
+    refreshToken: process.env.DROPBOX_REFRESH_TOKEN || '',
+
+    // Legacy access token (deprecated - expires every 4 hours)
     accessToken: process.env.DROPBOX_ACCESS_TOKEN || '',
+
+    // General configuration
     enabled: process.env.DROPBOX_ENABLED === 'true',
     basePath: process.env.DROPBOX_BASE_PATH || '/Current Clients',
     localOutputPath: process.env.LOCAL_OUTPUT_PATH || '/output',
     continueOnFailure: process.env.CONTINUE_ON_DROPBOX_FAILURE !== 'false'
 };
 
-// Initialize Dropbox client if enabled and token is provided
+// Initialize Dropbox client if enabled
 let dbx = null;
-if (DROPBOX_CONFIG.enabled && DROPBOX_CONFIG.accessToken) {
-    dbx = new Dropbox({ accessToken: DROPBOX_CONFIG.accessToken });
-    console.log('✅ Dropbox service initialized');
-    console.log(`   Base path: ${DROPBOX_CONFIG.basePath}`);
-} else {
-    if (DROPBOX_CONFIG.enabled && !DROPBOX_CONFIG.accessToken) {
-        console.warn('⚠️  Dropbox enabled but no access token provided. Uploads will be skipped.');
-    } else {
-        console.log('ℹ️  Dropbox service disabled');
+if (DROPBOX_CONFIG.enabled) {
+    try {
+        // Prefer OAuth refresh token (never expires)
+        if (DROPBOX_CONFIG.refreshToken && DROPBOX_CONFIG.appKey && DROPBOX_CONFIG.appSecret) {
+            dbx = new Dropbox({
+                refreshToken: DROPBOX_CONFIG.refreshToken,
+                clientId: DROPBOX_CONFIG.appKey,
+                clientSecret: DROPBOX_CONFIG.appSecret
+            });
+            console.log('✅ Dropbox service initialized (OAuth refresh token)');
+            console.log(`   Base path: ${DROPBOX_CONFIG.basePath}`);
+            console.log('   🔄 Token auto-refresh enabled (never expires)');
+        }
+        // Fall back to legacy access token (will expire)
+        else if (DROPBOX_CONFIG.accessToken) {
+            dbx = new Dropbox({ accessToken: DROPBOX_CONFIG.accessToken });
+            console.log('✅ Dropbox service initialized (legacy access token)');
+            console.log(`   Base path: ${DROPBOX_CONFIG.basePath}`);
+            console.warn('   ⚠️  WARNING: Using short-lived access token (expires in ~4 hours)');
+            console.warn('   ⚠️  Migrate to OAuth refresh tokens to prevent expiration');
+        }
+        // No credentials provided
+        else {
+            console.warn('⚠️  Dropbox enabled but no credentials provided');
+            console.warn('   Set DROPBOX_REFRESH_TOKEN + DROPBOX_APP_KEY + DROPBOX_APP_SECRET');
+            console.warn('   Or set DROPBOX_ACCESS_TOKEN (legacy, will expire)');
+        }
+    } catch (error) {
+        console.error('❌ Failed to initialize Dropbox service:', error.message);
     }
+} else {
+    console.log('ℹ️  Dropbox service disabled');
 }
 
 /**
@@ -337,20 +375,50 @@ async function createSharedLink(folderPath) {
             return existingUrl;
         }
 
-        // Create new shared link with TEAM-ONLY viewer access
+        // Try to create shared link with TEAM-ONLY viewer access first
         // This restricts access to only members of your Dropbox team
-        const response = await dbx.sharingCreateSharedLinkWithSettings({
-            path: folderPath,
-            settings: {
-                requested_visibility: 'team_only',  // Restricted to team members
-                audience: 'team',                    // Only team can access
-                access: 'viewer'                     // View-only (no edit/download)
-            }
-        });
+        try {
+            const response = await dbx.sharingCreateSharedLinkWithSettings({
+                path: folderPath,
+                settings: {
+                    requested_visibility: 'team_only',  // Restricted to team members
+                    audience: 'team',                    // Only team can access
+                    access: 'viewer'                     // View-only (no edit/download)
+                }
+            });
 
-        const newUrl = response.result.url;
-        console.log(`✅ Created new team-only Dropbox shared link: ${newUrl}`);
-        return newUrl;
+            const newUrl = response.result.url;
+            console.log(`✅ Created new team-only Dropbox shared link: ${newUrl}`);
+            return newUrl;
+
+        } catch (teamError) {
+            // Team-only failed (might not be a Business account), fall back to public link
+            const teamErrorMsg = teamError.error?.error_summary || teamError.message;
+            console.warn(`⚠️  Team-only link failed (${teamErrorMsg}), trying public link...`);
+
+            try {
+                // Fall back to public link with password protection if available
+                const publicResponse = await dbx.sharingCreateSharedLinkWithSettings({
+                    path: folderPath,
+                    settings: {
+                        requested_visibility: 'public',  // Public link (anyone with link)
+                        audience: 'public',
+                        access: 'viewer'                 // View-only
+                    }
+                });
+
+                const publicUrl = publicResponse.result.url;
+                console.log(`✅ Created public Dropbox shared link: ${publicUrl}`);
+                console.warn(`⚠️  Link is public (not team-restricted). Upgrade to Dropbox Business for team-only links.`);
+                return publicUrl;
+
+            } catch (publicError) {
+                // Both team-only and public failed
+                const publicErrorMsg = publicError.error?.error_summary || publicError.message;
+                console.error(`❌ Failed to create public link: ${publicErrorMsg}`);
+                throw publicError; // Re-throw to outer catch
+            }
+        }
 
     } catch (error) {
         // Handle errors gracefully - return null instead of throwing

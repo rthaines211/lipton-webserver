@@ -15,7 +15,8 @@
 #   docker-compose logs -f         # View logs
 #   docker-compose down            # Stop containers
 #
-# Access:
+# Access (via SSH tunnel):
+#   Grafana UI: http://localhost:3000 (admin/tornado2025!)
 #   Prometheus UI: http://localhost:9090 (internal only)
 #   NGINX Exporter: http://localhost:9113/metrics
 #
@@ -43,8 +44,8 @@ services:
     # Command arguments for exporter
     # Points to NGINX stub_status endpoint (must be configured in NGINX)
     command:
-      - '-nginx.scrape-uri=http://host.docker.internal/nginx_status'
-      - '-web.telemetry-path=/metrics'
+      - '--nginx.scrape-uri=http://host.docker.internal:8081/nginx_status'
+      - '--web.telemetry-path=/metrics'
 
     # Allow access to host machine (for NGINX on host)
     extra_hosts:
@@ -53,13 +54,8 @@ services:
     networks:
       - monitoring
 
-    # Health check
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9113/metrics"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    # Health check removed - container is distroless (no shell/curl/wget)
+    # Monitoring will verify metrics endpoint availability instead
 
   #
   # Prometheus
@@ -98,15 +94,64 @@ services:
 
     depends_on:
       nginx-exporter:
-        condition: service_healthy
+        condition: service_started
 
     # Health check
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  #
+  # Grafana
+  # Visualization and dashboarding for Prometheus metrics
+  #
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+
+    ports:
+      - "3000:3000"  # Web UI
+
+    volumes:
+      # Persistent data storage
+      - grafana-data:/var/lib/grafana
+
+      # Provisioning configuration (auto-configure Prometheus datasource)
+      - ./grafana/provisioning:/etc/grafana/provisioning
+
+    environment:
+      # Server settings
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_SERVER_DOMAIN=localhost
+
+      # Security settings
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=tornado2025!
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_USERS_ALLOW_SIGN_UP=false
+
+      # Analytics and reporting
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+
+    networks:
+      - monitoring
+
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 #=============================================================================
 # NETWORKS
@@ -125,12 +170,14 @@ volumes:
   # Prometheus data volume
   # Stores recent metrics locally (7-day retention)
   # Older metrics are in Google Managed Prometheus
+  # Docker will manage this volume automatically (no hardcoded paths)
   prometheus-data:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /home/ubuntu/monitoring/data/prometheus
+
+  # Grafana data volume
+  # Stores dashboards, datasources, and user preferences
+  grafana-data:
+    driver: local
 
 #=============================================================================
 # NOTES

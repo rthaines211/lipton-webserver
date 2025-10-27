@@ -1,0 +1,34 @@
+#=============================================================================
+# Grafana Datasource Provisioning - Prometheus
+#
+# This configuration automatically adds Prometheus as a datasource when
+# Grafana starts. No manual configuration needed!
+#
+# The datasource connects to Prometheus via the Docker network.
+#=============================================================================
+
+apiVersion: 1
+
+datasources:
+  # Prometheus datasource
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+
+    jsonData:
+      # Query settings
+      timeInterval: 15s
+      queryTimeout: 60s
+
+      # HTTP method
+      httpMethod: POST
+
+      # Exemplars
+      exemplarTraceIdDestinations: []
+
+    # Basic auth disabled (internal network)
+    basicAuth: false
+    withCredentials: false

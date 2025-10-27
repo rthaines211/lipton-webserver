@@ -43,6 +43,11 @@
 // Load environment variables from .env file
 require('dotenv').config();
 
+// Validate environment variables before starting
+// This ensures all required configuration is present and fails fast with clear errors
+const envValidator = require('./config/env-validator');
+envValidator.validate();
+
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -1300,152 +1305,156 @@ async function callNormalizationPipeline(structuredData, caseId) {
             }
         }, 2000); // Poll every 2 seconds
 
-        // Wait for pipeline completion
-        const response = await pipelinePromise;
-        
-        // Clear progress polling
-        clearInterval(progressInterval);
+        // Ensure progress polling is always cleaned up, even if pipeline fails
+        try {
+            // Wait for pipeline completion
+            const response = await pipelinePromise;
 
-        const executionTime = Date.now() - startTime;
+            const executionTime = Date.now() - startTime;
 
-        if (response.data.success) {
-            console.log(`✅ Pipeline completed successfully in ${executionTime}ms`);
-            
-            // Extract webhook summary
-            const webhookSummary = response.data.webhook_summary || null;
-            if (webhookSummary) {
-                console.log(`📄 Documents generated: ${webhookSummary.total_sets} (${webhookSummary.succeeded} succeeded, ${webhookSummary.failed} failed)`);
-            }
-            
-            if (response.data.phase_results) {
-                Object.entries(response.data.phase_results).forEach(([phase, results]) => {
-                    console.log(`   - ${phase}:`, JSON.stringify(results));
+            if (response.data.success) {
+                console.log(`✅ Pipeline completed successfully in ${executionTime}ms`);
+
+                // Extract webhook summary
+                const webhookSummary = response.data.webhook_summary || null;
+                if (webhookSummary) {
+                    console.log(`📄 Documents generated: ${webhookSummary.total_sets} (${webhookSummary.succeeded} succeeded, ${webhookSummary.failed} failed)`);
+                }
+
+                if (response.data.phase_results) {
+                    Object.entries(response.data.phase_results).forEach(([phase, results]) => {
+                        console.log(`   - ${phase}:`, JSON.stringify(results));
+                    });
+                }
+
+                // Store success status in cache with webhook details
+                setPipelineStatus(caseId, {
+                    status: 'success',
+                    phase: 'complete',
+                    progress: 100,
+                    currentPhase: webhookSummary ? `Generated ${webhookSummary.total_sets} documents` : 'Complete',
+                    totalPhases: 5,
+                    startTime: startTime,
+                    endTime: Date.now(),
+                    executionTime: executionTime,
+                    error: null,
+                    result: response.data,
+                    webhookSummary: webhookSummary  // Add webhook details
                 });
-            }
 
-            // Store success status in cache with webhook details
-            setPipelineStatus(caseId, {
-                status: 'success',
-                phase: 'complete',
-                progress: 100,
-                currentPhase: webhookSummary ? `Generated ${webhookSummary.total_sets} documents` : 'Complete',
-                totalPhases: 5,
-                startTime: startTime,
-                endTime: Date.now(),
-                executionTime: executionTime,
-                error: null,
-                result: response.data,
-                webhookSummary: webhookSummary  // Add webhook details
-            });
+                // ============================================
+                // EMAIL NOTIFICATION LOGIC
+                // ============================================
+                // Send email notification if user opted in
+                // This runs asynchronously and does not block the pipeline response
 
-            // ============================================
-            // EMAIL NOTIFICATION LOGIC
-            // ============================================
-            // Send email notification if user opted in
-            // This runs asynchronously and does not block the pipeline response
+                const shouldSendEmail = structuredData['Notification Email'] &&
+                                       structuredData['Notification Email Opt-In'] === true;
 
-            const shouldSendEmail = structuredData.raw_payload?.notificationEmail &&
-                                   structuredData.raw_payload?.notificationEmailOptIn === true;
+                if (shouldSendEmail) {
+                    console.log(`📧 Preparing email notification for: ${structuredData['Notification Email']}`);
 
-            if (shouldSendEmail) {
-                console.log(`📧 Preparing email notification for: ${structuredData.raw_payload.notificationEmail}`);
+                    // Run email sending async (non-blocking)
+                    (async () => {
+                        try {
+                            // Extract street address from form data (multiple possible locations)
+                            const streetAddress =
+                                structuredData['Property address'] ||
+                                structuredData.Full_Address?.StreetAddress ||
+                                structuredData['street-address'] ||
+                                'your property';
 
-                // Run email sending async (non-blocking)
-                (async () => {
-                    try {
-                        // Extract street address from form data (multiple possible locations)
-                        const streetAddress =
-                            structuredData.raw_payload['street-address'] ||
-                            structuredData.Full_Address?.StreetAddress ||
-                            structuredData.raw_payload['Full_Address.StreetAddress'] ||
-                            'your property';
+                            console.log(`📍 Property address: ${streetAddress}`);
 
-                        console.log(`📍 Property address: ${streetAddress}`);
+                            // Try to get Dropbox shared link (if Dropbox enabled)
+                            let dropboxLink = null;
 
-                        // Try to get Dropbox shared link (if Dropbox enabled)
-                        let dropboxLink = null;
+                            if (dropboxService.isEnabled()) {
+                                // Format folder path for Dropbox using configured base path
+                                const folderPath = `${dropboxService.config.basePath}/${streetAddress}`;
+                                console.log(`📁 Checking Dropbox folder: ${folderPath}`);
 
-                        if (dropboxService.isEnabled()) {
-                            // Format folder path for Dropbox
-                            const folderPath = `/Apps/LegalFormApp/${streetAddress}`;
-                            console.log(`📁 Checking Dropbox folder: ${folderPath}`);
+                                dropboxLink = await dropboxService.createSharedLink(folderPath);
 
-                            dropboxLink = await dropboxService.createSharedLink(folderPath);
-
-                            if (dropboxLink) {
-                                console.log(`✅ Dropbox link generated successfully`);
+                                if (dropboxLink) {
+                                    console.log(`✅ Dropbox link generated successfully`);
+                                } else {
+                                    console.log(`⚠️  Dropbox link generation failed (will send email without link)`);
+                                }
                             } else {
-                                console.log(`⚠️  Dropbox link generation failed (will send email without link)`);
+                                console.log(`ℹ️  Dropbox disabled (will send email without link)`);
                             }
-                        } else {
-                            console.log(`ℹ️  Dropbox disabled (will send email without link)`);
+
+                            // Send email notification
+                            const emailResult = await emailService.sendCompletionNotification({
+                                to: structuredData['Notification Email'],
+                                name: structuredData['Notification Name'] || 'User',
+                                streetAddress: streetAddress,
+                                caseId: caseId,
+                                dropboxLink: dropboxLink,
+                                documentCount: webhookSummary?.total_sets || 32
+                            });
+
+                            if (emailResult.success) {
+                                console.log(`✅ Email notification sent successfully to ${structuredData['Notification Email']}`);
+                            } else {
+                                console.error(`❌ Email notification failed: ${emailResult.error}`);
+                            }
+
+                        } catch (emailError) {
+                            // Log error but don't fail the pipeline
+                            console.error('❌ Email notification error (non-blocking):', emailError);
                         }
+                    })();
 
-                        // Send email notification
-                        const emailResult = await emailService.sendCompletionNotification({
-                            to: structuredData.raw_payload.notificationEmail,
-                            name: structuredData.raw_payload.notificationName || 'User',
-                            streetAddress: streetAddress,
-                            caseId: caseId,
-                            dropboxLink: dropboxLink,
-                            documentCount: webhookSummary?.total_sets || 32
-                        });
+                } else {
+                    console.log(`ℹ️  Email notification skipped (user did not opt in)`);
+                }
 
-                        if (emailResult.success) {
-                            console.log(`✅ Email notification sent successfully to ${structuredData.raw_payload.notificationEmail}`);
-                        } else {
-                            console.error(`❌ Email notification failed: ${emailResult.error}`);
-                        }
+                // ============================================
+                // END EMAIL NOTIFICATION LOGIC
+                // ============================================
 
-                    } catch (emailError) {
-                        // Log error but don't fail the pipeline
-                        console.error('❌ Email notification error (non-blocking):', emailError);
-                    }
-                })();
-
-            } else {
-                console.log(`ℹ️  Email notification skipped (user did not opt in)`);
-            }
-
-            // ============================================
-            // END EMAIL NOTIFICATION LOGIC
-            // ============================================
-
-            return {
-                success: true,
-                executionTime: executionTime,
-                case_id: caseId,
-                ...response.data
-            };
-        } else {
-            const errorMessage = response.data.error || 'Unknown pipeline error';
-            console.error(`❌ Pipeline failed: ${errorMessage}`);
-
-            // Store failure status in cache (Phase 5)
-            setPipelineStatus(caseId, {
-                status: 'failed',
-                phase: 'failed',
-                progress: 0,
-                currentPhase: null,
-                totalPhases: 5,
-                startTime: startTime,
-                endTime: Date.now(),
-                executionTime: executionTime,
-                error: errorMessage,
-                result: null
-            });
-
-            if (PIPELINE_CONFIG.continueOnFailure) {
-                console.log('⚠️  Continuing despite pipeline failure');
                 return {
-                    success: false,
-                    error: errorMessage,
+                    success: true,
+                    executionTime: executionTime,
                     case_id: caseId,
-                    continued: true
+                    ...response.data
                 };
             } else {
-                throw new Error(`Pipeline failed: ${errorMessage}`);
+                const errorMessage = response.data.error || 'Unknown pipeline error';
+                console.error(`❌ Pipeline failed: ${errorMessage}`);
+
+                // Store failure status in cache (Phase 5)
+                setPipelineStatus(caseId, {
+                    status: 'failed',
+                    phase: 'failed',
+                    progress: 0,
+                    currentPhase: null,
+                    totalPhases: 5,
+                    startTime: startTime,
+                    endTime: Date.now(),
+                    executionTime: executionTime,
+                    error: errorMessage,
+                    result: null
+                });
+
+                if (PIPELINE_CONFIG.continueOnFailure) {
+                    console.log('⚠️  Continuing despite pipeline failure');
+                    return {
+                        success: false,
+                        error: errorMessage,
+                        case_id: caseId,
+                        continued: true
+                    };
+                } else {
+                    throw new Error(`Pipeline failed: ${errorMessage}`);
+                }
             }
+        } finally {
+            // Always clear the progress polling interval, even if pipeline fails or errors occur
+            clearInterval(progressInterval);
+            console.log(`🧹 Progress polling cleaned up for case ${caseId}`);
         }
 
     } catch (error) {

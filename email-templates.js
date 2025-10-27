@@ -106,8 +106,8 @@ function getCompletionEmailTemplate(options) {
                             <table role="presentation" style="width: 100%; background: linear-gradient(135deg, #1F2A44 0%, #2A3B5A 100%);">
                                 <tr>
                                     <td style="padding: 30px; text-align: center;">
-                                        <h1 style="margin: 0 0 8px; font-size: 28px; font-weight: bold; color: #FFFFFF;">
-                                            Lipton Legal
+                                        <h1 style="margin: 0 0 8px; font-size: 32px; font-weight: bold; color: #FFFFFF; letter-spacing: 0.5px;">
+                                            Lipton Legal Group
                                         </h1>
                                         <p style="margin: 0; font-size: 15px; color: rgba(255, 255, 255, 0.9);">
                                             Discovery Document Generation
@@ -171,11 +171,7 @@ function getCompletionEmailTemplate(options) {
                     <!-- Footer -->
                     <tr>
                         <td style="padding: 20px 30px 30px; border-top: 1px solid #e0e0e0;">
-                            <p style="margin: 0 0 10px; font-size: 15px; color: #333333;">
-                                <strong>Best regards,</strong><br>
-                                The Lipton Legal Team
-                            </p>
-                            <p style="margin: 15px 0 0; font-size: 12px; color: #999999; line-height: 1.5;">
+                            <p style="margin: 0; font-size: 12px; color: #999999; line-height: 1.5;">
                                 This is an automated notification. This email was sent because you requested to be notified when your documents were ready. Your documents are available via the link above.
                             </p>
                         </td>
@@ -261,8 +257,8 @@ function getCompletionEmailTemplateNoLink(options) {
                             <table role="presentation" style="width: 100%; background: linear-gradient(135deg, #1F2A44 0%, #2A3B5A 100%);">
                                 <tr>
                                     <td style="padding: 30px; text-align: center;">
-                                        <h1 style="margin: 0 0 8px; font-size: 28px; font-weight: bold; color: #FFFFFF;">
-                                            Lipton Legal
+                                        <h1 style="margin: 0 0 8px; font-size: 32px; font-weight: bold; color: #FFFFFF; letter-spacing: 0.5px;">
+                                            Lipton Legal Group
                                         </h1>
                                         <p style="margin: 0; font-size: 15px; color: rgba(255, 255, 255, 0.9);">
                                             Discovery Document Generation

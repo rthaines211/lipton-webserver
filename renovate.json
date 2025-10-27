@@ -1,0 +1,112 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate configuration for automated dependency updates",
+
+  "extends": [
+    "config:base",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":automergeDigest",
+    ":automergeMinor"
+  ],
+
+  "schedule": [
+    "after 10pm every weekday",
+    "before 5am every weekday",
+    "every weekend"
+  ],
+
+  "timezone": "America/New_York",
+
+  "labels": ["dependencies", "automated"],
+
+  "vulnerabilityAlerts": {
+    "labels": ["security", "urgent"],
+    "automerge": true,
+    "schedule": ["at any time"]
+  },
+
+  "packageRules": [
+    {
+      "description": "Auto-merge devDependencies updates",
+      "matchDepTypes": ["devDependencies"],
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash"
+    },
+    {
+      "description": "Auto-merge TypeScript type definitions",
+      "matchPackagePatterns": ["^@types/"],
+      "automerge": true
+    },
+    {
+      "description": "Group ESLint packages together",
+      "matchPackagePatterns": ["^eslint"],
+      "groupName": "eslint packages",
+      "automerge": true
+    },
+    {
+      "description": "Group Playwright packages together",
+      "matchPackagePatterns": ["^@playwright/"],
+      "groupName": "playwright packages"
+    },
+    {
+      "description": "Group VitePress packages together",
+      "matchPackagePatterns": ["^vitepress"],
+      "groupName": "vitepress packages"
+    },
+    {
+      "description": "Disable Node.js version updates (managed separately)",
+      "matchPackageNames": ["node"],
+      "enabled": false
+    },
+    {
+      "description": "Pin Docker image digests for security",
+      "matchDatasources": ["docker"],
+      "pinDigests": true
+    },
+    {
+      "description": "Group PostgreSQL related packages",
+      "matchPackageNames": ["pg", "pg-pool"],
+      "groupName": "postgresql packages"
+    },
+    {
+      "description": "Group Google Cloud packages",
+      "matchPackagePatterns": ["^@google-cloud/"],
+      "groupName": "google-cloud packages"
+    },
+    {
+      "description": "Auto-merge patch updates for production dependencies",
+      "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+    {
+      "description": "Require manual approval for major updates",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "labels": ["major-update", "requires-review"]
+    }
+  ],
+
+  "postUpdateOptions": [
+    "npmDedupe"
+  ],
+
+  "prConcurrentLimit": 5,
+  "prCreation": "not-pending",
+  "prHourlyLimit": 2,
+
+  "rebaseWhen": "behind-base-branch",
+
+  "semanticCommitScope": "deps",
+  "semanticCommitType": "chore",
+
+  "ignoreDeps": [],
+
+  "suppressNotifications": ["prIgnoreNotification"],
+
+  "github": {
+    "automergeType": "pr"
+  }
+}

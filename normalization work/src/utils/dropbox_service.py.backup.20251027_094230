@@ -1,20 +1,17 @@
 """
-Dropbox Service Module (v2 - OAuth Refresh Token Support)
+Dropbox Service Module
 
-Handles all Dropbox API operations with automatic token refresh.
+Handles all Dropbox API operations for uploading generated legal documents.
 Preserves local folder structure when uploading to Dropbox.
 
 Configuration (via environment variables):
+- DROPBOX_ACCESS_TOKEN: OAuth token for Dropbox API authentication
 - DROPBOX_ENABLED: Enable/disable Dropbox uploads (default: false)
-- DROPBOX_APP_KEY: OAuth App Key from Dropbox
-- DROPBOX_APP_SECRET: OAuth App Secret from Dropbox
-- DROPBOX_REFRESH_TOKEN: OAuth Refresh Token (generated once, never expires)
 - DROPBOX_BASE_PATH: Base folder path in Dropbox (default: /Current Clients)
 - DROPBOX_LOCAL_OUTPUT_PATH: Local output directory to mirror (default: webhook_documents)
 - DROPBOX_CONTINUE_ON_FAILURE: Continue on upload failure (default: true)
 
 Features:
-- Automatic token refresh (no manual token rotation needed)
 - Automatic folder creation in Dropbox
 - File overwriting (preserves version history in Dropbox)
 - Path mapping from local to Dropbox structure
@@ -28,8 +25,7 @@ Example Usage:
         if result['success']:
             print(f"Uploaded to: {result['dropbox_path']}")
 
-Last Updated: 2025-10-27
-Version: 2.0 (OAuth Refresh Token)
+Last Updated: 2025-10-20
 """
 
 import os
@@ -45,55 +41,32 @@ logger = logging.getLogger(__name__)
 
 # Dropbox Configuration from environment variables
 DROPBOX_CONFIG = {
+    'access_token': os.getenv('DROPBOX_ACCESS_TOKEN', ''),
     'enabled': os.getenv('DROPBOX_ENABLED', 'false').lower() == 'true',
-    'app_key': os.getenv('DROPBOX_APP_KEY', ''),
-    'app_secret': os.getenv('DROPBOX_APP_SECRET', ''),
-    'refresh_token': os.getenv('DROPBOX_REFRESH_TOKEN', ''),
     'base_path': os.getenv('DROPBOX_BASE_PATH', '/Current Clients'),
     'local_output_path': os.getenv('DROPBOX_LOCAL_OUTPUT_PATH', 'webhook_documents'),
     'continue_on_failure': os.getenv('DROPBOX_CONTINUE_ON_FAILURE', 'true').lower() == 'true'
 }
 
-# Initialize Dropbox client if enabled and credentials provided
+# Initialize Dropbox client if enabled and token provided
 _dbx_client = None
-if DROPBOX_CONFIG['enabled']:
-    if DROPBOX_CONFIG['app_key'] and DROPBOX_CONFIG['app_secret'] and DROPBOX_CONFIG['refresh_token']:
-        try:
-            # Initialize with refresh token (OAuth 2.0)
-            _dbx_client = dropbox.Dropbox(
-                oauth2_refresh_token=DROPBOX_CONFIG['refresh_token'],
-                app_key=DROPBOX_CONFIG['app_key'],
-                app_secret=DROPBOX_CONFIG['app_secret']
-            )
-
-            # Test connection (this will auto-refresh token if needed)
-            account = _dbx_client.users_get_current_account()
-            logger.info(f"✅ Dropbox service initialized (OAuth)")
-            logger.info(f"   Account: {account.name.display_name}")
-            logger.info(f"   Email: {account.email}")
-            logger.info(f"   Base path: {DROPBOX_CONFIG['base_path']}")
-            logger.info(f"   🔄 Token auto-refresh enabled")
-
-        except AuthError as e:
-            logger.error(f"❌ Dropbox authentication failed: {e}")
-            logger.error(f"   Please verify your OAuth credentials are correct")
-            _dbx_client = None
-        except Exception as e:
-            logger.error(f"❌ Dropbox initialization failed: {e}")
-            _dbx_client = None
-    else:
-        missing = []
-        if not DROPBOX_CONFIG['app_key']:
-            missing.append('DROPBOX_APP_KEY')
-        if not DROPBOX_CONFIG['app_secret']:
-            missing.append('DROPBOX_APP_SECRET')
-        if not DROPBOX_CONFIG['refresh_token']:
-            missing.append('DROPBOX_REFRESH_TOKEN')
-
-        logger.warning(f"⚠️  Dropbox enabled but missing credentials: {', '.join(missing)}")
-        logger.warning(f"   Run: python3 scripts/generate-dropbox-refresh-token.py")
+if DROPBOX_CONFIG['enabled'] and DROPBOX_CONFIG['access_token']:
+    try:
+        _dbx_client = dropbox.Dropbox(DROPBOX_CONFIG['access_token'])
+        # Test connection
+        _dbx_client.users_get_current_account()
+        logger.info(f"✅ Dropbox service initialized")
+        logger.info(f"   Base path: {DROPBOX_CONFIG['base_path']}")
+    except AuthError as e:
+        logger.error(f"❌ Dropbox authentication failed: {e}")
+        _dbx_client = None
+    except Exception as e:
+        logger.error(f"❌ Dropbox initialization failed: {e}")
+        _dbx_client = None
+elif DROPBOX_CONFIG['enabled'] and not DROPBOX_CONFIG['access_token']:
+    logger.warning("⚠️  Dropbox enabled but no access token provided. Uploads will be skipped.")
 else:
-    logger.info("ℹ️  Dropbox service disabled (DROPBOX_ENABLED=false)")
+    logger.info("ℹ️  Dropbox service disabled")
 
 
 def is_enabled() -> bool:
@@ -226,8 +199,6 @@ def upload_file(local_file_path: str, file_content: Optional[bytes] = None) -> D
     """
     Uploads a file to Dropbox, preserving the folder structure.
 
-    Token refresh is handled automatically by the Dropbox SDK.
-
     Args:
         local_file_path: Absolute local file path
         file_content: File content (optional, will read from disk if not provided)
@@ -279,7 +250,6 @@ def upload_file(local_file_path: str, file_content: Optional[bytes] = None) -> D
                 file_content = f.read()
 
         # Upload file to Dropbox (overwrite if exists)
-        # Token refresh happens automatically here if needed
         _dbx_client.files_upload(
             file_content,
             dropbox_path,
@@ -296,15 +266,6 @@ def upload_file(local_file_path: str, file_content: Optional[bytes] = None) -> D
     except FileNotFoundError:
         result['error'] = f'Local file not found: {local_file_path}'
         logger.error(f"❌ {result['error']}")
-        if not DROPBOX_CONFIG['continue_on_failure']:
-            raise
-        return result
-
-    except AuthError as e:
-        # This should rarely happen with refresh tokens, but log it clearly
-        result['error'] = f'Dropbox authentication error: {e}'
-        logger.error(f"❌ {result['error']}")
-        logger.error(f"   Token refresh may have failed. Check OAuth credentials.")
         if not DROPBOX_CONFIG['continue_on_failure']:
             raise
         return result
@@ -422,18 +383,11 @@ def get_config() -> Dict[str, Any]:
     Get current Dropbox configuration.
 
     Returns:
-        Configuration dictionary (sensitive values are masked)
+        Configuration dictionary (access token is masked)
     """
     config_copy = DROPBOX_CONFIG.copy()
-
-    # Mask sensitive values
-    if config_copy['app_key']:
-        config_copy['app_key'] = config_copy['app_key'][:5] + '...' + config_copy['app_key'][-5:]
-    if config_copy['app_secret']:
-        config_copy['app_secret'] = '***' + config_copy['app_secret'][-5:]
-    if config_copy['refresh_token']:
-        config_copy['refresh_token'] = '***' + config_copy['refresh_token'][-10:]
-
+    if config_copy['access_token']:
+        config_copy['access_token'] = '***' + config_copy['access_token'][-10:]
     return config_copy
 
 
