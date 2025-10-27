@@ -33,7 +33,7 @@ TOAST UX SPEC
 - One toast per jobId (update in place using a stable toast ID)
 - Progress text: "Generating documents... (n/total)"; if total unknown, show indeterminate bar
 - Success text: "All documents generated (total/total)" + [Open in Dropbox]; auto-dismiss ~6s (configurable)
-- Error text: "Generation failed: <reason>"; sticky (manual close)
+- Error text: "Generation failed: `<reason>`"; sticky (manual close)
 - Accessibility: polite live region; announce start, every 5 increments, and completion/error (throttled)
 
 STATE / PERSISTENCE / RESILIENCE
