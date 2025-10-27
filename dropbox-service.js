@@ -7,7 +7,7 @@
  * Configuration:
  * - DROPBOX_ACCESS_TOKEN: OAuth token for Dropbox API authentication
  * - DROPBOX_ENABLED: Enable/disable Dropbox uploads
- * - DROPBOX_BASE_PATH: Base folder path in Dropbox (e.g., /Apps/LegalFormApp)
+ * - DROPBOX_BASE_PATH: Base folder path in Dropbox (e.g., /Current Clients)
  * - LOCAL_OUTPUT_PATH: Local output directory to mirror to Dropbox
  * - CONTINUE_ON_DROPBOX_FAILURE: Continue on upload failure
  *
@@ -21,7 +21,7 @@
  *   const dropboxService = require('./dropbox-service');
  *   await dropboxService.uploadFile('/output/Clients/Case1/file.pdf');
  *
- * Last Updated: 2025-10-20
+ * Last Updated: 2025-10-27
  */
 
 const { Dropbox } = require('dropbox');
@@ -35,7 +35,7 @@ const path = require('path');
 const DROPBOX_CONFIG = {
     accessToken: process.env.DROPBOX_ACCESS_TOKEN || '',
     enabled: process.env.DROPBOX_ENABLED === 'true',
-    basePath: process.env.DROPBOX_BASE_PATH || '/Apps/LegalFormApp',
+    basePath: process.env.DROPBOX_BASE_PATH || '/Current Clients',
     localOutputPath: process.env.LOCAL_OUTPUT_PATH || '/output',
     continueOnFailure: process.env.CONTINUE_ON_DROPBOX_FAILURE !== 'false'
 };
@@ -58,11 +58,11 @@ if (DROPBOX_CONFIG.enabled && DROPBOX_CONFIG.accessToken) {
  * Maps a local file path to its corresponding Dropbox path
  *
  * @param {string} localPath - Local file path (e.g., /output/Clients/Case1/file.pdf)
- * @returns {string} Dropbox path (e.g., /Apps/LegalFormApp/Clients/Case1/file.pdf)
+ * @returns {string} Dropbox path (e.g., /Current Clients/Clients/Case1/file.pdf)
  *
  * @example
  * mapLocalPathToDropbox('/output/Clients/Case1/file.pdf')
- * // Returns: '/Apps/LegalFormApp/Clients/Case1/file.pdf'
+ * // Returns: '/Current Clients/Clients/Case1/file.pdf'
  */
 function mapLocalPathToDropbox(localPath) {
     // Normalize paths to use forward slashes
@@ -96,7 +96,7 @@ function mapLocalPathToDropbox(localPath) {
  * @returns {Promise<boolean>} True if folder exists or was created successfully
  *
  * @example
- * await ensureFolderExists('/Apps/LegalFormApp/Clients/Case1')
+ * await ensureFolderExists('/Current Clients/Clients/Case1')
  */
 async function ensureFolderExists(folderPath) {
     if (!dbx) {
@@ -135,9 +135,9 @@ async function ensureFolderExists(folderPath) {
  * @returns {Promise<boolean>} True if all folders exist or were created
  *
  * @example
- * await ensureParentFoldersExist('/Apps/LegalFormApp/Clients/Case1/SROGs/file.pdf')
- * // Creates: /Apps/LegalFormApp, /Apps/LegalFormApp/Clients,
- * //          /Apps/LegalFormApp/Clients/Case1, /Apps/LegalFormApp/Clients/Case1/SROGs
+ * await ensureParentFoldersExist('/Current Clients/123 Main St/John Doe/Discovery/SROGs/file.pdf')
+ * // Creates: /Current Clients, /Current Clients/123 Main St,
+ * //          /Current Clients/123 Main St/John Doe, /Current Clients/123 Main St/John Doe/Discovery/SROGs
  */
 async function ensureParentFoldersExist(dropboxPath) {
     if (!dbx) {
@@ -178,7 +178,7 @@ async function ensureParentFoldersExist(dropboxPath) {
  * // {
  * //   success: true,
  * //   localPath: '/output/Clients/Case1/file.pdf',
- * //   dropboxPath: '/Apps/LegalFormApp/Clients/Case1/file.pdf'
+ * //   dropboxPath: '/Current Clients/Clients/Case1/file.pdf'
  * // }
  */
 async function uploadFile(localFilePath, fileContent = null) {
@@ -302,14 +302,18 @@ async function getAccountInfo() {
  * Creates a shared link for a Dropbox folder
  *
  * If a shared link already exists for the folder, returns the existing link.
- * Otherwise, creates a new shared link with public viewer access.
+ * Otherwise, creates a new shared link with TEAM-ONLY viewer access.
  *
- * @param {string} folderPath - Dropbox folder path (e.g., /Apps/LegalFormApp/123 Main Street/)
+ * SECURITY: Links are restricted to team members only. Users must be logged
+ * into a Dropbox account that's part of your team to access the documents.
+ * This ensures sensitive legal documents are not publicly accessible.
+ *
+ * @param {string} folderPath - Dropbox folder path (e.g., /Current Clients/123 Main Street/)
  * @returns {Promise<string|null>} Shared link URL or null if fails/disabled
  *
  * @example
- * const link = await createSharedLink('/Apps/LegalFormApp/123 Main Street');
- * // Returns: 'https://www.dropbox.com/sh/abc123xyz/...'
+ * const link = await createSharedLink('/Current Clients/123 Main Street');
+ * // Returns: 'https://www.dropbox.com/sh/abc123xyz/...' (team-only access)
  */
 async function createSharedLink(folderPath) {
     // Check if Dropbox is enabled
@@ -319,7 +323,7 @@ async function createSharedLink(folderPath) {
     }
 
     try {
-        console.log(`📎 Creating shared link for: ${folderPath}`);
+        console.log(`📎 Creating team-only shared link for: ${folderPath}`);
 
         // Check if shared link already exists
         const existingLinks = await dbx.sharingListSharedLinks({
@@ -333,18 +337,19 @@ async function createSharedLink(folderPath) {
             return existingUrl;
         }
 
-        // Create new shared link with public viewer access
+        // Create new shared link with TEAM-ONLY viewer access
+        // This restricts access to only members of your Dropbox team
         const response = await dbx.sharingCreateSharedLinkWithSettings({
             path: folderPath,
             settings: {
-                requested_visibility: 'public',
-                audience: 'public',
-                access: 'viewer'
+                requested_visibility: 'team_only',  // Restricted to team members
+                audience: 'team',                    // Only team can access
+                access: 'viewer'                     // View-only (no edit/download)
             }
         });
 
         const newUrl = response.result.url;
-        console.log(`✅ Created new Dropbox shared link: ${newUrl}`);
+        console.log(`✅ Created new team-only Dropbox shared link: ${newUrl}`);
         return newUrl;
 
     } catch (error) {
