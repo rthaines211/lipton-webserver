@@ -5,7 +5,7 @@ This module provides the main pipeline for building datasets from
 normalized Phase 1 data.
 """
 
-from typing import Any
+from typing import Any, Optional, List
 
 from .cartesian_builder import (
     build_cartesian_product,
@@ -30,7 +30,7 @@ class DatasetBuildError(Exception):
         errors: List of specific error messages
     """
 
-    def __init__(self, message: str, errors: list[str] | None = None):
+    def __init__(self, message: str, errors: Optional[List[str]] = None):
         self.message = message
         self.errors = errors or []
         super().__init__(self.message)

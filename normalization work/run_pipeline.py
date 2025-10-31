@@ -187,28 +187,36 @@ def run_phase3(phase2_output: Dict[str, Any]) -> Dict[str, Any]:
     return result
 
 
-def run_phase4(phase3_output: Dict[str, Any]) -> Dict[str, Any]:
+def run_phase4(phase3_output: Dict[str, Any], document_types: list = None) -> Dict[str, Any]:
     """
     Run Phase 4: Document Profiles.
 
-    Applies three document profiles (SROGs, PODs, Admissions) to each dataset.
+    Applies document profiles (SROGs, PODs, Admissions) to each dataset.
+    Can be filtered to only apply specific document types.
 
     Args:
         phase3_output: Output from Phase 3
+        document_types: List of document types to generate (PHASE 2.3)
+                       Valid values: 'srogs', 'pods', 'admissions'
+                       Defaults to all three if not provided
 
     Returns:
         Collection with profile datasets
     """
+    # PHASE 2.3: Default to all document types if not specified
+    if document_types is None:
+        document_types = ['srogs', 'pods', 'admissions']
+
     print_header("PHASE 4: DOCUMENT PROFILES")
-    print_info("Applying document profiles (SROGs, PODs, Admissions)...")
+    print_info(f"Applying document profiles: {', '.join(document_types).upper()}")
 
     pipeline = ProfilePipeline()
-    result = pipeline.apply_profiles_to_collection(phase3_output)
+    result = pipeline.apply_profiles_to_collection(phase3_output, document_types)
 
     print_success("Phase 4 complete!")
     print(f"   - Original datasets: {len(phase3_output.get('datasets', []))}")
     print(f"   - Profile datasets: {result['metadata']['total_profile_datasets']}")
-    print(f"   - Profiles applied: {result['metadata']['profiles_applied']} (SROGs, PODs, Admissions)")
+    print(f"   - Profiles applied: {result['metadata']['profiles_applied']} ({', '.join(document_types).upper()})")
 
     return result
 

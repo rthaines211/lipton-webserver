@@ -5,7 +5,7 @@ This module provides the main normalization pipeline that orchestrates
 input parsing, discovery flattening, and validation.
 """
 
-from typing import Any
+from typing import Any, Optional, List
 
 from .discovery_flattener import flatten_discovery
 from .input_parser import (
@@ -157,7 +157,7 @@ class ValidationError(Exception):
         errors: List of specific validation error messages
     """
 
-    def __init__(self, message: str, errors: list[str] | None = None):
+    def __init__(self, message: str, errors: Optional[List[str]] = None):
         self.message = message
         self.errors = errors or []
         super().__init__(self.message)

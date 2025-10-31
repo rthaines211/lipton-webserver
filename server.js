@@ -1145,9 +1145,10 @@ function revertToOriginalFormat(obj) {
  *
  * @param {Object} structuredData - The structured form data
  * @param {string} caseId - The database case ID for reference
+ * @param {Array<string>} documentTypes - Array of document types to generate (PHASE 2.1)
  * @returns {Promise<Object>} Pipeline execution results
  */
-async function callNormalizationPipeline(structuredData, caseId) {
+async function callNormalizationPipeline(structuredData, caseId, documentTypes = ['srogs', 'pods', 'admissions']) {
     if (!PIPELINE_CONFIG.enabled || !PIPELINE_CONFIG.executeOnSubmit) {
         // Store skipped status in cache (Phase 5)
         setPipelineStatus(caseId, {
@@ -1191,6 +1192,15 @@ async function callNormalizationPipeline(structuredData, caseId) {
 
         // Add case ID to the request data
         structuredData.case_id = caseId;
+
+        // ============================================================
+        // PHASE 2.1: ADD DOCUMENT TYPES TO PIPELINE REQUEST
+        // ============================================================
+        // Pass selected document types to Python pipeline
+        // Python will use this to filter which profiles get generated in Phase 4
+        structuredData.document_types = documentTypes;
+        console.log(`📄 Passing document types to pipeline: ${documentTypes.join(', ')}`);
+        // ============================================================
 
         // ============================================================
         // FIX FOR PYTHON API COMPATIBILITY (2025-10-22)
@@ -1493,7 +1503,7 @@ async function callNormalizationPipeline(structuredData, caseId) {
     }
 }
 
-async function saveToDatabase(structuredData, rawPayload) {
+async function saveToDatabase(structuredData, rawPayload, documentTypes = ['srogs', 'pods', 'admissions']) {
     const client = await pool.connect();
 
     try {
@@ -1502,11 +1512,13 @@ async function saveToDatabase(structuredData, rawPayload) {
         // 1. Insert case with submitter information
         // submitter_name and submitter_email track who submitted the form
         // These fields are populated from the email notification modal
+        // PHASE 2.1: Added document_types_to_generate field
         const caseResult = await client.query(
             `INSERT INTO cases (
                 property_address, city, state, zip_code, county, filing_location,
-                internal_name, form_name, raw_payload, is_active, submitter_name, submitter_email
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                internal_name, form_name, raw_payload, is_active, submitter_name, submitter_email,
+                document_types_to_generate
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING id`,
             [
                 structuredData.Full_Address?.StreetAddress || structuredData.Full_Address?.Line1,
@@ -1522,7 +1534,9 @@ async function saveToDatabase(structuredData, rawPayload) {
                 // Submitter information from email notification modal
                 // Defaults to 'Anonymous' and '' if user skipped
                 rawPayload.notificationName || 'Anonymous',
-                rawPayload.notificationEmail || ''
+                rawPayload.notificationEmail || '',
+                // PHASE 2.1: Store document selection as JSON array
+                JSON.stringify(documentTypes)
             ]
         );
 
@@ -1690,6 +1704,45 @@ app.post('/api/form-entries', async (req, res) => {
             });
         }
 
+        // ============================================================
+        // PHASE 2.1: VALIDATE DOCUMENT SELECTION
+        // ============================================================
+        // Extract and validate selected document types
+        const documentTypesToGenerate = formData.documentTypesToGenerate || ['srogs', 'pods', 'admissions'];
+        const validTypes = ['srogs', 'pods', 'admissions'];
+
+        // Validate: must be an array
+        if (!Array.isArray(documentTypesToGenerate)) {
+            console.error('❌ Invalid documentTypesToGenerate: not an array');
+            return res.status(400).json({
+                success: false,
+                error: 'documentTypesToGenerate must be an array'
+            });
+        }
+
+        // Validate: at least one document type required
+        if (documentTypesToGenerate.length === 0) {
+            console.error('❌ Invalid documentTypesToGenerate: empty array');
+            return res.status(400).json({
+                success: false,
+                error: 'At least one document type must be selected'
+            });
+        }
+
+        // Validate: all types must be valid
+        const invalidTypes = documentTypesToGenerate.filter(type => !validTypes.includes(type));
+        if (invalidTypes.length > 0) {
+            console.error(`❌ Invalid document types: ${invalidTypes.join(', ')}`);
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid document types',
+                invalidTypes: invalidTypes
+            });
+        }
+
+        console.log(`📄 Document types to generate: ${documentTypesToGenerate.join(', ')}`);
+        // ============================================================
+
         // Create a temporary case ID for progress tracking (will be replaced by DB ID)
         const tempCaseId = `temp-${formData.id}`;
 
@@ -1778,7 +1831,7 @@ app.post('/api/form-entries', async (req, res) => {
         // Save to PostgreSQL database
         let dbCaseId = null;
         try {
-            dbCaseId = await saveToDatabase(structuredData, formData);
+            dbCaseId = await saveToDatabase(structuredData, formData, documentTypesToGenerate);
             console.log(`✅ Form entry saved to database with case ID: ${dbCaseId}`);
 
             // Copy the status from temp ID to actual DB case ID
@@ -1826,6 +1879,7 @@ app.post('/api/form-entries', async (req, res) => {
             dbCaseId: trackingCaseId, // Database case ID for SSE progress tracking
             timestamp: originalFormatData.serverTimestamp,
             structuredData: originalFormatData,
+            documentTypesToGenerate: documentTypesToGenerate, // PHASE 2.1: Return selected document types
             pipelineEnabled: PIPELINE_CONFIG.enabled && PIPELINE_CONFIG.executeOnSubmit, // Tell frontend if pipeline is running
             // Pipeline will execute in background
             pipeline: {
@@ -1850,7 +1904,7 @@ app.post('/api/form-entries', async (req, res) => {
         console.log(`   Execute on Submit: ${PIPELINE_CONFIG.executeOnSubmit}`);
         console.log(`${'='.repeat(70)}\n`);
 
-        callNormalizationPipeline(originalFormatData, trackingCaseId)
+        callNormalizationPipeline(originalFormatData, trackingCaseId, documentTypesToGenerate)
             .then((pipelineResult) => {
                 console.log(`\n${'='.repeat(70)}`);
                 if (pipelineResult.success) {

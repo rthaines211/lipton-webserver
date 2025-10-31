@@ -90,9 +90,40 @@ function closeConfirmationModal() {
 }
 
 /**
- * User confirmed submission - show email notification modal
+ * User confirmed submission - validate document selection and show email notification modal
  */
 function confirmSubmission() {
+    // Get selected document types
+    const selectedDocuments = getSelectedDocuments();
+
+    // Validate: at least one document must be selected
+    if (selectedDocuments.length === 0) {
+        // Show error message
+        const errorElement = document.getElementById('document-selection-error');
+        if (errorElement) {
+            errorElement.style.display = 'flex';
+        }
+
+        // Scroll to error within modal
+        const selectionSection = document.querySelector('.document-selection-section');
+        if (selectionSection) {
+            selectionSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        return; // Prevent submission
+    }
+
+    // Hide error if it was showing
+    const errorElement = document.getElementById('document-selection-error');
+    if (errorElement) {
+        errorElement.style.display = 'none';
+    }
+
+    // Store selected documents in session storage for later use
+    sessionStorage.setItem('selectedDocuments', JSON.stringify(selectedDocuments));
+
+    console.log('📄 Documents selected for generation:', selectedDocuments);
+
     closeConfirmationModal();
     showEmailNotificationModal();
 }
@@ -206,7 +237,14 @@ async function submitForm(notificationEmail = null, optedIn = false, notificatio
         data.notificationEmailOptIn = optedIn;
         data.notificationName = notificationName;
 
+        // Add selected document types from confirmation modal
+        const selectedDocuments = JSON.parse(
+            sessionStorage.getItem('selectedDocuments') || '["srogs", "pods", "admissions"]'
+        );
+        data.documentTypesToGenerate = selectedDocuments;
+
         console.log('Submitting form data:', data);
+        console.log('📄 Document types to generate:', selectedDocuments);
 
         // Create AbortController for timeout (10 second timeout)
         const controller = new AbortController();
@@ -236,6 +274,9 @@ async function submitForm(notificationEmail = null, optedIn = false, notificatio
 
         const result = await response.json();
         console.log('Form submitted successfully:', result);
+
+        // Clean up session storage
+        sessionStorage.removeItem('selectedDocuments');
 
         // Handle success
         handleSubmissionSuccess(result);
@@ -508,6 +549,41 @@ function extractDefendants(data) {
     return defendants;
 }
 
+/**
+ * Get array of selected document types from confirmation modal
+ * @returns {string[]} Array of selected document types (e.g., ['srogs', 'pods'])
+ */
+function getSelectedDocuments() {
+    const checkboxes = document.querySelectorAll('input[name="document-selection"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+/**
+ * Initialize event listeners for document selection checkboxes
+ * Hides error message when user makes a selection
+ */
+function initializeDocumentSelectionListeners() {
+    const checkboxes = document.querySelectorAll('input[name="document-selection"]');
+    const errorElement = document.getElementById('document-selection-error');
+
+    if (!checkboxes.length) {
+        // Checkboxes not loaded yet, try again after a short delay
+        setTimeout(initializeDocumentSelectionListeners, 100);
+        return;
+    }
+
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+            // Hide error when user makes any selection
+            if (errorElement && getSelectedDocuments().length > 0) {
+                errorElement.style.display = 'none';
+            }
+        });
+    });
+
+    console.log('✅ Document selection listeners initialized');
+}
+
 // Make functions available globally
 if (typeof window !== 'undefined') {
     window.showReviewScreen = showReviewScreen;
@@ -520,4 +596,16 @@ if (typeof window !== 'undefined') {
     window.submitForm = submitForm;
     window.extractPlaintiffs = extractPlaintiffs;
     window.extractDefendants = extractDefendants;
+    window.getSelectedDocuments = getSelectedDocuments;
+    window.initializeDocumentSelectionListeners = initializeDocumentSelectionListeners;
+}
+
+// Initialize document selection listeners when DOM is ready
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeDocumentSelectionListeners);
+    } else {
+        // DOM already loaded, initialize immediately
+        initializeDocumentSelectionListeners();
+    }
 }

@@ -1,8 +1,13 @@
 """
 Profile Pipeline
 
-Applies all three document profiles (SROGs, PODs, Admissions) to datasets
-from Phase 3 to create profile-specific datasets.
+Applies document profiles (SROGs, PODs, Admissions) to datasets from Phase 3
+to create profile-specific datasets.
+
+PHASE 2.3 UPDATE:
+- Now supports filtering by document_types to only generate selected profiles
+- Defaults to all three document types if not specified (backwards compatible)
+- Updated metadata to track which profiles were applied
 """
 
 from typing import Dict, List, Any
@@ -10,7 +15,11 @@ from .profiles import SROGsProfile, PODsProfile, AdmissionsProfile
 
 
 class ProfilePipeline:
-    """Applies all three document profiles to datasets."""
+    """
+    Applies document profiles to datasets.
+
+    PHASE 2.3: Supports selective profile generation based on document_types parameter.
+    """
 
     def __init__(self):
         """Initialize the profile pipeline with all three profiles."""
@@ -20,44 +29,69 @@ class ProfilePipeline:
             AdmissionsProfile()
         ]
 
-    def apply_profiles(self, enriched_dataset: dict) -> dict:
+    def apply_profiles(self, enriched_dataset: dict, document_types: list = None) -> dict:
         """
-        Apply all profiles to a single dataset.
+        Apply selected profiles to a single dataset.
 
         Args:
             enriched_dataset: Dataset from Phase 3 with flags
+            document_types: List of document types to generate (PHASE 2.3)
+                           Valid values: 'srogs', 'pods', 'admissions'
+                           Defaults to all three if not provided
 
         Returns:
-            Dictionary with three profile datasets
+            Dictionary with selected profile datasets
         """
-        return {
-            'srogs': self.profiles[0].apply_profile(enriched_dataset),
-            'pods': self.profiles[1].apply_profile(enriched_dataset),
-            'admissions': self.profiles[2].apply_profile(enriched_dataset)
-        }
+        # PHASE 2.3: Default to all document types if not specified
+        if document_types is None:
+            document_types = ['srogs', 'pods', 'admissions']
 
-    def apply_profiles_to_collection(self, dataset_collection: dict) -> dict:
+        # PHASE 2.3: Only apply selected profiles
+        result = {}
+        if 'srogs' in document_types:
+            result['srogs'] = self.profiles[0].apply_profile(enriched_dataset)
+        if 'pods' in document_types:
+            result['pods'] = self.profiles[1].apply_profile(enriched_dataset)
+        if 'admissions' in document_types:
+            result['admissions'] = self.profiles[2].apply_profile(enriched_dataset)
+
+        return result
+
+    def apply_profiles_to_collection(self, dataset_collection: dict, document_types: list = None) -> dict:
         """
-        Apply profiles to all datasets in collection.
+        Apply selected profiles to all datasets in collection.
 
         Args:
             dataset_collection: Collection from Phase 3
+            document_types: List of document types to generate (PHASE 2.3)
+                           Valid values: 'srogs', 'pods', 'admissions'
+                           Defaults to all three if not provided
 
         Returns:
             Collection with profile datasets
         """
+        # PHASE 2.3: Default to all document types if not specified
+        if document_types is None:
+            document_types = ['srogs', 'pods', 'admissions']
+
         profiled_datasets = []
 
         for dataset in dataset_collection['datasets']:
-            profiles = self.apply_profiles(dataset)
+            # PHASE 2.3: Pass document_types to filter profiles
+            profiles = self.apply_profiles(dataset, document_types)
             profiled_datasets.append(profiles)
+
+        # PHASE 2.3: Calculate correct counts based on selected document types
+        num_profiles = len(document_types)
+        total_profile_datasets = len(profiled_datasets) * num_profiles
 
         return {
             'datasets': profiled_datasets,
             'metadata': {
                 **dataset_collection['metadata'],
-                'profiles_applied': 3,
-                'total_profile_datasets': len(profiled_datasets) * 3
+                'profiles_applied': num_profiles,
+                'total_profile_datasets': total_profile_datasets,
+                'document_types': document_types  # Track which types were generated
             }
         }
 

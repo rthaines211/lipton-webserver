@@ -832,10 +832,10 @@
             background: #1F2A44;
             color: #FFFFFF;
             border: none;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 600;
             font-family: 'Open Sans', sans-serif;
             text-transform: uppercase;
@@ -922,8 +922,8 @@
             background: #FFFFFF;
             border-radius: 12px;
             padding: 0;
-            max-width: 800px;
-            max-height: 90vh;
+            max-width: 900px;
+            max-height: 95vh;
             width: 90%;
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(31, 42, 68, 0.3);
@@ -944,37 +944,37 @@
         }
 
         .modal-body {
-            padding: 20px;
-            max-height: 60vh;
+            padding: 16px 20px;
+            max-height: 70vh;
             overflow-y: auto;
         }
 
         .modal-footer {
-            padding: 20px;
+            padding: 15px 20px;
             text-align: center;
             border-top: 1px solid #E2E8F0;
             display: flex;
-            gap: 15px;
+            gap: 12px;
             justify-content: center;
         }
 
         /* Custom Confirmation Modal Styles */
         .confirmation-modal {
-            max-width: 550px;
+            max-width: 700px;
         }
 
         .confirmation-checklist {
             background: #F8FAFC;
             border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
         }
 
         .checklist-item {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px 0;
+            padding: 10px 0;
             border-bottom: 1px solid #E2E8F0;
         }
 
@@ -1591,6 +1591,180 @@
         }
 
         /* Removed pipeline toast UI styles */
+
+        /* ============================================
+           Document Selection Section Styles
+           ============================================ */
+        .document-selection-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 2px solid #E2E8F0;
+        }
+
+        .document-selection-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 8px 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1F2A44;
+        }
+
+        .document-selection-title i {
+            color: #00AEEF;
+            font-size: 1.2rem;
+        }
+
+        .document-selection-description {
+            margin: 0 0 16px 0;
+            font-size: 0.9rem;
+            color: #5B6475;
+            line-height: 1.5;
+        }
+
+        .document-selection-grid {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .document-checkbox-wrapper {
+            display: block;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .document-checkbox {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            width: 0;
+            height: 0;
+        }
+
+        .document-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            border: 2px solid #E2E8F0;
+            border-radius: 10px;
+            background: #F8FAFC;
+            transition: all 0.2s ease;
+        }
+
+        .document-checkbox-wrapper:hover .document-checkbox-label {
+            border-color: #00AEEF;
+            background: #FFFFFF;
+            box-shadow: 0 2px 8px rgba(0, 174, 239, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .document-checkbox:checked + .document-checkbox-label {
+            border-color: #00AEEF;
+            background: linear-gradient(135deg, rgba(0, 174, 239, 0.1) 0%, rgba(0, 174, 239, 0.05) 100%);
+            box-shadow: 0 2px 8px rgba(0, 174, 239, 0.2);
+        }
+
+        .document-checkbox:focus + .document-checkbox-label {
+            outline: 2px solid #00AEEF;
+            outline-offset: 2px;
+        }
+
+        .document-checkbox-icon {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: #FFFFFF;
+            border: 2px solid #E2E8F0;
+            font-size: 1.2rem;
+            color: #5B6475;
+            transition: all 0.2s ease;
+        }
+
+        .document-checkbox:checked + .document-checkbox-label .document-checkbox-icon {
+            background: #00AEEF;
+            border-color: #00AEEF;
+            color: #FFFFFF;
+            transform: scale(1.05);
+        }
+
+        .document-checkbox-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .document-checkbox-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1F2A44;
+            line-height: 1.3;
+        }
+
+        .document-checkbox-desc {
+            font-size: 0.85rem;
+            color: #5B6475;
+            line-height: 1.3;
+        }
+
+        .document-selection-error {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            padding: 10px 14px;
+            background: #FEE2E2;
+            border: 1px solid #EF4444;
+            border-radius: 8px;
+            color: #991B1B;
+            font-size: 0.9rem;
+            font-weight: 500;
+            animation: shake 0.3s ease-in-out;
+        }
+
+        .document-selection-error i {
+            color: #EF4444;
+            font-size: 1rem;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Responsive adjustments for document selection */
+        @media (min-width: 768px) {
+            .document-selection-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 767px) {
+            .document-checkbox-label {
+                padding: 12px 14px;
+            }
+
+            .document-checkbox-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 1.1rem;
+            }
+
+            .document-checkbox-name {
+                font-size: 0.95rem;
+            }
+
+            .document-checkbox-desc {
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2853,6 +3027,89 @@
                         <span>All applicable issues have been selected</span>
                     </div>
                 </div>
+
+                <!-- Document Selection Section -->
+                <div class="document-selection-section">
+                    <h3 class="document-selection-title">
+                        <i class="fas fa-file-alt"></i>
+                        Select Documents to Generate
+                    </h3>
+                    <p class="document-selection-description">
+                        Choose which legal documents you want to generate for this case:
+                    </p>
+
+                    <div class="document-selection-grid">
+                        <!-- SROGs Checkbox -->
+                        <label class="document-checkbox-wrapper" for="doc-select-srogs">
+                            <input
+                                type="checkbox"
+                                id="doc-select-srogs"
+                                name="document-selection"
+                                value="srogs"
+                                checked
+                                class="document-checkbox"
+                            >
+                            <div class="document-checkbox-label">
+                                <div class="document-checkbox-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="document-checkbox-content">
+                                    <span class="document-checkbox-name">SROGs</span>
+                                    <span class="document-checkbox-desc">Special Interrogatories</span>
+                                </div>
+                            </div>
+                        </label>
+
+                        <!-- PODs Checkbox -->
+                        <label class="document-checkbox-wrapper" for="doc-select-pods">
+                            <input
+                                type="checkbox"
+                                id="doc-select-pods"
+                                name="document-selection"
+                                value="pods"
+                                checked
+                                class="document-checkbox"
+                            >
+                            <div class="document-checkbox-label">
+                                <div class="document-checkbox-icon">
+                                    <i class="fas fa-folder-open"></i>
+                                </div>
+                                <div class="document-checkbox-content">
+                                    <span class="document-checkbox-name">PODs</span>
+                                    <span class="document-checkbox-desc">Production of Documents</span>
+                                </div>
+                            </div>
+                        </label>
+
+                        <!-- Admissions Checkbox -->
+                        <label class="document-checkbox-wrapper" for="doc-select-admissions">
+                            <input
+                                type="checkbox"
+                                id="doc-select-admissions"
+                                name="document-selection"
+                                value="admissions"
+                                checked
+                                class="document-checkbox"
+                            >
+                            <div class="document-checkbox-label">
+                                <div class="document-checkbox-icon">
+                                    <i class="fas fa-clipboard-check"></i>
+                                </div>
+                                <div class="document-checkbox-content">
+                                    <span class="document-checkbox-name">Admissions</span>
+                                    <span class="document-checkbox-desc">Requests for Admission</span>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Validation message -->
+                    <p id="document-selection-error" class="document-selection-error" style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Please select at least one document type to generate.
+                    </p>
+                </div>
+
                 <div class="confirmation-note">
                     <i class="fas fa-info-circle"></i>
                     <span>You can return to the form to make changes by clicking "Go Back".</span>

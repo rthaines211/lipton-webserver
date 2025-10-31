@@ -49,12 +49,14 @@ class NormalizeRequest(BaseModel):
         DefendantDetails2: List of defendant objects
         Full_Address: Address information object
         case_id: Database case ID for progress tracking (optional)
+        document_types: List of document types to generate (PHASE 2.3)
     """
     Form: Dict[str, Any] = Field(..., description="Form metadata")
     PlaintiffDetails: list = Field(default=[], description="List of plaintiffs")
     DefendantDetails2: list = Field(default=[], description="List of defendants")
     Full_Address: Dict[str, Any] = Field(default={}, description="Property address")
     case_id: Optional[str] = Field(default=None, description="Database case ID for SSE progress tracking")
+    document_types: Optional[list] = Field(default=None, description="Document types to generate (srogs, pods, admissions)")
 
     class Config:
         json_schema_extra = {
@@ -167,7 +169,7 @@ def run_complete_pipeline(form_json: Dict[str, Any], send_webhooks: bool = True)
     1. Input Normalization - Transform raw form data
     2. Dataset Builder - Create HoH × Defendant datasets
     3. Flag Processors - Apply 180+ boolean flags
-    4. Document Profiles - Apply SROGs, PODs, Admissions profiles
+    4. Document Profiles - Apply SROGs, PODs, Admissions profiles (filtered by document_types)
     5. Set Splitting - Split into sets of max 120 interrogatories
 
     Args:
@@ -187,6 +189,14 @@ def run_complete_pipeline(form_json: Dict[str, Any], send_webhooks: bool = True)
     """
     start_time = time.time()
     results = {}
+
+    # ============================================================
+    # PHASE 2.3: EXTRACT DOCUMENT TYPES FROM REQUEST
+    # ============================================================
+    # Extract document_types from request (added in Phase 2.1 by Node.js backend)
+    # Default to all three document types if not provided (backwards compatible)
+    document_types = form_json.get('document_types', ['srogs', 'pods', 'admissions'])
+    logger.info(f"📄 Document types to generate: {document_types}")
 
     try:
         # Phase 1: Input Normalization
@@ -242,11 +252,14 @@ def run_complete_pipeline(form_json: Dict[str, Any], send_webhooks: bool = True)
         logger.info(f"Phase 3 complete: {results['phase3']}")
 
         # Phase 4: Document Profiles
+        # PHASE 2.3: Pass document_types to filter which profiles to apply
         logger.info("Starting Phase 4: Document Profiles")
-        phase4_output = run_phase4(phase3_output)
+        logger.info(f"📄 Applying document types: {document_types}")
+        phase4_output = run_phase4(phase3_output, document_types)
         results['phase4'] = {
             'profile_datasets': phase4_output['metadata']['total_profile_datasets'],
-            'profiles_applied': phase4_output['metadata']['profiles_applied']
+            'profiles_applied': phase4_output['metadata']['profiles_applied'],
+            'document_types': document_types  # Include in response for tracking
         }
         logger.info(f"Phase 4 complete: {results['phase4']}")
 
