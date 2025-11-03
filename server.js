@@ -2464,6 +2464,11 @@ app.get('/api/jobs/:jobId/stream', (req, res) => {
     res.write('event: open\n');
     res.write(`data: {"status":"connected","jobId":"${jobId}"}\n\n`);
 
+    // Declare interval and heartbeat variables before sendProgress function
+    // This prevents "Cannot access before initialization" error
+    let interval = null;
+    let heartbeat = null;
+
     // Function to send progress updates
     const sendProgress = () => {
         // PHASE 1B: Skip if complete event already sent
@@ -2496,8 +2501,8 @@ app.get('/api/jobs/:jobId/stream', (req, res) => {
                 completeSent = true;  // Mark complete as sent
 
                 // Clear intervals IMMEDIATELY (before scheduling close)
-                clearInterval(interval);
-                clearInterval(heartbeat);
+                if (interval) clearInterval(interval);
+                if (heartbeat) clearInterval(heartbeat);
 
                 // Close connection after brief delay to allow client to receive message
                 // Reduced from 1000ms to 500ms to minimize reconnection window
@@ -2514,7 +2519,7 @@ app.get('/api/jobs/:jobId/stream', (req, res) => {
     sendProgress();
 
     // Set up interval to send updates every 2 seconds
-    const interval = setInterval(() => {
+    interval = setInterval(() => {
         const status = getPipelineStatus(jobId);
         if (!status || status.status === 'success' || status.status === 'failed') {
             clearInterval(interval);
@@ -2528,7 +2533,7 @@ app.get('/api/jobs/:jobId/stream', (req, res) => {
     }, 2000);
 
     // Send heartbeat every 20 seconds to keep connection alive
-    const heartbeat = setInterval(() => {
+    heartbeat = setInterval(() => {
         res.write(':heartbeat\n\n');
     }, 20000);
 

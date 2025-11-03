@@ -443,7 +443,7 @@ function handleRegenerationComplete(data) {
 
     // Clean up SSE connection
     if (currentJobStream) {
-        currentJobStream.disconnect();
+        currentJobStream.close();
         currentJobStream = null;
     }
 
@@ -495,7 +495,7 @@ function handleRegenerationError(data) {
 
     // Clean up SSE connection
     if (currentJobStream) {
-        currentJobStream.disconnect();
+        currentJobStream.close();
         currentJobStream = null;
     }
 
