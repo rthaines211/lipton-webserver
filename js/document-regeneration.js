@@ -54,11 +54,11 @@ function showCaseForRegeneration(caseId, caseData) {
     // ============================================================
 
     const caseNumberEl = document.getElementById('regen-case-number');
-    const caseTitleEl = document.getElementById('regen-case-title');
+    const caseAddressEl = document.getElementById('regen-case-address');
     const plaintiffNameEl = document.getElementById('regen-plaintiff-name');
 
     if (caseNumberEl) caseNumberEl.textContent = caseData.caseNumber || '-';
-    if (caseTitleEl) caseTitleEl.textContent = caseData.caseTitle || '-';
+    if (caseAddressEl) caseAddressEl.textContent = caseData.caseAddress || '-';
     if (plaintiffNameEl) plaintiffNameEl.textContent = caseData.plaintiffName || '-';
 
     // ============================================================

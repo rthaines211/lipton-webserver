@@ -3340,8 +3340,8 @@
                             <span id="regen-case-number" class="case-info-value">-</span>
                         </div>
                         <div class="case-info-row">
-                            <span class="case-info-label"><i class="fas fa-gavel"></i> Case Title:</span>
-                            <span id="regen-case-title" class="case-info-value">-</span>
+                            <span class="case-info-label"><i class="fas fa-map-marker-alt"></i> Case Address:</span>
+                            <span id="regen-case-address" class="case-info-value">-</span>
                         </div>
                         <div class="case-info-row">
                             <span class="case-info-label"><i class="fas fa-user"></i> Plaintiff:</span>
@@ -6072,10 +6072,10 @@
                                submission['Case Number'] ||
                                submission.id ||
                                submissionId,
-                    caseTitle: submission.caseTitle ||
-                              submission['Case Title'] ||
-                              submission.caseTitle ||
-                              'Unknown Case',
+                    caseAddress: submission.Full_Address?.FullAddress ||
+                               submission.propertyAddress ||
+                               submission.property_address ||
+                               'Unknown Address',
                     plaintiffName: submission.name ||
                                  submission.plaintiffName ||
                                  (submission.PlaintiffDetails &&
