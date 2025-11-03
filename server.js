@@ -2711,3 +2711,4 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`   GET    /health/detailed     - Detailed diagnostics`);
     console.log(`   GET    /metrics             - Prometheus metrics`);
 });
+// Deployment test with full permissions - 1762179555
