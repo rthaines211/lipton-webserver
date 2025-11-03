@@ -2630,6 +2630,241 @@ app.post('/api/pipeline-retry/:caseId', async (req, res) => {
     }
 });
 
+/**
+ * Document Regeneration Endpoint
+ *
+ * POST /api/regenerate-documents/:caseId
+ *
+ * Regenerate documents for an existing case with new document type selection.
+ * Allows users to change which documents to generate after initial submission.
+ *
+ * @param {string} caseId - The database case ID (UUID)
+ * @body {Array<string>} documentTypes - Array of document types to regenerate
+ * @header {string} Authorization - Bearer token for authentication
+ *
+ * @returns {Object} Response with jobId for SSE tracking
+ */
+app.post('/api/regenerate-documents/:caseId', async (req, res) => {
+    const { caseId } = req.params;
+    const { documentTypes } = req.body;
+
+    console.log(`📄 Document regeneration requested for case: ${caseId}`);
+    console.log(`📝 Requested document types: ${JSON.stringify(documentTypes)}`);
+
+    try {
+        // ============================================================
+        // STEP 1: AUTHENTICATION
+        // ============================================================
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.error('❌ Missing or invalid authorization header');
+            return res.status(401).json({
+                success: false,
+                error: 'Unauthorized',
+                message: 'Valid authorization token required'
+            });
+        }
+
+        const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+        // Validate token matches expected access token
+        if (token !== process.env.ACCESS_TOKEN) {
+            console.error('❌ Invalid access token');
+            return res.status(403).json({
+                success: false,
+                error: 'Forbidden',
+                message: 'Invalid authorization token'
+            });
+        }
+
+        // ============================================================
+        // STEP 2: VALIDATE DOCUMENT TYPES
+        // ============================================================
+        const VALID_DOCUMENT_TYPES = ['srogs', 'pods', 'admissions'];
+
+        // Check documentTypes is an array
+        if (!Array.isArray(documentTypes)) {
+            console.error('❌ documentTypes must be an array');
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid Input',
+                message: 'documentTypes must be an array'
+            });
+        }
+
+        // Check at least one document type selected
+        if (documentTypes.length === 0) {
+            console.error('❌ No document types selected');
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid Input',
+                message: 'At least one document type must be selected'
+            });
+        }
+
+        // Validate each document type
+        const invalidTypes = documentTypes.filter(type => !VALID_DOCUMENT_TYPES.includes(type));
+        if (invalidTypes.length > 0) {
+            console.error(`❌ Invalid document types: ${invalidTypes.join(', ')}`);
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid Input',
+                message: `Invalid document types: ${invalidTypes.join(', ')}`,
+                validTypes: VALID_DOCUMENT_TYPES
+            });
+        }
+
+        // ============================================================
+        // STEP 3: FETCH EXISTING CASE FROM DATABASE
+        // ============================================================
+        console.log(`🔍 Fetching case from database: ${caseId}`);
+
+        const query = `
+            SELECT
+                id,
+                case_number,
+                case_title,
+                plaintiff_name,
+                raw_payload,
+                latest_payload,
+                document_types_to_generate,
+                created_at
+            FROM cases
+            WHERE id = $1 AND is_active = true
+        `;
+
+        const result = await pool.query(query, [caseId]);
+
+        if (result.rows.length === 0) {
+            console.error(`❌ Case not found: ${caseId}`);
+            return res.status(404).json({
+                success: false,
+                error: 'Not Found',
+                message: `Case ${caseId} not found or has been deleted`
+            });
+        }
+
+        const existingCase = result.rows[0];
+        console.log(`✅ Case found: ${existingCase.case_number} - ${existingCase.case_title}`);
+
+        // ============================================================
+        // STEP 4: EXTRACT FORM DATA FOR PIPELINE
+        // ============================================================
+        // Use latest_payload if available (contains normalized data from previous generation)
+        // Otherwise fall back to raw_payload
+        const formData = existingCase.latest_payload || existingCase.raw_payload;
+
+        if (!formData) {
+            console.error('❌ No form data found in case record');
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid Case',
+                message: 'Case record does not contain form data for regeneration'
+            });
+        }
+
+        // ============================================================
+        // STEP 5: UPDATE DATABASE WITH NEW DOCUMENT SELECTION
+        // ============================================================
+        console.log(`💾 Updating document selection in database...`);
+
+        const updateQuery = `
+            UPDATE cases
+            SET
+                document_types_to_generate = $1,
+                updated_at = NOW()
+            WHERE id = $2
+            RETURNING id, document_types_to_generate
+        `;
+
+        const updateResult = await pool.query(updateQuery, [
+            JSON.stringify(documentTypes),
+            caseId
+        ]);
+
+        console.log(`✅ Database updated with new document types: ${JSON.stringify(documentTypes)}`);
+
+        // ============================================================
+        // STEP 6: INVOKE NORMALIZATION PIPELINE
+        // ============================================================
+        console.log(`🚀 Starting document regeneration pipeline...`);
+
+        // Call existing pipeline function (same one used for initial submission)
+        const pipelineResult = await callNormalizationPipeline(
+            formData,           // Form data from database
+            caseId,             // Use same case ID for tracking
+            documentTypes       // New document selection
+        );
+
+        console.log(`Pipeline result:`, pipelineResult);
+
+        // ============================================================
+        // STEP 7: UPDATE REGENERATION TRACKING (OPTIONAL)
+        // ============================================================
+        try {
+            // Create regeneration history entry
+            const historyEntry = {
+                timestamp: new Date().toISOString(),
+                documentTypes: documentTypes,
+                triggeredBy: 'manual' // vs 'automatic', 'scheduled', etc.
+            };
+
+            // Update database with regeneration tracking
+            const trackingQuery = `
+                UPDATE cases
+                SET
+                    last_regenerated_at = NOW(),
+                    regeneration_count = COALESCE(regeneration_count, 0) + 1,
+                    regeneration_history = COALESCE(regeneration_history, '[]'::JSONB) || $1::JSONB
+                WHERE id = $2
+                RETURNING
+                    last_regenerated_at,
+                    regeneration_count
+            `;
+
+            const trackingResult = await pool.query(trackingQuery, [
+                JSON.stringify(historyEntry),
+                caseId
+            ]);
+
+            if (trackingResult.rows.length > 0) {
+                const tracking = trackingResult.rows[0];
+                console.log(`✅ Regeneration tracking updated: count=${tracking.regeneration_count}, last=${tracking.last_regenerated_at}`);
+            }
+
+        } catch (trackingError) {
+            // Don't fail the request if tracking fails
+            console.error('⚠️ Warning: Failed to update regeneration tracking:', trackingError.message);
+        }
+
+        // ============================================================
+        // STEP 8: RETURN SUCCESS RESPONSE
+        // ============================================================
+        return res.status(200).json({
+            success: true,
+            message: 'Document regeneration started successfully',
+            caseId: caseId,
+            jobId: caseId,  // Use caseId as jobId for SSE tracking
+            documentTypes: documentTypes,
+            pipelineEnabled: true,
+            pipeline: {
+                status: pipelineResult.status || 'running',
+                message: pipelineResult.message || 'Pipeline execution started'
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error in document regeneration:', error);
+
+        return res.status(500).json({
+            success: false,
+            error: 'Server Error',
+            message: 'Failed to start document regeneration',
+            details: error.message
+        });
+    }
+});
+
 // Root route - serve the form
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));

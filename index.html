@@ -1765,6 +1765,173 @@
                 font-size: 0.8rem;
             }
         }
+
+        /* ============================================================ */
+        /* DOCUMENT REGENERATION STYLES */
+        /* ============================================================ */
+
+        /* Regeneration Case Info Card */
+        .regeneration-case-info {
+            margin-bottom: 20px;
+        }
+
+        .case-info-card {
+            background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+            border: 1px solid #BAE6FD;
+            border-radius: 10px;
+            padding: 16px 20px;
+        }
+
+        .case-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(186, 230, 253, 0.5);
+        }
+
+        .case-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .case-info-label {
+            font-weight: 600;
+            color: #0C4A6E;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .case-info-label i {
+            color: #0284C7;
+            font-size: 0.9rem;
+        }
+
+        .case-info-value {
+            color: #1F2A44;
+            font-size: 0.95rem;
+            font-weight: 500;
+            max-width: 60%;
+            text-align: right;
+            word-break: break-word;
+        }
+
+        /* Regeneration Document Selection */
+        .regeneration-document-selection {
+            margin-top: 20px;
+        }
+
+        /* Regeneration Progress */
+        #regeneration-progress {
+            background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+            border: 2px solid #E2E8F0;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .regeneration-progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .progress-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .progress-percentage {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #00AEEF;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 10px;
+            background: #E2E8F0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00AEEF 0%, #0284C7 50%, #00AEEF 100%);
+            background-size: 200% 100%;
+            border-radius: 5px;
+            transition: width 0.5s ease;
+            position: relative;
+            animation: progressShimmer 2s infinite linear;
+        }
+
+        @keyframes progressShimmer {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .progress-message {
+            font-size: 0.9rem;
+            color: #64748B;
+            text-align: center;
+            line-height: 1.5;
+            min-height: 20px;
+        }
+
+        /* Regenerate Button States */
+        #regenerate-btn:disabled {
+            background: #CBD5E0;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        #regenerate-btn:disabled:hover {
+            background: #CBD5E0;
+            transform: none;
+        }
+
+        #regenerate-btn.success {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        }
+
+        #regenerate-btn.success:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
+        /* Mobile responsiveness for regeneration */
+        @media (max-width: 767px) {
+            .case-info-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+
+            .case-info-value {
+                max-width: 100%;
+                text-align: left;
+            }
+
+            .regeneration-progress-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .progress-percentage {
+                font-size: 1.5rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -3151,6 +3318,142 @@
                 </button>
                 <button type="button" class="btn btn-primary" onclick="submitEmailNotification()">
                     <i class="fas fa-paper-plane"></i> Email & Submit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Regeneration Modal -->
+    <div id="regenerationModal" class="modal">
+        <div class="modal-content confirmation-modal">
+            <div class="modal-header">
+                <i class="fas fa-redo-alt" style="color: #00AEEF; font-size: 2rem; margin-bottom: 10px;"></i>
+                <h2>Regenerate Documents</h2>
+                <p style="margin: 8px 0 0 0; font-size: 0.95rem; opacity: 0.9; font-weight: normal;">Select which documents you want to regenerate for this case.</p>
+            </div>
+            <div class="modal-body">
+                <!-- Case Information Display -->
+                <div class="regeneration-case-info">
+                    <div class="case-info-card">
+                        <div class="case-info-row">
+                            <span class="case-info-label"><i class="fas fa-hashtag"></i> Case Number:</span>
+                            <span id="regen-case-number" class="case-info-value">-</span>
+                        </div>
+                        <div class="case-info-row">
+                            <span class="case-info-label"><i class="fas fa-gavel"></i> Case Title:</span>
+                            <span id="regen-case-title" class="case-info-value">-</span>
+                        </div>
+                        <div class="case-info-row">
+                            <span class="case-info-label"><i class="fas fa-user"></i> Plaintiff:</span>
+                            <span id="regen-plaintiff-name" class="case-info-value">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Document Selection Section -->
+                <div class="regeneration-document-selection">
+                    <h3 style="margin: 20px 0 15px 0; font-size: 1.1rem; color: #1F2A44;">
+                        <i class="fas fa-file-alt"></i> Select Documents to Regenerate
+                    </h3>
+
+                    <div class="document-selection-grid" style="margin-bottom: 15px;">
+                        <!-- SROG Checkbox -->
+                        <div class="document-checkbox-wrapper">
+                            <input
+                                type="checkbox"
+                                id="regen-doc-srogs"
+                                name="regen-document-selection"
+                                value="srogs"
+                                class="document-checkbox"
+                            >
+                            <label for="regen-doc-srogs" class="document-checkbox-label">
+                                <div class="document-checkbox-icon">
+                                    <i class="fas fa-clipboard-list"></i>
+                                </div>
+                                <div class="document-checkbox-content">
+                                    <span class="document-checkbox-title">SROGs</span>
+                                    <span class="document-checkbox-desc">Special Interrogatories</span>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- POD Checkbox -->
+                        <div class="document-checkbox-wrapper">
+                            <input
+                                type="checkbox"
+                                id="regen-doc-pods"
+                                name="regen-document-selection"
+                                value="pods"
+                                class="document-checkbox"
+                            >
+                            <label for="regen-doc-pods" class="document-checkbox-label">
+                                <div class="document-checkbox-icon">
+                                    <i class="fas fa-file-invoice"></i>
+                                </div>
+                                <div class="document-checkbox-content">
+                                    <span class="document-checkbox-title">PODs</span>
+                                    <span class="document-checkbox-desc">Production of Documents</span>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Admissions Checkbox -->
+                        <div class="document-checkbox-wrapper">
+                            <input
+                                type="checkbox"
+                                id="regen-doc-admissions"
+                                name="regen-document-selection"
+                                value="admissions"
+                                class="document-checkbox"
+                            >
+                            <label for="regen-doc-admissions" class="document-checkbox-label">
+                                <div class="document-checkbox-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="document-checkbox-content">
+                                    <span class="document-checkbox-title">Admissions</span>
+                                    <span class="document-checkbox-desc">Requests for Admission</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Error Message -->
+                    <p id="regen-document-selection-error" class="document-selection-error" style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Please select at least one document type to regenerate.
+                    </p>
+                </div>
+
+                <!-- Progress Section (Hidden by default) -->
+                <div id="regeneration-progress" style="display: none; margin-top: 20px;">
+                    <div class="regeneration-progress-header">
+                        <span class="progress-title">
+                            <i class="fas fa-spinner fa-spin"></i> Regeneration in Progress
+                        </span>
+                        <span id="regen-progress-percentage" class="progress-percentage">0%</span>
+                    </div>
+
+                    <div class="progress-bar-container">
+                        <div id="regen-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
+                    </div>
+
+                    <div id="regen-progress-message" class="progress-message">
+                        Initializing document regeneration...
+                    </div>
+                </div>
+
+                <div class="confirmation-note" style="margin-top: 15px;">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Previously generated documents will be replaced with new versions.</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeRegenerationModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="button" id="regenerate-btn" class="btn btn-primary" onclick="handleRegenerateDocuments()">
+                    <i class="fas fa-redo-alt"></i> Regenerate Selected Documents
                 </button>
             </div>
         </div>
@@ -6940,6 +7243,7 @@
     <script src="js/progress-state.js?v=2"></script>
     <script src="js/sse-client.js?v=3"></script>
     <script src="js/sse-manager.js?v=1"></script>
+    <script src="js/document-regeneration.js?v=1"></script>
     <script src="js/form-submission.js?v=8"></script>
 </body>
 </html>
