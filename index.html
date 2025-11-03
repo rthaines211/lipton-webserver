@@ -6028,8 +6028,8 @@
                 const data = await response.json();
                 console.log('Submission details:', data);
 
-                // Create and show detailed view modal
-                showSubmissionModal(data.entry);
+                // Create and show detailed view modal with submissionId
+                showSubmissionModal(data.entry, submissionId);
 
             } catch (error) {
                 console.error('Error loading submission details:', error);
@@ -6150,7 +6150,10 @@
          * Show detailed submission information in a modal
          * @param {Object} submission - The submission data to display
          */
-        function showSubmissionModal(submission) {
+        function showSubmissionModal(submission, submissionId) {
+            // Store submissionId on submission object for use in buttons
+            submission.id = submissionId || submission.id;
+
             const modalHtml = `
                 <div id="submissionModal" class="modal show">
                     <div class="modal-content">
@@ -6586,7 +6589,7 @@
                 const response = await authenticatedFetch(`/api/form-entries/${submissionId}`);
                 if (response.ok) {
                     const data = await response.json();
-                    showSubmissionModal(data.entry);
+                    showSubmissionModal(data.entry, submissionId);
                 }
             } catch (error) {
                 console.error('Error returning to view mode:', error);
