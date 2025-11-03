@@ -129,9 +129,9 @@ function closeRegenerationModal() {
     // Clean up SSE connection if active
     if (currentJobStream) {
         try {
-            currentJobStream.disconnect();
+            currentJobStream.close();
         } catch (e) {
-            console.warn('Error disconnecting job stream:', e);
+            console.warn('Error closing job stream:', e);
         }
         currentJobStream = null;
     }
@@ -429,12 +429,13 @@ function handleRegenerationComplete(data) {
     // Update progress to 100%
     updateProgressUI(100, '✅ Documents regenerated successfully!');
 
-    // Update button to success state
+    // Update button to close modal
     const regenerateBtn = document.getElementById('regenerate-btn');
     if (regenerateBtn) {
         regenerateBtn.disabled = false;
         regenerateBtn.className = 'btn btn-primary success';
-        regenerateBtn.innerHTML = '<i class="fas fa-check-circle"></i> Regeneration Complete';
+        regenerateBtn.innerHTML = '<i class="fas fa-check-circle"></i> Close';
+        regenerateBtn.onclick = closeRegenerationModal;
     }
 
     // Re-enable checkboxes
