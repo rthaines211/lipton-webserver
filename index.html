@@ -6054,19 +6054,39 @@
                 }
 
                 const data = await response.json();
-                const submission = data.entry;
+                console.log('API response structure:', data);
+
+                // Handle different response structures
+                const submission = data.entry || data;
+
+                if (!submission) {
+                    console.error('❌ No submission data found in response:', data);
+                    throw new Error('No submission data found');
+                }
 
                 console.log('Submission data for regeneration:', submission);
 
-                // Extract case information
+                // Extract case information with multiple fallbacks
                 const caseData = {
-                    caseNumber: submission.caseNumber || submission['Case Number'] || submissionId,
-                    caseTitle: submission.caseTitle || submission['Case Title'] || 'Unknown Case',
-                    plaintiffName: submission.name || submission.plaintiffName ||
-                                 (submission.PlaintiffDetails && submission.PlaintiffDetails[0]?.PlaintiffItemNumberName?.FirstAndLast) ||
+                    caseNumber: submission.caseNumber ||
+                               submission['Case Number'] ||
+                               submission.id ||
+                               submissionId,
+                    caseTitle: submission.caseTitle ||
+                              submission['Case Title'] ||
+                              submission.caseTitle ||
+                              'Unknown Case',
+                    plaintiffName: submission.name ||
+                                 submission.plaintiffName ||
+                                 (submission.PlaintiffDetails &&
+                                  submission.PlaintiffDetails[0]?.PlaintiffItemNumberName?.FirstAndLast) ||
                                  'Unknown Plaintiff',
-                    documentTypesToGenerate: submission.documentTypesToGenerate || ['srogs', 'pods', 'admissions']
+                    documentTypesToGenerate: submission.documentTypesToGenerate ||
+                                           submission.document_types_to_generate ||
+                                           ['srogs', 'pods', 'admissions']
                 };
+
+                console.log('Extracted case data:', caseData);
 
                 // Close submission modal if open
                 closeSubmissionModal();
