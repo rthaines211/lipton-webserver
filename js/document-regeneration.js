@@ -104,6 +104,12 @@ function showCaseForRegeneration(caseId, caseData) {
         regenerateBtn.onclick = handleRegenerateDocuments;
     }
 
+    // Reset progress header title
+    const progressTitle = document.querySelector('.regeneration-progress-header .progress-title');
+    if (progressTitle) {
+        progressTitle.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Regeneration in Progress';
+    }
+
     // Reset regeneration state
     isRegenerating = false;
 
@@ -430,6 +436,12 @@ function handleRegenerationComplete(data) {
 
     // Update progress to 100%
     updateProgressUI(100, '✅ Documents regenerated successfully!');
+
+    // Update progress header title to "Generation Completed"
+    const progressTitle = document.querySelector('.regeneration-progress-header .progress-title');
+    if (progressTitle) {
+        progressTitle.innerHTML = '<i class="fas fa-check-circle"></i> Generation Completed';
+    }
 
     // Update button to close modal
     const regenerateBtn = document.getElementById('regenerate-btn');
