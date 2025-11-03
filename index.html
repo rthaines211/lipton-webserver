@@ -5909,6 +5909,9 @@
                                         <button class="btn-icon btn-view" onclick="viewSubmission('${submission.id}')" title="View Details">
                                             <i class="fas fa-eye"></i>
                                         </button>
+                                        <button class="btn-icon btn-regenerate" onclick="openRegenerationForSubmission('${submission.id}')" title="Regenerate Documents" style="background: linear-gradient(135deg, #00AEEF 0%, #0088CC 100%); color: white;">
+                                            <i class="fas fa-redo-alt"></i>
+                                        </button>
                                         <button class="btn-icon btn-delete" onclick="deleteSubmission('${submission.id}')" title="Delete Submission">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -6031,6 +6034,54 @@
             } catch (error) {
                 console.error('Error loading submission details:', error);
                 alert('Failed to load submission details: ' + error.message);
+            }
+        }
+
+        /**
+         * Open regeneration modal for a submission
+         * Fetches submission data and opens the regeneration modal
+         * @param {string} submissionId - The ID of the submission to regenerate
+         */
+        async function openRegenerationForSubmission(submissionId) {
+            try {
+                console.log('🔄 Opening regeneration for submission:', submissionId);
+
+                // Fetch submission details
+                const response = await authenticatedFetch(`/api/form-entries/${submissionId}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const submission = data.entry;
+
+                console.log('Submission data for regeneration:', submission);
+
+                // Extract case information
+                const caseData = {
+                    caseNumber: submission.caseNumber || submission['Case Number'] || submissionId,
+                    caseTitle: submission.caseTitle || submission['Case Title'] || 'Unknown Case',
+                    plaintiffName: submission.name || submission.plaintiffName ||
+                                 (submission.PlaintiffDetails && submission.PlaintiffDetails[0]?.PlaintiffItemNumberName?.FirstAndLast) ||
+                                 'Unknown Plaintiff',
+                    documentTypesToGenerate: submission.documentTypesToGenerate || ['srogs', 'pods', 'admissions']
+                };
+
+                // Close submission modal if open
+                closeSubmissionModal();
+
+                // Open regeneration modal
+                if (typeof showCaseForRegeneration === 'function') {
+                    showCaseForRegeneration(submissionId, caseData);
+                } else {
+                    console.error('❌ showCaseForRegeneration function not found');
+                    alert('Regeneration feature not loaded. Please refresh the page.');
+                }
+
+            } catch (error) {
+                console.error('Error opening regeneration modal:', error);
+                alert('Failed to load regeneration: ' + error.message);
             }
         }
 
@@ -6177,6 +6228,9 @@
                         <div class="modal-footer">
                             <button type="button" class="btn" onclick="editSubmission('${submission.id || ''}')" style="background: #007bff;">
                                 <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button type="button" class="btn" onclick="openRegenerationForSubmission('${submission.id || ''}')" style="background: linear-gradient(135deg, #00AEEF 0%, #0088CC 100%); color: white;">
+                                <i class="fas fa-redo-alt"></i> Regenerate Documents
                             </button>
                             <button type="button" class="btn" onclick="closeSubmissionModal()" style="background: #6c757d;">
                                 <i class="fas fa-times"></i> Close
