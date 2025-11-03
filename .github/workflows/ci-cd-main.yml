@@ -422,7 +422,7 @@ jobs:
           echo "Deploying to Cloud Run (Staging)..."
 
           gcloud run deploy node-server-staging \
-            --image=${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/node-server:staging-${{ github.sha }} \
+            --source=. \
             --region=${{ env.GCP_REGION }} \
             --project=${{ env.GCP_PROJECT_ID }} \
             --platform=managed \
@@ -486,7 +486,7 @@ jobs:
           echo "Deploying to Cloud Run (Production)..."
 
           gcloud run deploy node-server \
-            --image=${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/node-server:production-${{ github.sha }} \
+            --source=. \
             --region=${{ env.GCP_REGION }} \
             --project=${{ env.GCP_PROJECT_ID }} \
             --platform=managed \
