@@ -2653,32 +2653,31 @@ app.post('/api/regenerate-documents/:caseId', async (req, res) => {
 
     try {
         // ============================================================
-        // STEP 1: AUTHENTICATION
+        // AUTHENTICATION REMOVED - nginx handles authentication
         // ============================================================
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            console.error('❌ Missing or invalid authorization header');
-            return res.status(401).json({
-                success: false,
-                error: 'Unauthorized',
-                message: 'Valid authorization token required'
-            });
-        }
-
-        const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-        // Validate token matches expected access token
-        if (token !== process.env.ACCESS_TOKEN) {
-            console.error('❌ Invalid access token');
-            return res.status(403).json({
-                success: false,
-                error: 'Forbidden',
-                message: 'Invalid authorization token'
-            });
-        }
+        // Note: Authentication previously required Bearer token but removed
+        // to allow nginx proxy to handle authentication layer instead.
+        // If you need to re-enable, uncomment the code below:
+        //
+        // const authHeader = req.headers.authorization;
+        // if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        //     return res.status(401).json({
+        //         success: false,
+        //         error: 'Unauthorized',
+        //         message: 'Valid authorization token required'
+        //     });
+        // }
+        // const token = authHeader.substring(7);
+        // if (token !== process.env.ACCESS_TOKEN) {
+        //     return res.status(403).json({
+        //         success: false,
+        //         error: 'Forbidden',
+        //         message: 'Invalid authorization token'
+        //     });
+        // }
 
         // ============================================================
-        // STEP 2: VALIDATE DOCUMENT TYPES
+        // STEP 1: VALIDATE DOCUMENT TYPES
         // ============================================================
         const VALID_DOCUMENT_TYPES = ['srogs', 'pods', 'admissions'];
 

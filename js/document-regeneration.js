@@ -248,20 +248,15 @@ async function handleRegenerateDocuments() {
     try {
         console.log(`🚀 Calling regeneration API for case: ${currentCaseId}`);
 
-        // Get auth token from URL or localStorage
-        const urlParams = new URLSearchParams(window.location.search);
-        const authToken = urlParams.get('token') || localStorage.getItem('authToken');
-
-        if (!authToken) {
-            throw new Error('Authentication token not found. Please ensure you have a valid access token.');
-        }
+        // Authentication removed - nginx handles authentication
+        // No longer need to pass Bearer token in Authorization header
 
         // Make API call
         const response = await fetch(`/api/regenerate-documents/${currentCaseId}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
+                'Content-Type': 'application/json'
+                // Authorization header removed - nginx proxy handles auth
             },
             body: JSON.stringify({
                 documentTypes: selectedDocuments
