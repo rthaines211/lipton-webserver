@@ -2715,74 +2715,109 @@ app.post('/api/regenerate-documents/:caseId', async (req, res) => {
         }
 
         // ============================================================
-        // STEP 3: FETCH EXISTING CASE FROM DATABASE
+        // STEP 3: FETCH EXISTING CASE (DATABASE OR FILE STORAGE)
         // ============================================================
-        console.log(`🔍 Fetching case from database: ${caseId}`);
+        console.log(`🔍 Fetching case: ${caseId}`);
 
-        const query = `
-            SELECT
-                id,
-                case_number,
-                case_title,
-                plaintiff_name,
-                raw_payload,
-                latest_payload,
-                document_types_to_generate,
-                created_at
-            FROM cases
-            WHERE id = $1 AND is_active = true
-        `;
+        let formData = null;
+        let isFileBasedSubmission = false;
+        let databaseCaseExists = false;
 
-        const result = await pool.query(query, [caseId]);
+        // Try DATABASE first
+        try {
+            console.log(`   → Attempting database lookup...`);
 
-        if (result.rows.length === 0) {
+            const query = `
+                SELECT
+                    id,
+                    raw_payload,
+                    latest_payload
+                FROM cases
+                WHERE id = $1 AND is_active = true
+            `;
+
+            const result = await pool.query(query, [caseId]);
+
+            if (result.rows.length > 0) {
+                // Found in database
+                console.log(`✅ Case found in database`);
+                const existingCase = result.rows[0];
+                formData = existingCase.latest_payload || existingCase.raw_payload;
+                databaseCaseExists = true;
+                isFileBasedSubmission = false;
+            } else {
+                console.log(`⚠️ Case not found in database, trying file storage...`);
+            }
+
+        } catch (dbError) {
+            console.error(`⚠️ Database lookup failed: ${dbError.message}`);
+            console.log(`   → Falling back to file storage...`);
+        }
+
+        // Fallback to FILE STORAGE if not found in database
+        if (!formData) {
+            try {
+                const filename = `form-entry-${caseId}.json`;
+                console.log(`   → Checking for file: ${filename}`);
+
+                const fileExists = await formDataExists(filename);
+
+                if (fileExists) {
+                    console.log(`✅ Case found in file storage`);
+                    formData = await readFormData(filename);
+                    isFileBasedSubmission = true;
+                    databaseCaseExists = false;
+                } else {
+                    console.error(`❌ Case not found in file storage either`);
+                }
+
+            } catch (fileError) {
+                console.error(`❌ File storage lookup failed: ${fileError.message}`);
+            }
+        }
+
+        // If still no form data, return 404
+        if (!formData) {
             console.error(`❌ Case not found: ${caseId}`);
             return res.status(404).json({
                 success: false,
                 error: 'Not Found',
-                message: `Case ${caseId} not found or has been deleted`
+                message: `Case ${caseId} not found in database or file storage`
             });
         }
 
-        const existingCase = result.rows[0];
-        console.log(`✅ Case found: ${existingCase.case_number} - ${existingCase.case_title}`);
+        console.log(`📦 Form data source: ${isFileBasedSubmission ? 'FILE STORAGE' : 'DATABASE'}`);
 
         // ============================================================
-        // STEP 4: EXTRACT FORM DATA FOR PIPELINE
+        // STEP 4: UPDATE DATABASE IF CASE EXISTS IN DATABASE
         // ============================================================
-        // Use latest_payload if available (contains normalized data from previous generation)
-        // Otherwise fall back to raw_payload
-        const formData = existingCase.latest_payload || existingCase.raw_payload;
+        if (databaseCaseExists) {
+            try {
+                console.log(`💾 Updating document selection in database...`);
 
-        if (!formData) {
-            console.error('❌ No form data found in case record');
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid Case',
-                message: 'Case record does not contain form data for regeneration'
-            });
+                const updateQuery = `
+                    UPDATE cases
+                    SET
+                        document_types_to_generate = $1,
+                        updated_at = NOW()
+                    WHERE id = $2
+                    RETURNING id
+                `;
+
+                await pool.query(updateQuery, [
+                    JSON.stringify(documentTypes),
+                    caseId
+                ]);
+
+                console.log(`✅ Database updated with new document types: ${JSON.stringify(documentTypes)}`);
+
+            } catch (updateError) {
+                console.error(`⚠️ Warning: Failed to update database: ${updateError.message}`);
+                // Don't fail the request - regeneration can still proceed
+            }
+        } else {
+            console.log(`ℹ️ Skipping database update (file-based submission)`);
         }
-
-        // ============================================================
-        // STEP 5: UPDATE DATABASE WITH NEW DOCUMENT SELECTION
-        // ============================================================
-        console.log(`💾 Updating document selection in database...`);
-
-        const updateQuery = `
-            UPDATE cases
-            SET
-                document_types_to_generate = $1,
-                updated_at = NOW()
-            WHERE id = $2
-            RETURNING id, document_types_to_generate
-        `;
-
-        const updateResult = await pool.query(updateQuery, [
-            JSON.stringify(documentTypes),
-            caseId
-        ]);
-
-        console.log(`✅ Database updated with new document types: ${JSON.stringify(documentTypes)}`);
 
         // ============================================================
         // STEP 6: INVOKE NORMALIZATION PIPELINE
@@ -2799,42 +2834,46 @@ app.post('/api/regenerate-documents/:caseId', async (req, res) => {
         console.log(`Pipeline result:`, pipelineResult);
 
         // ============================================================
-        // STEP 7: UPDATE REGENERATION TRACKING (OPTIONAL)
+        // STEP 7: UPDATE REGENERATION TRACKING (OPTIONAL - DATABASE ONLY)
         // ============================================================
-        try {
-            // Create regeneration history entry
-            const historyEntry = {
-                timestamp: new Date().toISOString(),
-                documentTypes: documentTypes,
-                triggeredBy: 'manual' // vs 'automatic', 'scheduled', etc.
-            };
+        if (databaseCaseExists) {
+            try {
+                // Create regeneration history entry
+                const historyEntry = {
+                    timestamp: new Date().toISOString(),
+                    documentTypes: documentTypes,
+                    triggeredBy: 'manual' // vs 'automatic', 'scheduled', etc.
+                };
 
-            // Update database with regeneration tracking
-            const trackingQuery = `
-                UPDATE cases
-                SET
-                    last_regenerated_at = NOW(),
-                    regeneration_count = COALESCE(regeneration_count, 0) + 1,
-                    regeneration_history = COALESCE(regeneration_history, '[]'::JSONB) || $1::JSONB
-                WHERE id = $2
-                RETURNING
-                    last_regenerated_at,
-                    regeneration_count
-            `;
+                // Update database with regeneration tracking
+                const trackingQuery = `
+                    UPDATE cases
+                    SET
+                        last_regenerated_at = NOW(),
+                        regeneration_count = COALESCE(regeneration_count, 0) + 1,
+                        regeneration_history = COALESCE(regeneration_history, '[]'::JSONB) || $1::JSONB
+                    WHERE id = $2
+                    RETURNING
+                        last_regenerated_at,
+                        regeneration_count
+                `;
 
-            const trackingResult = await pool.query(trackingQuery, [
-                JSON.stringify(historyEntry),
-                caseId
-            ]);
+                const trackingResult = await pool.query(trackingQuery, [
+                    JSON.stringify(historyEntry),
+                    caseId
+                ]);
 
-            if (trackingResult.rows.length > 0) {
-                const tracking = trackingResult.rows[0];
-                console.log(`✅ Regeneration tracking updated: count=${tracking.regeneration_count}, last=${tracking.last_regenerated_at}`);
+                if (trackingResult.rows.length > 0) {
+                    const tracking = trackingResult.rows[0];
+                    console.log(`✅ Regeneration tracking updated: count=${tracking.regeneration_count}, last=${tracking.last_regenerated_at}`);
+                }
+
+            } catch (trackingError) {
+                // Don't fail the request if tracking fails
+                console.error('⚠️ Warning: Failed to update regeneration tracking:', trackingError.message);
             }
-
-        } catch (trackingError) {
-            // Don't fail the request if tracking fails
-            console.error('⚠️ Warning: Failed to update regeneration tracking:', trackingError.message);
+        } else {
+            console.log(`ℹ️ Skipping regeneration tracking (file-based submission - no database record)`);
         }
 
         // ============================================================
