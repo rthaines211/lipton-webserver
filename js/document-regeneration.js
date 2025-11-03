@@ -452,6 +452,13 @@ function handleRegenerationComplete(data) {
 
     // Show success notification
     showSuccessNotification('Documents have been regenerated successfully!');
+
+    // Refresh submissions list to ensure data is up-to-date
+    // This prevents 404 errors when trying to view the submission again
+    if (typeof loadSubmissions === 'function') {
+        console.log('🔄 Refreshing submissions list after regeneration');
+        loadSubmissions();
+    }
 }
 
 /**
