@@ -100,6 +100,8 @@ function showCaseForRegeneration(caseId, caseData) {
         regenerateBtn.disabled = false;
         regenerateBtn.className = 'btn btn-primary';
         regenerateBtn.innerHTML = '<i class="fas fa-redo-alt"></i> Regenerate Selected Documents';
+        // Reset onclick handler to default regeneration function
+        regenerateBtn.onclick = handleRegenerateDocuments;
     }
 
     // Reset regeneration state
