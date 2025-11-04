@@ -243,6 +243,13 @@ async function submitForm(notificationEmail = null, optedIn = false, notificatio
         );
         data.documentTypesToGenerate = selectedDocuments;
 
+        // Store form data in sessionStorage for progress modal
+        sessionStorage.setItem('lastSubmissionFormData', JSON.stringify({
+            propertyAddress: data['property-address'] || 'Unknown Property',
+            plaintiffFirstName: data['plaintiff-1-first-name'] || '',
+            plaintiffLastName: data['plaintiff-1-last-name'] || ''
+        }));
+
         console.log('Submitting form data:', data);
         console.log('📄 Document types to generate:', selectedDocuments);
 
@@ -321,7 +328,7 @@ async function handleSubmissionSuccess(result) {
         dbCaseId_type: typeof result.dbCaseId
     });
 
-    // Get case ID for progress tracking (background process)
+    // Get case ID for progress tracking
     const caseId = result.dbCaseId || result.id;
 
     console.log(`📍 Case submitted: ${caseId}`);
@@ -330,8 +337,14 @@ async function handleSubmissionSuccess(result) {
     // Check if the server indicated that document generation is happening
     const pipelineEnabled = result.pipelineEnabled || result.pipeline_enabled || false;
 
-    if (pipelineEnabled && caseId && typeof createJobStream !== 'undefined' && typeof progressToast !== 'undefined') {
-        console.log(`🚀 Starting background document generation tracking for case: ${caseId}`);
+    console.log(`🔍 Progress modal check:`, {
+        pipelineEnabled,
+        caseId,
+        createJobStreamExists: typeof createJobStream !== 'undefined'
+    });
+
+    if (pipelineEnabled && caseId && typeof createJobStream !== 'undefined') {
+        console.log(`🚀 Starting document generation tracking for case: ${caseId}`);
 
         try {
             // Clean up any existing connection for this job
@@ -347,48 +360,90 @@ async function handleSubmissionSuccess(result) {
                 window.sseManager.closeConnection(caseId);
             }
 
-            // Toast notification removed - check console for background generation progress
+            // Get form data for display in progress modal (from sessionStorage)
+            const storedFormData = JSON.parse(sessionStorage.getItem('lastSubmissionFormData') || '{}');
+            const plaintiffName = `${storedFormData.plaintiffFirstName || ''} ${storedFormData.plaintiffLastName || ''}`.trim() || 'Unknown Plaintiff';
 
-            // Create SSE connection (will use manager if available)
-            const jobStream = createJobStream(caseId);
-
-            // Set up event handlers
-            jobStream.onProgress = (data) => {
-                console.log('Background progress update:', data);
+            const formData = {
+                caseNumber: storedFormData.propertyAddress || 'Unknown Property',
+                plaintiffName: plaintiffName
             };
 
-            jobStream.onComplete = (data) => {
-                console.log('Background job completed:', data);
-                // Ensure we clean up after completion
-                if (window.currentJobStream === jobStream) {
-                    window.currentJobStream = null;
-                }
-            };
+            console.log('📊 Showing progress modal with data:', formData);
 
-            jobStream.onError = (data) => {
-                console.error('Background job failed:', data);
-                // Clean up on error too
-                if (window.currentJobStream === jobStream) {
-                    window.currentJobStream = null;
-                }
-            };
+            // Show progress modal with initial state
+            showSubmissionProgress(caseId, formData);
 
-            // Connect to SSE stream
-            jobStream.connect();
+            // Set initial progress immediately (10% - form submitted)
+            setTimeout(() => {
+                updateSubmissionProgressUI(10, 'Form submitted successfully...');
+            }, 100);
 
-            // Store stream reference for cleanup
-            window.currentJobStream = jobStream;
+            // Simulate intermediate progress updates while waiting for SSE connection
+            setTimeout(() => {
+                updateSubmissionProgressUI(20, 'Saving form data to database...');
+            }, 400);
+
+            setTimeout(() => {
+                updateSubmissionProgressUI(30, 'Preparing document generation...');
+            }, 800);
+
+            // Delay SSE connection to prevent reconnection loop
+            // Backend takes ~500ms to initialize progress status after submission
+            setTimeout(() => {
+                console.log('🔌 Connecting to SSE stream for case:', caseId);
+                addDebugLog('🔌 Connecting to SSE stream...', 'info');
+
+                // Create SSE connection (will use manager if available)
+                const jobStream = createJobStream(caseId);
+
+                // Set up event handlers to update progress UI
+                jobStream.onProgress = (data) => {
+                    console.log('Progress update:', data);
+                    // Use data.progress if available, otherwise calculate from percentage
+                    const progressPercent = data.progress || data.percentage || 0;
+                    const message = data.currentPhase || data.message || 'Processing...';
+
+                    updateSubmissionProgressUI(progressPercent, message);
+                };
+
+                jobStream.onComplete = (data) => {
+                    console.log('Job completed:', data);
+                    addDebugLog('✅ Generation completed!', 'success');
+                    handleSubmissionComplete(data);
+                    // Ensure we clean up after completion
+                    if (window.currentJobStream === jobStream) {
+                        window.currentJobStream = null;
+                    }
+                };
+
+                jobStream.onError = (data) => {
+                    console.error('Job failed:', data);
+                    addDebugLog(`❌ Error: ${data.error || 'Generation failed'}`, 'error');
+                    handleSubmissionError(data);
+                    // Clean up on error too
+                    if (window.currentJobStream === jobStream) {
+                        window.currentJobStream = null;
+                    }
+                };
+
+                // Connect to SSE stream
+                jobStream.connect();
+
+                // Store stream reference for cleanup
+                window.currentJobStream = jobStream;
+            }, 1200); // Wait 1.2s before connecting to SSE
 
         } catch (error) {
-            console.error('Failed to initialize background tracking:', error);
-            // Continue with form reset even if tracking fails
+            console.error('Failed to initialize progress tracking:', error);
+            // Fall back to immediate reset if tracking fails
+            resetFormAfterSubmission(result);
         }
     } else {
         console.log(`ℹ️ Document generation not enabled - form saved to database only`);
+        // Reset form immediately if pipeline not enabled
+        resetFormAfterSubmission(result);
     }
-
-    // Reset form immediately - documents generate in background
-    resetFormAfterSubmission(result);
 }
 
 /**
@@ -584,6 +639,316 @@ function initializeDocumentSelectionListeners() {
     console.log('✅ Document selection listeners initialized');
 }
 
+/**
+ * Show submission progress modal with case information
+ * @param {string|number} caseId - Database case ID for SSE tracking
+ * @param {Object} formData - Form data to display case information
+ */
+function showSubmissionProgress(caseId, formData) {
+    // First, ensure email modal is closed
+    closeEmailNotificationModal();
+
+    const modal = document.getElementById('submissionProgressModal');
+    if (!modal) {
+        console.error('Submission progress modal not found');
+        return;
+    }
+
+    // Populate case information
+    const caseNumberElement = document.getElementById('submission-case-number');
+    const plaintiffNameElement = document.getElementById('submission-plaintiff-name');
+
+    if (caseNumberElement) {
+        caseNumberElement.textContent = formData.caseNumber || '-';
+    }
+
+    if (plaintiffNameElement) {
+        plaintiffNameElement.textContent = formData.plaintiffName || '-';
+    }
+
+    // Reset completion flag for new submission
+    window.submissionCompleted = false;
+
+    // Clear debug log
+    const debugLog = document.getElementById('submission-debug-log');
+    if (debugLog) {
+        debugLog.innerHTML = '';
+    }
+    addDebugLog('Modal opened', 'info');
+    addDebugLog(`Case ID: ${caseId}`, 'info');
+
+    // Reset progress UI to initial state
+    updateSubmissionProgressUI(0, 'Initializing document generation...');
+
+    // Reset button state
+    const closeBtn = document.getElementById('submission-close-btn');
+    if (closeBtn) {
+        closeBtn.disabled = true;
+        closeBtn.classList.remove('success');
+        closeBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> Processing...';
+    }
+
+    // Reset title to in-progress state
+    const title = document.getElementById('submission-progress-title');
+    if (title) {
+        title.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating Documents';
+    }
+
+    // Show modal
+    modal.classList.add('show');
+    console.log('📊 Submission progress modal opened for case:', caseId);
+}
+
+/**
+ * Close submission progress modal and reset form
+ */
+function closeSubmissionProgressModal() {
+    const modal = document.getElementById('submissionProgressModal');
+    if (!modal) return;
+
+    // Close modal
+    modal.classList.remove('show');
+
+    // Clean up SSE connection if it exists
+    if (window.currentJobStream) {
+        window.currentJobStream.close();
+        window.currentJobStream = null;
+    }
+
+    // Clean up stored form data
+    sessionStorage.removeItem('lastSubmissionFormData');
+
+    // Clean up progress state
+    if (window.submissionProgressState) {
+        delete window.submissionProgressState;
+    }
+
+    // Clean up completion flag
+    window.submissionCompleted = false;
+
+    // Reset form after closing
+    const form = document.getElementById('main-form');
+    if (form) {
+        // Clear the form
+        form.reset();
+
+        // Reset plaintiff and defendant sections
+        const plaintiffsContainer = document.getElementById('plaintiffs-container');
+        const defendantsContainer = document.getElementById('defendants-container');
+
+        if (plaintiffsContainer) {
+            plaintiffsContainer.innerHTML = '';
+        }
+
+        if (defendantsContainer) {
+            defendantsContainer.innerHTML = '';
+        }
+
+        // Reset counters
+        if (typeof window.plaintiffCounter !== 'undefined') {
+            window.plaintiffCounter = 0;
+        }
+
+        if (typeof window.defendantCounter !== 'undefined') {
+            window.defendantCounter = 0;
+        }
+
+        // Reinitialize with one plaintiff and defendant
+        if (typeof window.addPlaintiff === 'function') {
+            window.addPlaintiff();
+        }
+
+        if (typeof window.addDefendant === 'function') {
+            window.addDefendant();
+        }
+
+        // Reset button state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Form';
+        }
+
+        // Scroll to top of form
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        console.log('🔄 Form reset complete after closing progress modal');
+    }
+
+    console.log('✅ Submission progress modal closed');
+}
+
+/**
+ * Add log entry to debug console
+ * @param {string} message - Log message
+ * @param {string} type - Log type (info, success, error, warning)
+ */
+function addDebugLog(message, type = 'info') {
+    const debugLog = document.getElementById('submission-debug-log');
+    if (!debugLog) return;
+
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const colors = {
+        info: '#0066cc',
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107'
+    };
+
+    const logEntry = document.createElement('div');
+    logEntry.style.color = colors[type] || colors.info;
+    logEntry.style.marginBottom = '4px';
+    logEntry.innerHTML = `<span style="color: #6c757d;">[${timestamp}]</span> ${message}`;
+
+    debugLog.appendChild(logEntry);
+
+    // Auto-scroll to bottom
+    const console = document.getElementById('submission-debug-console');
+    if (console) {
+        console.scrollTop = console.scrollHeight;
+    }
+}
+
+/**
+ * Update submission progress UI with percentage and message
+ * @param {number} percentage - Progress percentage (0-100)
+ * @param {string} message - Status message to display
+ * @param {boolean} animate - Whether to animate the progress (default: true)
+ */
+function updateSubmissionProgressUI(percentage, message, animate = true) {
+    const progressBar = document.getElementById('submission-progress-bar');
+    const percentageElement = document.getElementById('submission-progress-percentage');
+    const messageElement = document.getElementById('submission-progress-message');
+
+    // Log to debug console
+    addDebugLog(`Progress: ${Math.round(percentage)}% - ${message}`, 'info');
+
+    // Store current and target progress for smooth animation
+    if (!window.submissionProgressState) {
+        window.submissionProgressState = { current: 0, target: 0 };
+    }
+
+    const state = window.submissionProgressState;
+    state.target = Math.min(100, Math.max(0, percentage));
+
+    // Smooth animation to target percentage
+    if (animate && state.current < state.target) {
+        const step = () => {
+            if (state.current < state.target) {
+                // Increment by small steps for smooth animation
+                const increment = Math.max(0.5, (state.target - state.current) / 20);
+                state.current = Math.min(state.target, state.current + increment);
+
+                if (progressBar) {
+                    progressBar.style.width = `${state.current}%`;
+                }
+
+                if (percentageElement) {
+                    percentageElement.textContent = `${Math.round(state.current)}%`;
+                }
+
+                // Continue animation if not at target
+                if (state.current < state.target) {
+                    requestAnimationFrame(step);
+                }
+            }
+        };
+        requestAnimationFrame(step);
+    } else {
+        // Instant update (for jumps backward or when animation disabled)
+        state.current = state.target;
+
+        if (progressBar) {
+            progressBar.style.width = `${percentage}%`;
+        }
+
+        if (percentageElement) {
+            percentageElement.textContent = `${Math.round(percentage)}%`;
+        }
+    }
+
+    // Always update message immediately
+    if (messageElement) {
+        messageElement.textContent = message;
+    }
+}
+
+/**
+ * Handle submission progress completion
+ * @param {Object} data - Completion data from SSE
+ */
+function handleSubmissionComplete(data) {
+    // Prevent duplicate completion handling
+    if (window.submissionCompleted) {
+        console.log('⚠️  Completion already handled, skipping duplicate');
+        return;
+    }
+    window.submissionCompleted = true;
+
+    console.log('✅ Document generation completed:', data);
+
+    // Update progress to 100%
+    updateSubmissionProgressUI(100, '✅ Documents generated successfully!', false);
+
+    // Update title
+    const title = document.getElementById('submission-progress-title');
+    if (title) {
+        title.innerHTML = '<i class="fas fa-check-circle"></i> Generation Completed';
+    }
+
+    // Update status indicator
+    const statusElement = document.getElementById('submission-progress-status');
+    if (statusElement) {
+        statusElement.innerHTML = '<i class="fas fa-check-circle"></i> Generation Completed';
+    }
+
+    // Enable and update close button
+    const closeBtn = document.getElementById('submission-close-btn');
+    if (closeBtn) {
+        closeBtn.disabled = false;
+        closeBtn.classList.add('success');
+        closeBtn.innerHTML = '<i class="fas fa-check"></i> Close';
+    }
+
+    // Show success notification toast (ONLY ONCE)
+    if (typeof showSuccessNotification === 'function') {
+        showSuccessNotification('Documents have been generated successfully!');
+    }
+}
+
+/**
+ * Handle submission progress error
+ * @param {Object} data - Error data from SSE
+ */
+function handleSubmissionError(data) {
+    console.error('❌ Document generation failed:', data);
+
+    // Update progress message with error
+    const messageElement = document.getElementById('submission-progress-message');
+    if (messageElement) {
+        messageElement.innerHTML = `<span style="color: #DC2626;">❌ Error: ${data.message || 'Document generation failed'}</span>`;
+    }
+
+    // Update title
+    const title = document.getElementById('submission-progress-title');
+    if (title) {
+        title.innerHTML = '<i class="fas fa-exclamation-circle"></i> Generation Failed';
+    }
+
+    // Update status indicator
+    const statusElement = document.getElementById('submission-progress-status');
+    if (statusElement) {
+        statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i> Generation Failed';
+    }
+
+    // Enable close button
+    const closeBtn = document.getElementById('submission-close-btn');
+    if (closeBtn) {
+        closeBtn.disabled = false;
+        closeBtn.innerHTML = '<i class="fas fa-times"></i> Close';
+    }
+}
+
 // Make functions available globally
 if (typeof window !== 'undefined') {
     window.showReviewScreen = showReviewScreen;
@@ -598,6 +963,11 @@ if (typeof window !== 'undefined') {
     window.extractDefendants = extractDefendants;
     window.getSelectedDocuments = getSelectedDocuments;
     window.initializeDocumentSelectionListeners = initializeDocumentSelectionListeners;
+    window.showSubmissionProgress = showSubmissionProgress;
+    window.closeSubmissionProgressModal = closeSubmissionProgressModal;
+    window.updateSubmissionProgressUI = updateSubmissionProgressUI;
+    window.handleSubmissionComplete = handleSubmissionComplete;
+    window.handleSubmissionError = handleSubmissionError;
 }
 
 // Initialize document selection listeners when DOM is ready

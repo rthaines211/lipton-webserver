@@ -1909,6 +1909,33 @@
             background: linear-gradient(135deg, #059669 0%, #047857 100%);
         }
 
+        /* Submission Progress Modal Styles */
+        #submission-progress {
+            background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+            border: 2px solid #E2E8F0;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        #submission-close-btn:disabled {
+            background: #CBD5E0;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        #submission-close-btn:disabled:hover {
+            background: #CBD5E0;
+            transform: none;
+        }
+
+        #submission-close-btn.success {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        }
+
+        #submission-close-btn.success:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
         /* Mobile responsiveness for regeneration */
         @media (max-width: 767px) {
             .case-info-row {
@@ -3318,6 +3345,70 @@
                 </button>
                 <button type="button" class="btn btn-primary" onclick="submitEmailNotification()">
                     <i class="fas fa-paper-plane"></i> Email & Submit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submission Progress Modal -->
+    <div id="submissionProgressModal" class="modal">
+        <div class="modal-content confirmation-modal">
+            <div class="modal-header">
+                <i class="fas fa-file-invoice" style="color: #00AEEF; font-size: 2rem; margin-bottom: 10px;"></i>
+                <h2 id="submission-progress-title">
+                    <i class="fas fa-spinner fa-spin"></i> Generating Documents
+                </h2>
+                <p style="margin: 8px 0 0 0; font-size: 0.95rem; opacity: 0.9; font-weight: normal;">Please wait while we generate your legal documents.</p>
+            </div>
+            <div class="modal-body">
+                <!-- Case Information Display -->
+                <div class="regeneration-case-info">
+                    <div class="case-info-card">
+                        <div class="case-info-row">
+                            <span class="case-info-label"><i class="fas fa-home"></i> Property Address:</span>
+                            <span id="submission-case-number" class="case-info-value">-</span>
+                        </div>
+                        <div class="case-info-row">
+                            <span class="case-info-label"><i class="fas fa-user"></i> Plaintiff:</span>
+                            <span id="submission-plaintiff-name" class="case-info-value">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Section (Always Visible) -->
+                <div id="submission-progress" style="margin-top: 20px;">
+                    <div class="regeneration-progress-header">
+                        <span class="progress-title" id="submission-progress-status">
+                            <i class="fas fa-spinner fa-spin"></i> Generation in Progress
+                        </span>
+                        <span id="submission-progress-percentage" class="progress-percentage">0%</span>
+                    </div>
+
+                    <div class="progress-bar-container">
+                        <div id="submission-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
+                    </div>
+
+                    <div id="submission-progress-message" class="progress-message">
+                        Initializing document generation...
+                    </div>
+
+                    <!-- Debug Console for Real-Time Logs -->
+                    <div id="submission-debug-console" style="margin-top: 15px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; max-height: 200px; overflow-y: auto; font-family: 'Monaco', 'Courier New', monospace; font-size: 11px; line-height: 1.4;">
+                        <div style="font-weight: bold; margin-bottom: 8px; color: #495057; font-size: 12px;">
+                            <i class="fas fa-terminal"></i> Progress Log:
+                        </div>
+                        <div id="submission-debug-log"></div>
+                    </div>
+                </div>
+
+                <div class="confirmation-note" style="margin-top: 15px;">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Your documents will be available for download once processing is complete.</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="submission-close-btn" class="btn btn-primary" onclick="closeSubmissionProgressModal()" disabled>
+                    <i class="fas fa-hourglass-half"></i> Processing...
                 </button>
             </div>
         </div>
