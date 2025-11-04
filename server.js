@@ -1252,6 +1252,15 @@ async function callNormalizationPipeline(structuredData, caseId, documentTypes =
             console.log(`✅ Confirmed case_id in payload: ${structuredData.case_id}`);
         }
 
+        // ============================================================
+        // GIVE SSE CLIENT TIME TO CONNECT
+        // ============================================================
+        // Wait 1.5 seconds before calling pipeline to allow frontend
+        // to establish SSE connection first (frontend connects at 1.2s)
+        console.log(`⏸️  Waiting 1.5 seconds for SSE connection to establish...`);
+
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
         // Start the pipeline in the background
         const pipelinePromise = axios.post(
             `${PIPELINE_CONFIG.apiUrl}/api/normalize`,
@@ -2453,6 +2462,13 @@ app.get('/api/jobs/:jobId/stream', (req, res) => {
             progress: 100
         })}\n\n`);
 
+        // Flush completion message immediately
+        if (res.flush) res.flush();
+        if (res.socket && !res.socket.destroyed) {
+            res.socket.uncork();
+            res.socket.cork();
+        }
+
         // Close the connection gracefully
         setTimeout(() => {
             res.end();
@@ -2463,6 +2479,13 @@ app.get('/api/jobs/:jobId/stream', (req, res) => {
     // Send initial connection event
     res.write('event: open\n');
     res.write(`data: {"status":"connected","jobId":"${jobId}"}\n\n`);
+
+    // Flush initial connection message immediately
+    if (res.flush) res.flush();
+    if (res.socket && !res.socket.destroyed) {
+        res.socket.uncork();
+        res.socket.cork();
+    }
 
     // Declare interval and heartbeat variables before sendProgress function
     // This prevents "Cannot access before initialization" error
@@ -2493,6 +2516,21 @@ app.get('/api/jobs/:jobId/stream', (req, res) => {
             })}\n\n`);
 
             // ============================================================
+            // CRITICAL FIX: Force immediate flush to prevent buffering
+            // ============================================================
+            // Node.js may buffer SSE writes, causing all messages to arrive
+            // at once when the connection closes. We force a flush by using
+            // the underlying socket's flush mechanism if available.
+            if (res.flush) {
+                res.flush(); // flushHeaders for compress middleware
+            }
+            // Alternative: ensure socket write buffer is flushed
+            if (res.socket && !res.socket.destroyed) {
+                res.socket.uncork();
+                res.socket.cork();
+            }
+
+            // ============================================================
             // PHASE 1A: Immediate Interval Cleanup
             // ============================================================
             // If complete or failed, immediately clear intervals to prevent
@@ -2515,10 +2553,31 @@ app.get('/api/jobs/:jobId/stream', (req, res) => {
         }
     };
 
-    // Send current status immediately
-    sendProgress();
+    // Track last sent progress to avoid sending duplicates
+    let lastSentProgress = null;
 
-    // Set up interval to send updates every 2 seconds
+    // Modified sendProgress to only send when progress changes
+    const sendProgressIfChanged = () => {
+        const status = getPipelineStatus(jobId);
+        if (status) {
+            const currentProgress = JSON.stringify({
+                status: status.status,
+                progress: status.progress,
+                currentPhase: status.currentPhase
+            });
+
+            // Only send if progress actually changed
+            if (currentProgress !== lastSentProgress) {
+                lastSentProgress = currentProgress;
+                sendProgress();
+            }
+        }
+    };
+
+    // Send current status immediately
+    sendProgressIfChanged();
+
+    // Set up interval to send updates every 2 seconds (only if changed)
     interval = setInterval(() => {
         const status = getPipelineStatus(jobId);
         if (!status || status.status === 'success' || status.status === 'failed') {
@@ -2528,13 +2587,19 @@ app.get('/api/jobs/:jobId/stream', (req, res) => {
                 res.end();
             }
         } else {
-            sendProgress();
+            sendProgressIfChanged();
         }
     }, 2000);
 
     // Send heartbeat every 20 seconds to keep connection alive
     heartbeat = setInterval(() => {
         res.write(':heartbeat\n\n');
+        // Flush heartbeat immediately
+        if (res.flush) res.flush();
+        if (res.socket && !res.socket.destroyed) {
+            res.socket.uncork();
+            res.socket.cork();
+        }
     }, 20000);
 
     // Clean up on client disconnect
