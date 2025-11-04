@@ -409,8 +409,11 @@ async function handleSubmissionSuccess(result) {
 
                 jobStream.onComplete = (data) => {
                     console.log('Job completed:', data);
-                    addDebugLog('✅ Generation completed!', 'success');
-                    handleSubmissionComplete(data);
+                    // Only log and handle if not already completed
+                    if (!window.submissionCompleted) {
+                        addDebugLog('✅ Generation completed!', 'success');
+                        handleSubmissionComplete(data);
+                    }
                     // Ensure we clean up after completion
                     if (window.currentJobStream === jobStream) {
                         window.currentJobStream = null;
