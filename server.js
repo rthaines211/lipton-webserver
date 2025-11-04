@@ -1175,7 +1175,7 @@ async function callNormalizationPipeline(structuredData, caseId, documentTypes =
             status: 'processing',
             phase: 'pipeline_started',
             progress: 40,  // 40% after form saved and database written
-            currentPhase: 'Starting pipeline...',
+            currentPhase: 'Generating legal documents...',
             totalPhases: 5,
             startTime: startTime,
             endTime: null,
