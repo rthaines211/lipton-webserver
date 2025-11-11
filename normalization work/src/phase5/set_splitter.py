@@ -5,7 +5,10 @@ Implements the seed-accumulate-split algorithm for dividing profiled datasets
 into sets with a maximum number of interrogatories per set.
 """
 
+import logging
 from typing import List, Dict, Any
+
+logger = logging.getLogger(__name__)
 
 
 def _number_to_words(num: int) -> str:

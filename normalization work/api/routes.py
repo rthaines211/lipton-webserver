@@ -50,6 +50,8 @@ class NormalizeRequest(BaseModel):
         Full_Address: Address information object
         case_id: Database case ID for progress tracking (optional)
         document_types: List of document types to generate (PHASE 2.3)
+        FilingCity: Filing city from form (optional)
+        FilingCounty: Filing county from form (optional)
     """
     Form: Dict[str, Any] = Field(..., description="Form metadata")
     PlaintiffDetails: list = Field(default=[], description="List of plaintiffs")
@@ -57,8 +59,11 @@ class NormalizeRequest(BaseModel):
     Full_Address: Dict[str, Any] = Field(default={}, description="Property address")
     case_id: Optional[str] = Field(default=None, description="Database case ID for SSE progress tracking")
     document_types: Optional[list] = Field(default=None, description="Document types to generate (srogs, pods, admissions)")
+    FilingCity: Optional[str] = Field(default=None, description="Filing city")
+    FilingCounty: Optional[str] = Field(default=None, description="Filing county")
 
     class Config:
+        extra = 'allow'  # Allow extra fields from Node.js to pass through
         json_schema_extra = {
             "example": {
                 "Form": {
@@ -272,6 +277,41 @@ def run_complete_pipeline(form_json: Dict[str, Any], send_webhooks: bool = True)
             'max_per_set': phase5_output['metadata']['max_interrogatories_per_set']
         }
         logger.info(f"Phase 5 complete: {results['phase5']}")
+
+        # Save individual set JSON files (local development feature)
+        # DISABLED: No longer automatically saving set JSON files
+        # Uncomment the block below if you need to debug set generation locally
+        # try:
+        #     from datetime import datetime
+        #     from pathlib import Path
+        #
+        #     logger.info("Saving individual set JSON files for local development...")
+        #     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        #     sets_dir = Path(f"sets_{timestamp}")
+        #     sets_dir.mkdir(exist_ok=True)
+        #
+        #     set_count = 0
+        #     for dataset in phase5_output.get('datasets', []):
+        #         doc_type = dataset.get('doc_type', 'Unknown')
+        #         plaintiff = dataset.get('plaintiff', {}).get('full_name', 'Unknown').replace(' ', '_')
+        #         defendant = dataset.get('defendant', {}).get('full_name', 'Unknown').replace(' ', '_')
+        #
+        #         for set_data in dataset.get('sets', []):
+        #             set_num = set_data.get('SetNumber', set_count)
+        #             set_filename = sets_dir / f"{doc_type}_{plaintiff}_vs_{defendant}_Set_{set_num}.json"
+        #
+        #             # Save set JSON
+        #             with open(set_filename, 'w') as f:
+        #                 json.dump(set_data, f, indent=2, ensure_ascii=False)
+        #
+        #             set_count += 1
+        #
+        #     logger.info(f"✅ Saved {set_count} individual set files to: {sets_dir}/")
+        #     results['phase5']['sets_saved'] = str(sets_dir)
+        #
+        # except Exception as save_error:
+        #     logger.warning(f"Failed to save individual set files: {save_error}")
+        #     # Don't fail the pipeline if set saving fails
 
         # Optional: Send webhooks
         webhook_summary = None

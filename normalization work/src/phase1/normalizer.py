@@ -25,7 +25,7 @@ def _build_plaintiffs_upper_with_types(plaintiffs: list[dict[str, Any]]) -> str:
         plaintiffs: List of plaintiff dictionaries
 
     Returns:
-        Formatted string like "CLARK KENT, INDIVIDUAL; LOIS LANE, GUARDIAN"
+        Formatted string like "CLARK KENT, an Individual; LOIS LANE, a Guardian"
 
     Example:
         >>> plaintiffs = [
@@ -33,14 +33,16 @@ def _build_plaintiffs_upper_with_types(plaintiffs: list[dict[str, Any]]) -> str:
         ...     {'full_name': 'Lois Lane', 'plaintiff_type': 'Guardian'}
         ... ]
         >>> _build_plaintiffs_upper_with_types(plaintiffs)
-        'CLARK KENT, INDIVIDUAL; LOIS LANE, GUARDIAN'
+        'CLARK KENT, an Individual; LOIS LANE, a Guardian'
     """
     parts = []
     for p in plaintiffs:
         name = p.get('full_name', '').upper()
-        plaintiff_type = p.get('plaintiff_type', 'Tenant').upper()
+        plaintiff_type = p.get('plaintiff_type', 'Tenant')
         if name:
-            parts.append(f"{name}, {plaintiff_type}")
+            # Determine article based on first letter
+            article = 'an' if plaintiff_type and plaintiff_type[0].lower() in 'aeiou' else 'a'
+            parts.append(f"{name}, {article} {plaintiff_type}")
     return '; '.join(parts)
 
 
@@ -52,7 +54,7 @@ def _build_defendants_upper_with_types(defendants: list[dict[str, Any]]) -> str:
         defendants: List of defendant dictionaries
 
     Returns:
-        Formatted string like "TONY STARK, MANAGER; STEVE ROGERS, OWNER"
+        Formatted string like "TONY STARK, a Manager; STEVE ROGERS, an Owner"
 
     Example:
         >>> defendants = [
@@ -60,15 +62,17 @@ def _build_defendants_upper_with_types(defendants: list[dict[str, Any]]) -> str:
         ...     {'full_name': 'Steve Rogers', 'role': 'Owner', 'entity_type': 'LLC'}
         ... ]
         >>> _build_defendants_upper_with_types(defendants)
-        'TONY STARK, MANAGER; STEVE ROGERS, OWNER'
+        'TONY STARK, a Manager; STEVE ROGERS, an Owner'
     """
     parts = []
     for d in defendants:
         name = d.get('full_name', '').upper()
-        role = d.get('role', 'Defendant').upper()
+        role = d.get('role', 'Defendant')
 
         if name:
-            parts.append(f"{name}, {role}")
+            # Determine article based on first letter
+            article = 'an' if role and role[0].lower() in 'aeiou' else 'a'
+            parts.append(f"{name}, {article} {role}")
     return '; '.join(parts)
 
 

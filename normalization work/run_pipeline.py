@@ -40,6 +40,9 @@ from src.phase3.flag_pipeline import FlagProcessorPipeline
 # Phase 4: Document Profiles
 from src.phase4 import ProfilePipeline
 
+# Phase 4.5: Profile Consolidation
+from src.phase4_5 import consolidate_profiles
+
 # Phase 5: Set Splitting
 from src.phase5 import SplittingPipeline
 
@@ -221,6 +224,40 @@ def run_phase4(phase3_output: Dict[str, Any], document_types: list = None) -> Di
     return result
 
 
+def run_phase4_5(phase4_output: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Run Phase 4.5: Profile Consolidation.
+
+    Creates master JSON files for each document profile type (SROGs, PODs, Admissions)
+    by consolidating all datasets of that type into a single comprehensive document.
+
+    Args:
+        phase4_output: Output from Phase 4 (with profiled datasets and interrogatory counts)
+
+    Returns:
+        Dictionary with three keys: 'srogs', 'pods', 'admissions'
+        Each contains consolidated profile information
+    """
+    print_header("PHASE 4.5: PROFILE CONSOLIDATION")
+    print_info("Consolidating datasets by document profile type...")
+
+    consolidated = consolidate_profiles(phase4_output)
+
+    print_success("Phase 4.5 complete!")
+
+    # Print summary for each profile
+    for profile_key in ['srogs', 'pods', 'admissions']:
+        if profile_key in consolidated:
+            profile = consolidated[profile_key]
+            hoh = profile.get('HeadOfHousehold', 'Unknown')
+            defendant = profile.get('TargetDefendant', 'Unknown')
+            # Count true flags
+            true_flags = sum(1 for k, v in profile.items() if v == "true")
+            print(f"   - {profile_key.upper()}: {hoh} vs {defendant}, {true_flags} active flags")
+
+    return consolidated
+
+
 def run_phase5(phase4_output: Dict[str, Any]) -> Dict[str, Any]:
     """
     Run Phase 5: Set Splitting.
@@ -248,6 +285,36 @@ def run_phase5(phase4_output: Dict[str, Any]) -> Dict[str, Any]:
     print_success("Phase 5 complete!")
     print(f"   - Profile datasets processed: {len(all_split_datasets)}")
     print(f"   - Total sets created: {total_sets}")
+
+    # Print detailed set information for each document
+    print("\n" + "-" * 70)
+    print("  DOCUMENT SET DETAILS")
+    print("-" * 70)
+
+    for dataset in all_split_datasets:
+        doc_type = dataset.get('doc_type', 'Unknown')
+        plaintiff = dataset.get('plaintiff', {})
+        defendant = dataset.get('defendant', {})
+        sets = dataset.get('sets', [])
+
+        plaintiff_name = plaintiff.get('full_name', 'Unknown')
+        defendant_name = defendant.get('full_name', 'Unknown')
+
+        print(f"\n📄 {doc_type}: {plaintiff_name} vs {defendant_name}")
+        print(f"   Total Sets: {len(sets)}")
+
+        for set_data in sets:
+            set_num = set_data.get('SetNumber', '?')
+            set_label = set_data.get('SetLabel', 'Unknown')
+            interr_count = set_data.get('InterrogatoryCount', 0)
+            output_name = set_data.get('OutputName', 'Unknown')
+
+            # Count active flags in this set (boolean flags that are true)
+            active_flags = sum(1 for k, v in set_data.items()
+                             if isinstance(v, bool) and v is True)
+
+            print(f"   └─ {set_label}: {interr_count} interrogatories, {active_flags} active flags")
+            print(f"      Output: {output_name}")
 
     # Wrap in a structure for consistency
     result = {
@@ -280,14 +347,21 @@ def main():
         default='webhook_config.json',
         help='Path to webhook configuration file (default: webhook_config.json)'
     )
+    parser.add_argument(
+        '--save-sets',
+        action='store_true',
+        help='Save individual JSON files for each set in Phase 5'
+    )
     args = parser.parse_args()
 
     # Print banner
     print("\n" + "=" * 70)
     print("  LEGAL DISCOVERY NORMALIZATION PIPELINE")
-    print("  Phases 1-5: Complete Processing")
+    print("  Phases 1-4.5-5: Complete Processing")
     if args.send_webhooks:
         print("  Webhook Sending: ENABLED")
+    if args.save_sets:
+        print("  Individual Set Files: ENABLED")
     print("=" * 70)
 
     # Generate timestamp for output files
@@ -325,11 +399,44 @@ def main():
         save_json_file(phase4_output, phase4_file)
         print_info(f"Saved to: {phase4_file}")
 
+        # Phase 4.5: Profile Consolidation
+        phase4_5_output = run_phase4_5(phase4_output)
+
+        # Save individual master files for each profile
+        master_files = {}
+        for profile_key in ['srogs', 'pods', 'admissions']:
+            if profile_key in phase4_5_output:
+                master_file = f"master_{profile_key}_{timestamp}.json"
+                save_json_file(phase4_5_output[profile_key], master_file)
+                master_files[profile_key] = master_file
+                print_info(f"Saved to: {master_file}")
+
         # Phase 5: Set Splitting
         phase5_output = run_phase5(phase4_output)
         phase5_file = f"output_phase5_{timestamp}.json"
         save_json_file(phase5_output, phase5_file)
         print_info(f"Saved to: {phase5_file}")
+
+        # Optional: Save individual set JSON files
+        if args.save_sets:
+            print_info("Saving individual set JSON files...")
+            sets_dir = Path(f"sets_{timestamp}")
+            sets_dir.mkdir(exist_ok=True)
+
+            set_count = 0
+            for dataset in phase5_output.get('datasets', []):
+                doc_type = dataset.get('doc_type', 'Unknown')
+                plaintiff = dataset.get('plaintiff', {}).get('full_name', 'Unknown').replace(' ', '_')
+                defendant = dataset.get('defendant', {}).get('full_name', 'Unknown').replace(' ', '_')
+
+                for set_data in dataset.get('sets', []):
+                    set_num = set_data.get('SetNumber', set_count)
+                    set_filename = sets_dir / f"{doc_type}_{plaintiff}_vs_{defendant}_Set_{set_num}.json"
+                    save_json_file(set_data, str(set_filename))
+                    set_count += 1
+
+            print_success(f"Saved {set_count} individual set files to: {sets_dir}/")
+            print_info("Each file contains the complete JSON data for one document set")
 
         # Optional: Send to webhook
         webhook_summary = None
@@ -360,7 +467,10 @@ def main():
         print(f"  2. {phase2_file} - HoH × Defendant datasets")
         print(f"  3. {phase3_file} - Enriched datasets with 180+ flags")
         print(f"  4. {phase4_file} - Profiled datasets (SROGs, PODs, Admissions)")
-        print(f"  5. {phase5_file} - Split sets with max 120 interrogatories")
+        print(f"\nMaster Profile Files (Phase 4.5):")
+        for profile_key, master_file in master_files.items():
+            print(f"  - {master_file} - {profile_key.upper()} consolidated master")
+        print(f"\n  5. {phase5_file} - Split sets with max 120 interrogatories")
 
         if webhook_summary:
             print("\nWebhook Summary:")

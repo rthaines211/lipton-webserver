@@ -595,8 +595,8 @@ function transformFormData(rawData) {
         DefendantDetails2_Minimum: 1,
         DefendantDetails2_Maximum: 10,
         Full_Address: fullAddress,
-        FilingCity: rawData['filing-city'] || null,
-        FilingCounty: rawData['filing-county'] || null,
+        FilingCity: rawData['Filing city'] || rawData['filing-city'] || null,
+        FilingCounty: rawData['Filing county'] || rawData['filing-county'] || null,
         NotificationEmailOptIn: Boolean(rawData.notificationEmailOptIn),
         NotificationEmail: rawData.notificationEmail || null
     };
@@ -1241,16 +1241,24 @@ async function callNormalizationPipeline(structuredData, caseId, documentTypes =
             structuredData.Full_Address.zip = structuredData.zip;
         }
 
-        console.log(`🔍 Sending to Python API with case_id: ${structuredData.case_id}`);
-        console.log(`🔍 Case ID type: ${typeof structuredData.case_id}`);
-        console.log(`🔍 Data keys being sent: ${Object.keys(structuredData).join(', ')}`);
+        // CRITICAL FIX: Ensure filing fields are sent to Python
+        // Keys with spaces don't serialize properly via axios, so DELETE them and use PascalCase only
+        const filingCity = structuredData['Filing city'] || structuredData.FilingCity || '';
+        const filingCounty = structuredData['Filing county'] || structuredData.FilingCounty || '';
+        const notifOptIn = structuredData['Notification Email Opt-In'] || false;
+        const notifEmail = structuredData['Notification Email'] || null;
 
-        // CRITICAL DEBUG: Verify case_id is in the payload
-        if (!structuredData.case_id) {
-            console.error('❌ CRITICAL: case_id is missing from structuredData!');
-        } else {
-            console.log(`✅ Confirmed case_id in payload: ${structuredData.case_id}`);
-        }
+        // Delete the space-separated keys that axios can't serialize
+        delete structuredData['Filing city'];
+        delete structuredData['Filing county'];
+        delete structuredData['Notification Email Opt-In'];
+        delete structuredData['Notification Email'];
+
+        // Set PascalCase versions that axios CAN serialize
+        structuredData.FilingCity = filingCity;
+        structuredData.FilingCounty = filingCounty;
+        structuredData.NotificationEmailOptIn = notifOptIn;
+        structuredData.NotificationEmail = notifEmail;
 
         // ============================================================
         // GIVE SSE CLIENT TIME TO CONNECT
