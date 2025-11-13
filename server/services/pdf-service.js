@@ -377,11 +377,18 @@ async function generateAndUploadPDF(formData, jobId, options = {}) {
     updateProgress(jobId, 'saving_temp', 92, 'Saving PDF to temporary storage...', options.progressCallback);
 
     // Build case-specific path structure for Dropbox integration
-    // Path format: /output/Clients/<streetAddress>/<headOfHouseholdName>/CM-110-<headOfHouseholdName>.pdf
+    // Path format: webhook_documents/<streetAddress>/<headOfHouseholdName>/Discovery Propounded/CM-110.pdf
     // This matches the DOCX document output structure from the Python pipeline
 
-    // Extract street address from form data
-    const streetAddress = formData['property-address'] || 'Unknown-Address';
+    // Extract street address from transformed form data
+    // The form data is already transformed, so address is in Full_Address object
+    let streetAddress = 'Unknown-Address';
+    if (formData.Full_Address && formData.Full_Address.Line1) {
+      streetAddress = formData.Full_Address.Line1;
+    } else if (formData['property-address']) {
+      // Fallback to raw field if Full_Address not present
+      streetAddress = formData['property-address'];
+    }
 
     // Find head of household plaintiff
     let headOfHouseholdName = 'Unknown-Plaintiff';
