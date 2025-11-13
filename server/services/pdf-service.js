@@ -373,22 +373,32 @@ async function generateAndUploadPDF(formData, jobId, options = {}) {
       }
     });
 
-    // Generate filename if not provided
-    const timestamp = Date.now();
-    const caseId = formData.caseNumber || `case-${timestamp}`;
-    const filename = options.filename || `CM-110-${caseId}-${timestamp}.pdf`;
-
     // Step 2: Save to temporary storage (92% progress)
     updateProgress(jobId, 'saving_temp', 92, 'Saving PDF to temporary storage...', options.progressCallback);
 
     // Build case-specific path structure for Dropbox integration
-    // Path format: /output/Clients/<caseName>/<caseNumber>/CM-110-<caseId>.pdf
+    // Path format: /output/Clients/<streetAddress>/<headOfHouseholdName>/CM-110-<headOfHouseholdName>.pdf
     // This matches the DOCX document output structure from the Python pipeline
-    const caseName = formData.plaintiffName || formData['plaintiff-1-first-name'] || 'Unknown-Case';
-    const caseNumber = formData.caseNumber || formData['case-number'] || caseId;
+
+    // Extract street address from form data
+    const streetAddress = formData['property-address'] || 'Unknown-Address';
+
+    // Find head of household plaintiff
+    let headOfHouseholdName = 'Unknown-Plaintiff';
+    if (formData.PlaintiffDetails && Array.isArray(formData.PlaintiffDetails)) {
+      const headOfHousehold = formData.PlaintiffDetails.find(p => p.HeadOfHousehold === true);
+      if (headOfHousehold && headOfHousehold.PlaintiffItemNumberName) {
+        const firstName = headOfHousehold.PlaintiffItemNumberName.First || '';
+        const lastName = headOfHousehold.PlaintiffItemNumberName.Last || '';
+        headOfHouseholdName = `${firstName} ${lastName}`.trim() || 'Unknown-Plaintiff';
+      }
+    }
+
+    // Generate filename with head of household name
+    const filename = options.filename || `CM-110-${headOfHouseholdName}.pdf`;
 
     // Use /output base path to match Dropbox service mapping
-    const outputDir = path.join(__dirname, '../../output/Clients', caseName, caseNumber);
+    const outputDir = path.join(__dirname, '../../output/Clients', streetAddress, headOfHouseholdName);
     await fs.mkdir(outputDir, { recursive: true });
 
     const tempFilePath = path.join(outputDir, filename);
