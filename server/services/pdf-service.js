@@ -397,8 +397,11 @@ async function generateAndUploadPDF(formData, jobId, options = {}) {
     // Generate filename with head of household name
     const filename = options.filename || `CM-110-${headOfHouseholdName}.pdf`;
 
-    // Use /output base path to match Dropbox service mapping
-    const outputDir = path.join(__dirname, '../../output/Clients', streetAddress, headOfHouseholdName);
+    // Use webhook_documents base path to match Python pipeline structure
+    // Python pipeline: webhook_documents/<street>/<name>/Discovery Propounded/<type>/file.docx
+    // CM-110 PDF:      webhook_documents/<street>/<name>/CM-110-<name>.pdf
+    // Both map to Dropbox: /Current Clients/STAGING/<street>/<name>/
+    const outputDir = path.join(__dirname, '../../webhook_documents', streetAddress, headOfHouseholdName);
     await fs.mkdir(outputDir, { recursive: true });
 
     const tempFilePath = path.join(outputDir, filename);
