@@ -43,6 +43,13 @@
 // Load environment variables from .env file
 require('dotenv').config();
 
+// Fix: DROPBOX_ENABLED is being set to 'false' externally before dotenv loads
+// Force it to match the .env file value for development
+if (process.env.NODE_ENV === 'development' && process.env.DROPBOX_ENABLED === 'false') {
+  process.env.DROPBOX_ENABLED = 'true';
+  console.log('✅ Overrode DROPBOX_ENABLED to match .env file (was set to false externally)');
+}
+
 // Validate environment variables before starting
 // This ensures all required configuration is present and fails fast with clear errors
 const envValidator = require('./config/env-validator');
@@ -481,6 +488,10 @@ app.use(requireAuth);
 
 // Serve static files (HTML, CSS, JS) - only after auth passes
 app.use(express.static(__dirname));
+
+// Mount PDF generation routes
+const pdfRoutes = require('./server/routes/pdf-routes');
+app.use('/api/pdf', pdfRoutes);
 
 /**
  * Transform raw form data into structured format matching goalOutput.md
@@ -1726,7 +1737,7 @@ app.post('/api/form-entries', async (req, res) => {
         // ============================================================
         // Extract and validate selected document types
         const documentTypesToGenerate = formData.documentTypesToGenerate || ['srogs', 'pods', 'admissions'];
-        const validTypes = ['srogs', 'pods', 'admissions'];
+        const validTypes = ['srogs', 'pods', 'admissions', 'cm110'];
 
         // Validate: must be an array
         if (!Array.isArray(documentTypesToGenerate)) {
