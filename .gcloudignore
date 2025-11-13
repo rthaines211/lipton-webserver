@@ -1,0 +1,43 @@
+# Cloud Run Build Context
+# Files and directories excluded from gcloud deployment uploads
+# Similar to .dockerignore but for gcloud run deploy --source
+
+# Node modules (reinstalled during build)
+node_modules/
+
+# Environment files (using Secrets Manager)
+.env
+.env.*
+
+# Git metadata
+.git/
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# macOS
+.DS_Store
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+tests/
+test/
+*.test.js
+*.spec.js
+
+# CI/CD
+.github/
+
+# IDE
+.vscode/
+.idea/
+
+# IMPORTANT: Do NOT exclude PDF templates - they're needed for CM-110 generation
+# The following files MUST be included:
+# - normalization work/pdf_templates/cm110.pdf
+# - normalization work/pdf_templates/cm110-decrypted.pdf
