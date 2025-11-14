@@ -1017,6 +1017,58 @@
             line-height: 1.5;
         }
 
+        .document-status-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            background: #F8FAFC;
+            border-radius: 6px;
+            border: 1px solid #E2E8F0;
+            transition: all 0.2s ease;
+        }
+
+        .document-status-item.completed {
+            background: #ECFDF5;
+            border-color: #10B981;
+        }
+
+        .document-status-item.failed {
+            background: #FEF2F2;
+            border-color: #EF4444;
+        }
+
+        .download-link-button {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: linear-gradient(135deg, #00AEEF 0%, #0077B6 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0, 174, 239, 0.2);
+        }
+
+        .download-link-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 174, 239, 0.3);
+        }
+
+        .download-link-button i:first-child {
+            font-size: 1.2rem;
+        }
+
+        .download-link-button span {
+            flex: 1;
+        }
+
+        .download-link-button i:last-child {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
         .modal-error {
             color: #E53E3E;
             font-size: 0.9rem;
@@ -3295,6 +3347,27 @@
                                 </div>
                             </div>
                         </label>
+
+                        <!-- CM-110 PDF Checkbox -->
+                        <label class="document-checkbox-wrapper" for="doc-select-cm110">
+                            <input
+                                type="checkbox"
+                                id="doc-select-cm110"
+                                name="document-selection"
+                                value="cm110"
+                                checked
+                                class="document-checkbox"
+                            >
+                            <div class="document-checkbox-label">
+                                <div class="document-checkbox-icon">
+                                    <i class="fas fa-file-pdf"></i>
+                                </div>
+                                <div class="document-checkbox-content">
+                                    <span class="document-checkbox-name">CM-110</span>
+                                    <span class="document-checkbox-desc">Civil Case Cover Sheet</span>
+                                </div>
+                            </div>
+                        </label>
                     </div>
 
                     <!-- Validation message -->
@@ -3375,6 +3448,25 @@
                     </div>
                 </div>
 
+                <!-- Document Status List -->
+                <div id="submission-document-list" style="margin-top: 20px; display: none;">
+                    <h4 style="font-size: 0.95rem; margin-bottom: 10px; color: #1F2A44;">Document Generation Status:</h4>
+                    <div style="display: grid; gap: 8px;">
+                        <!-- CM-110 PDF Status -->
+                        <div id="doc-status-cm110" class="document-status-item" style="display: none;">
+                            <i id="doc-icon-cm110" class="fas fa-spinner fa-spin" style="color: #00AEEF; margin-right: 8px;"></i>
+                            <span style="flex: 1; font-weight: 500;">CM-110 PDF (Summons)</span>
+                            <span id="doc-status-text-cm110" style="font-size: 0.85rem; color: #5B6475;">Processing...</span>
+                        </div>
+                        <!-- DOCX Documents Status -->
+                        <div id="doc-status-docx" class="document-status-item" style="display: none;">
+                            <i id="doc-icon-docx" class="fas fa-spinner fa-spin" style="color: #00AEEF; margin-right: 8px;"></i>
+                            <span style="flex: 1; font-weight: 500;">Discovery Documents (DOCX)</span>
+                            <span id="doc-status-text-docx" style="font-size: 0.85rem; color: #5B6475;">Processing...</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Progress Section (Always Visible) -->
                 <div id="submission-progress" style="margin-top: 20px;">
                     <div class="regeneration-progress-header">
@@ -3390,6 +3482,32 @@
 
                     <div id="submission-progress-message" class="progress-message">
                         Initializing document generation...
+                    </div>
+                </div>
+
+                <!-- Download Links Section (Hidden until complete) -->
+                <div id="submission-download-links" style="margin-top: 20px; display: none;">
+                    <h4 style="font-size: 0.95rem; margin-bottom: 10px; color: #1F2A44;">
+                        <i class="fas fa-cloud-download-alt" style="color: #00AEEF; margin-right: 8px;"></i>
+                        Download Your Documents
+                    </h4>
+                    <div style="display: grid; gap: 10px;">
+                        <!-- CM-110 PDF Download Link -->
+                        <div id="download-link-cm110" style="display: none;">
+                            <a href="#" id="download-link-cm110-url" target="_blank" class="download-link-button">
+                                <i class="fas fa-file-pdf"></i>
+                                <span>CM-110 PDF (Summons)</span>
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </div>
+                        <!-- DOCX Documents Download Link -->
+                        <div id="download-link-docx" style="display: none;">
+                            <a href="#" id="download-link-docx-url" target="_blank" class="download-link-button">
+                                <i class="fas fa-folder"></i>
+                                <span>Discovery Documents (DOCX)</span>
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
 
@@ -7381,9 +7499,9 @@
     
     <!-- SSE Progress Tracking Modules -->
     <script src="js/progress-state.js?v=2"></script>
-    <script src="js/sse-client.js?v=3"></script>
+    <script src="js/sse-client.js?v=4"></script>
     <script src="js/sse-manager.js?v=1"></script>
     <script src="js/document-regeneration.js?v=1"></script>
-    <script src="js/form-submission.js?v=8"></script>
+    <script src="js/form-submission.js?v=13"></script>
 </body>
 </html>

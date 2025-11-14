@@ -812,6 +812,31 @@
                     localStorage.setItem('lastEntryId', result.id);
                     localStorage.setItem('lastSubmissionTime', result.timestamp);
 
+                    // Trigger PDF generation
+                    try {
+                        const pdfResponse = await fetch('/api/pdf/generate', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ formData })
+                        });
+
+                        const pdfResult = await pdfResponse.json();
+
+                        if (pdfResponse.ok && pdfResult.success) {
+                            // Store PDF job ID for success page
+                            localStorage.setItem('lastPdfJobId', pdfResult.jobId);
+                            console.log('PDF generation started:', pdfResult.jobId);
+                        } else {
+                            console.error('Failed to start PDF generation:', pdfResult.error);
+                            // Don't block form submission if PDF generation fails
+                        }
+                    } catch (pdfError) {
+                        console.error('Error starting PDF generation:', pdfError);
+                        // Don't block form submission if PDF generation fails
+                    }
+
                     // Clear form data
                     localStorage.removeItem('formData');
 

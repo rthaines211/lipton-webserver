@@ -226,6 +226,93 @@
             margin: 8px 0; /* Increased from 5px for better item spacing */
             line-height: 1.6;
         }
+
+        /* PDF Download Section */
+        .pdf-section {
+            background: #EFF6FF;
+            border: 1px solid #BFDBFE;
+            border-radius: 10px;
+            padding: 24px;
+            margin: 24px 0;
+            text-align: center;
+        }
+
+        .pdf-section h4 {
+            margin: 0 0 16px 0;
+            color: #1E40AF;
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .pdf-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 16px;
+            background: #FFFFFF;
+            border-radius: 8px;
+            margin: 16px 0;
+        }
+
+        .pdf-spinner {
+            border: 3px solid #E2E8F0;
+            border-top: 3px solid #00AEEF;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .pdf-message {
+            color: #475569;
+            font-size: 0.95rem;
+        }
+
+        .btn-download {
+            background: #10B981;
+            color: #FFFFFF;
+            font-size: 1.05rem;
+            padding: 16px 32px;
+        }
+
+        .btn-download:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-download:disabled {
+            background: #94A3B8;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .pdf-error {
+            color: #DC2626;
+            background: #FEE2E2;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 12px 0;
+        }
+
+        .pdf-success {
+            color: #059669;
+            font-weight: 600;
+        }
+
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -253,6 +340,39 @@
                 <div class="detail-row">
                     <span class="detail-label">Status:</span>
                     <span class="detail-value" style="color: #059669;">✓ Saved Successfully</span>
+                </div>
+            </div>
+
+            <!-- PDF Download Section -->
+            <div class="pdf-section" id="pdf-section">
+                <h4><i class="fas fa-file-pdf"></i> CM-110 Form PDF</h4>
+
+                <!-- Loading State -->
+                <div class="pdf-status" id="pdf-loading">
+                    <div class="pdf-spinner"></div>
+                    <span class="pdf-message">Generating your PDF form...</span>
+                </div>
+
+                <!-- Ready State -->
+                <div class="pdf-status hidden" id="pdf-ready">
+                    <i class="fas fa-check-circle pdf-success" style="font-size: 1.5rem;"></i>
+                    <span class="pdf-message pdf-success">PDF Ready for Download!</span>
+                </div>
+
+                <!-- Error State -->
+                <div class="pdf-error hidden" id="pdf-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="pdf-error-message">Failed to generate PDF</span>
+                </div>
+
+                <!-- Download Button -->
+                <button class="btn btn-download hidden" id="download-btn" disabled>
+                    <i class="fas fa-download"></i> Download CM-110 Form
+                </button>
+
+                <!-- File Info -->
+                <div class="hidden" id="pdf-info" style="margin-top: 12px; color: #64748B; font-size: 0.9rem;">
+                    <span id="pdf-filename"></span> • <span id="pdf-size"></span>
                 </div>
             </div>
 
@@ -287,10 +407,121 @@
             document.getElementById('entry-id').textContent = entryId;
             document.getElementById('submitted-at').textContent = submittedAt;
 
+            // Get PDF job ID from localStorage
+            const pdfJobId = localStorage.getItem('lastPdfJobId');
+
+            if (pdfJobId) {
+                console.log('PDF Job ID found:', pdfJobId);
+                checkPdfStatus(pdfJobId);
+            } else {
+                console.log('No PDF job ID found');
+                showPdfError('No PDF generation was started');
+            }
+
             // Clear localStorage after displaying
             localStorage.removeItem('lastEntryId');
             localStorage.removeItem('lastSubmissionTime');
+            localStorage.removeItem('lastPdfJobId');
         });
+
+        /**
+         * Poll PDF status until complete or failed
+         */
+        function checkPdfStatus(jobId) {
+            let attempts = 0;
+            const maxAttempts = 30; // 30 seconds max
+
+            const pollInterval = setInterval(async () => {
+                attempts++;
+
+                try {
+                    const response = await fetch(`/api/pdf/status/${jobId}`);
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) {
+                        clearInterval(pollInterval);
+                        showPdfError('Failed to check PDF status');
+                        return;
+                    }
+
+                    const job = data.job;
+                    console.log(`[${attempts}s] PDF Status:`, job.status, `(${job.progress}%)`);
+
+                    if (job.status === 'completed') {
+                        clearInterval(pollInterval);
+                        showPdfReady(jobId, job);
+                    } else if (job.status === 'failed') {
+                        clearInterval(pollInterval);
+                        showPdfError(job.error || 'PDF generation failed');
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(pollInterval);
+                        showPdfError('PDF generation timed out');
+                    }
+                } catch (error) {
+                    console.error('Error checking PDF status:', error);
+                    clearInterval(pollInterval);
+                    showPdfError('Failed to check PDF status');
+                }
+            }, 1000); // Poll every 1 second
+        }
+
+        /**
+         * Show PDF ready state with download button
+         */
+        function showPdfReady(jobId, job) {
+            // Hide loading
+            document.getElementById('pdf-loading').classList.add('hidden');
+
+            // Show ready state
+            document.getElementById('pdf-ready').classList.remove('hidden');
+
+            // Show and enable download button
+            const downloadBtn = document.getElementById('download-btn');
+            downloadBtn.classList.remove('hidden');
+            downloadBtn.disabled = false;
+
+            // Set up download handler
+            downloadBtn.onclick = () => {
+                window.location.href = `/api/pdf/download/${jobId}`;
+            };
+
+            // Show file info
+            const pdfInfo = document.getElementById('pdf-info');
+            const pdfFilename = document.getElementById('pdf-filename');
+            const pdfSize = document.getElementById('pdf-size');
+
+            pdfFilename.textContent = job.filename;
+            pdfSize.textContent = formatFileSize(job.sizeBytes);
+            pdfInfo.classList.remove('hidden');
+
+            console.log('PDF ready for download:', job);
+        }
+
+        /**
+         * Show PDF error state
+         */
+        function showPdfError(errorMessage) {
+            // Hide loading
+            document.getElementById('pdf-loading').classList.add('hidden');
+
+            // Show error
+            const errorEl = document.getElementById('pdf-error');
+            const errorMessageEl = document.getElementById('pdf-error-message');
+
+            errorMessageEl.textContent = errorMessage;
+            errorEl.classList.remove('hidden');
+
+            console.error('PDF Error:', errorMessage);
+        }
+
+        /**
+         * Format file size in human-readable format
+         */
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
     </script>
 </body>
 </html>
