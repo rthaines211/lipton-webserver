@@ -408,7 +408,12 @@ async function generateAndUploadPDF(formData, jobId, options = {}) {
     // Python pipeline: webhook_documents/<street>/<name>/Discovery Propounded/<type>/file.docx
     // CM-110 PDF:      webhook_documents/<street>/<name>/Discovery Propounded/CM-110-<name>.pdf
     // Both map to Dropbox: /Current Clients/STAGING/<street>/<name>/Discovery Propounded/
-    const outputDir = path.join(__dirname, '../../webhook_documents', streetAddress, headOfHouseholdName, 'Discovery Propounded');
+    //
+    // IMPORTANT: Use process.cwd() to get project root, not __dirname
+    // This ensures the path is: webhook_documents/<street>/<name>/...
+    // Not: /app/server/services/../../webhook_documents/... (which includes container prefix)
+    const projectRoot = process.cwd();
+    const outputDir = path.join(projectRoot, 'webhook_documents', streetAddress, headOfHouseholdName, 'Discovery Propounded');
     await fs.mkdir(outputDir, { recursive: true });
 
     const tempFilePath = path.join(outputDir, filename);
