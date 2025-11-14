@@ -107,13 +107,23 @@ function mapLocalPathToDropbox(localPath) {
     const normalizedLocal = localPath.replace(/\\/g, '/');
     const normalizedOutputPath = DROPBOX_CONFIG.localOutputPath.replace(/\\/g, '/');
 
+    console.log('🗺️  [Dropbox] Mapping local path to Dropbox');
+    console.log('   Local path:', localPath);
+    console.log('   Normalized local:', normalizedLocal);
+    console.log('   Output path config:', normalizedOutputPath);
+
     // Find the local output path anywhere in the full path and extract everything after it
     // This handles paths like /app/webhook_documents/... or webhook_documents/...
     let relativePath = normalizedLocal;
     const outputPathIndex = normalizedLocal.indexOf(normalizedOutputPath);
+    console.log('   Output path index:', outputPathIndex);
+
     if (outputPathIndex !== -1) {
         // Extract everything after the output path (e.g., webhook_documents)
         relativePath = normalizedLocal.substring(outputPathIndex + normalizedOutputPath.length);
+        console.log('   Relative path (after stripping):', relativePath);
+    } else {
+        console.log('   ⚠️  Output path not found in local path, using full path');
     }
 
     // Ensure relative path starts with /
@@ -126,6 +136,8 @@ function mapLocalPathToDropbox(localPath) {
 
     // Ensure no double slashes
     dropboxPath = dropboxPath.replace(/\/+/g, '/');
+
+    console.log('   Final Dropbox path:', dropboxPath);
 
     return dropboxPath;
 }
