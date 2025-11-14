@@ -107,10 +107,13 @@ function mapLocalPathToDropbox(localPath) {
     const normalizedLocal = localPath.replace(/\\/g, '/');
     const normalizedOutputPath = DROPBOX_CONFIG.localOutputPath.replace(/\\/g, '/');
 
-    // Remove the local output path prefix
+    // Find the local output path anywhere in the full path and extract everything after it
+    // This handles paths like /app/webhook_documents/... or webhook_documents/...
     let relativePath = normalizedLocal;
-    if (normalizedLocal.startsWith(normalizedOutputPath)) {
-        relativePath = normalizedLocal.substring(normalizedOutputPath.length);
+    const outputPathIndex = normalizedLocal.indexOf(normalizedOutputPath);
+    if (outputPathIndex !== -1) {
+        // Extract everything after the output path (e.g., webhook_documents)
+        relativePath = normalizedLocal.substring(outputPathIndex + normalizedOutputPath.length);
     }
 
     // Ensure relative path starts with /
