@@ -1,0 +1,357 @@
+/**
+ * PDF Field Mapper Utility
+ * Maps form submission JSON data to PDF form fields with transformations
+ *
+ * @module server/utils/pdf-field-mapper
+ */
+
+const logger = require('../../monitoring/logger');
+const fieldMappingConfig = require('../config/cm110-field-mapping.json');
+
+/**
+ * Map form data to PDF fields based on configuration
+ * @param {Object} formData - Form submission data
+ * @param {Object} fieldMapping - Field mapping configuration (optional, defaults to cm110-field-mapping.json)
+ * @returns {Object} Mapped PDF field values
+ */
+function mapFormDataToPdfFields(formData, fieldMapping = fieldMappingConfig) {
+  const pdfFields = {};
+
+  try {
+    logger.info('Starting PDF field mapping', {
+      hasPlaintiffs: !!formData.PlaintiffDetails,
+      hasDefendants: !!formData.DefendantDetails2
+    });
+
+    // 1. Map plaintiff fields (all 5 pages)
+    mapPlaintiffFields(formData, pdfFields, fieldMapping);
+
+    // 2. Map defendant fields (all 5 pages)
+    mapDefendantFields(formData, pdfFields, fieldMapping);
+
+    // 3. Map court fields (county, city/zip)
+    mapCourtFields(formData, pdfFields, fieldMapping);
+
+    // 4. Map attorney fields (hardcoded Lipton Legal Group)
+    mapAttorneyFields(formData, pdfFields, fieldMapping);
+
+    // 5. Map party statement field
+    mapPartyStatementFields(formData, pdfFields, fieldMapping);
+
+    logger.info('PDF field mapping complete', { fieldCount: Object.keys(pdfFields).length });
+
+    return pdfFields;
+  } catch (error) {
+    logger.error('Error mapping form data to PDF fields', { error: error.message, stack: error.stack });
+    throw new Error(`Field mapping failed: ${error.message}`);
+  }
+}
+
+/**
+ * Map plaintiff fields to all 5 pages
+ * Source: PlaintiffDetails[*].PlaintiffItemNumberName.FirstAndLast
+ * Transform: joinMultipleParties (semicolon-separated)
+ */
+function mapPlaintiffFields(formData, pdfFields, fieldMapping) {
+  const plaintiffNames = getPlaintiffNames(formData);
+
+  if (!plaintiffNames) {
+    throw new Error('Required field missing: PlaintiffDetails with names');
+  }
+
+  // Map to all 5 pages
+  Object.entries(fieldMapping.plaintiffFields).forEach(([key, config]) => {
+    if (key === 'description') return;
+
+    pdfFields[config.pdfField] = truncateText(plaintiffNames, config.maxLength);
+  });
+
+  logger.debug('Mapped plaintiff fields', { plaintiffNames, pages: 5 });
+}
+
+/**
+ * Map defendant fields to all 5 pages
+ * Source: DefendantDetails2[*].DefendantItemNumberName.FirstAndLast
+ * Transform: joinMultipleParties (semicolon-separated)
+ */
+function mapDefendantFields(formData, pdfFields, fieldMapping) {
+  const defendantNames = getDefendantNames(formData);
+
+  if (!defendantNames) {
+    throw new Error('Required field missing: DefendantDetails2 with names');
+  }
+
+  // Map to all 5 pages
+  Object.entries(fieldMapping.defendantFields).forEach(([key, config]) => {
+    if (key === 'description') return;
+
+    pdfFields[config.pdfField] = truncateText(defendantNames, config.maxLength);
+  });
+
+  logger.debug('Mapped defendant fields', { defendantNames, pages: 5 });
+}
+
+/**
+ * Map court fields (county, city + zip)
+ */
+function mapCourtFields(formData, pdfFields, fieldMapping) {
+  const config = fieldMapping.courtFields;
+
+  // County (required) - check both camelCase (FilingCounty) and spaced ('Filing county') formats
+  const county = formData.FilingCounty || formData['Filing county'];
+  if (!county) {
+    throw new Error('Required field missing: Filing county');
+  }
+  pdfFields[config.county.pdfField] = truncateText(county, config.county.maxLength);
+
+  // City + Zip (extract zip from Full_Address.PostalCode)
+  // Check both camelCase (FilingCity) and spaced ('Filing city') formats
+  const city = formData.FilingCity || formData['Filing city'];
+  const zip = formData.Full_Address?.PostalCode;
+
+  if (city || zip) {
+    const cityZip = cityZipFormat(city, zip);
+    pdfFields[config.courtCityZip.pdfField] = truncateText(cityZip, config.courtCityZip.maxLength);
+  }
+
+  logger.debug('Mapped court fields', { county, city, zip });
+
+  // Court street, mailing address, branch - skip (not in form data)
+}
+
+/**
+ * Map attorney fields (hardcoded Lipton Legal Group info)
+ */
+function mapAttorneyFields(formData, pdfFields, fieldMapping) {
+  const config = fieldMapping.attorneyFields;
+
+  // Hardcoded attorney information
+  const attorneyInfo = {
+    firmName: 'Lipton Legal Group, APC',
+    street: '9478 W. Olympic Blvd. Suite #308',
+    city: 'Beverly Hills',
+    state: 'CA', // 2-letter abbreviation for PDF field maxLength=2
+    zip: '90212',
+    fax: '(310) 788-3840'
+  };
+
+  // Map hardcoded fields
+  pdfFields[config.firmName.pdfField] = attorneyInfo.firmName;
+  pdfFields[config.street.pdfField] = attorneyInfo.street;
+  pdfFields[config.city.pdfField] = attorneyInfo.city;
+  pdfFields[config.state.pdfField] = attorneyInfo.state;
+  pdfFields[config.zip.pdfField] = attorneyInfo.zip;
+  pdfFields[config.fax.pdfField] = attorneyInfo.fax;
+
+  // Attorney For: all plaintiff names (semicolon-separated)
+  const plaintiffNames = getPlaintiffNames(formData);
+  if (plaintiffNames) {
+    pdfFields[config.attorneyFor.pdfField] = truncateText(plaintiffNames, config.attorneyFor.maxLength);
+  }
+
+  logger.debug('Mapped attorney fields', { firmName: attorneyInfo.firmName });
+
+  // Leave blank: barNumber, name, phone, email
+}
+
+/**
+ * Map party statement fields (Section 1, Page 1)
+ */
+function mapPartyStatementFields(formData, pdfFields, fieldMapping) {
+  const config = fieldMapping.partyStatementFields;
+
+  // "This statement is submitted by party [name]"
+  // Use first plaintiff name
+  if (formData.PlaintiffDetails && formData.PlaintiffDetails.length > 0) {
+    const firstPlaintiff = formData.PlaintiffDetails[0].PlaintiffItemNumberName?.FirstAndLast;
+    if (firstPlaintiff) {
+      pdfFields[config.submittedByPartyName.pdfField] = truncateText(
+        firstPlaintiff,
+        config.submittedByPartyName.maxLength
+      );
+      logger.debug('Mapped party statement field', { submittedBy: firstPlaintiff });
+    }
+  }
+
+  // Complaint filed date and cross-complaint date - skip (leave blank)
+}
+
+/**
+ * Get all plaintiff names joined with semicolons
+ * @param {Object} formData - Form submission data
+ * @returns {string|null} Joined plaintiff names or null
+ */
+function getPlaintiffNames(formData) {
+  if (!formData.PlaintiffDetails || !Array.isArray(formData.PlaintiffDetails)) {
+    return null;
+  }
+
+  const names = formData.PlaintiffDetails
+    .map(plaintiff => plaintiff.PlaintiffItemNumberName?.FirstAndLast)
+    .filter(name => name && name.length > 0);
+
+  return names.length > 0 ? names.join('; ') : null;
+}
+
+/**
+ * Get all defendant names joined with semicolons
+ * @param {Object} formData - Form submission data
+ * @returns {string|null} Joined defendant names or null
+ */
+function getDefendantNames(formData) {
+  if (!formData.DefendantDetails2 || !Array.isArray(formData.DefendantDetails2)) {
+    return null;
+  }
+
+  const names = formData.DefendantDetails2
+    .map(defendant => defendant.DefendantItemNumberName?.FirstAndLast)
+    .filter(name => name && name.length > 0);
+
+  return names.length > 0 ? names.join('; ') : null;
+}
+
+/**
+ * Format city and zip code
+ * @param {string} city - City name
+ * @param {string} zip - Zip code
+ * @returns {string} Formatted city and zip
+ */
+function cityZipFormat(city, zip) {
+  if (!city && !zip) return '';
+  if (!zip) return city || '';
+  if (!city) return zip || '';
+  return `${city} ${zip}`;
+}
+
+/**
+ * Truncate text to fit PDF field character limits with smart word boundary detection
+ * @param {string} text - Text to truncate
+ * @param {number} maxLength - Maximum character length
+ * @returns {string} Truncated text
+ */
+function truncateText(text, maxLength) {
+  // Handle non-string values
+  if (text === null || text === undefined) return '';
+  if (typeof text !== 'string') text = String(text);
+
+  // No truncation needed
+  if (!maxLength || text.length <= maxLength) return text;
+
+  // Truncate at word boundary if possible
+  const truncated = text.substring(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(' ');
+
+  // If there's a space in the last 20% of the string, break there
+  if (lastSpace > maxLength * 0.8) {
+    return truncated.substring(0, lastSpace) + '...';
+  }
+
+  // Otherwise hard truncate with ellipsis
+  return truncated.substring(0, maxLength - 3) + '...';
+}
+
+/**
+ * Map discovery issues to PDF checkboxes
+ * @param {Object} discoveryIssues - Discovery issues from form data
+ * @returns {Object} Checkbox field mappings
+ */
+function mapDiscoveryIssuesToCheckboxes(discoveryIssues) {
+  // T038: Implement mapDiscoveryIssuesToCheckboxes()
+  // Currently skipped per user requirements
+  logger.debug('Discovery checkbox mapping skipped (not yet implemented)');
+  return {};
+}
+
+/**
+ * Map discovery issues to PDF text fields
+ * @param {Object} discoveryIssues - Discovery issues from form data
+ * @returns {Object} Text field mappings for free-form descriptions
+ */
+function mapDiscoveryIssuesToTextFields(discoveryIssues) {
+  // T039: Implement mapDiscoveryIssuesToTextFields()
+  // Currently skipped per user requirements
+  logger.debug('Discovery text field mapping skipped (not yet implemented)');
+  return {};
+}
+
+/**
+ * Format address for PDF fields
+ * @param {Object} addressData - Address data from form submission
+ * @returns {Object} Formatted address fields (street, city, county, postalCode)
+ */
+function formatAddressForPdf(addressData) {
+  // T040: Implement formatAddressForPdf()
+  if (!addressData) return {};
+
+  return {
+    street: addressData.StreetAddress || addressData.Line1 || '',
+    city: addressData.City || '',
+    state: addressData.State || '',
+    postalCode: addressData.PostalCode || '',
+    fullAddress: addressData.FullAddress || ''
+  };
+}
+
+/**
+ * Format date for PDF date field requirements
+ * @param {string|Date} dateValue - Date value from form submission
+ * @returns {string} Formatted date string
+ */
+function formatDateForPdf(dateValue) {
+  // T041: Implement formatDateForPdf()
+  if (!dateValue) return '';
+
+  try {
+    const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+    if (isNaN(date.getTime())) return '';
+
+    // Format as MM/DD/YYYY for PDF forms
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${month}/${day}/${year}`;
+  } catch (error) {
+    logger.warn('Date formatting failed', { dateValue, error: error.message });
+    return '';
+  }
+}
+
+/**
+ * Convert array to comma-separated list
+ * @param {Array} array - Array of items
+ * @returns {string} Comma-separated string
+ */
+function arrayToCommaList(array) {
+  if (!Array.isArray(array) || array.length === 0) return '';
+  return array.filter(item => item).join(', ');
+}
+
+/**
+ * Resolve nested JSON path (e.g., "Full_Address.City")
+ * @param {Object} obj - Object to traverse
+ * @param {string} path - Dot-notation path
+ * @returns {*} Value at path or null
+ */
+function getNestedValue(obj, path) {
+  if (!path) return null;
+
+  return path.split('.').reduce((current, key) => {
+    return current?.[key];
+  }, obj);
+}
+
+module.exports = {
+  mapFormDataToPdfFields,
+  truncateText,
+  mapDiscoveryIssuesToCheckboxes,
+  mapDiscoveryIssuesToTextFields,
+  formatAddressForPdf,
+  formatDateForPdf,
+  // Export utility functions for testing
+  getPlaintiffNames,
+  getDefendantNames,
+  cityZipFormat,
+  arrayToCommaList,
+  getNestedValue
+};
