@@ -1386,11 +1386,11 @@ async function callNormalizationPipeline(structuredData, caseId, documentTypes =
                 // Send email notification if user opted in
                 // This runs asynchronously and does not block the pipeline response
 
-                const shouldSendEmail = structuredData['notificationEmail'] &&
-                                       structuredData['notificationEmailOptIn'] === true;
+                const shouldSendEmail = structuredData['NotificationEmail'] &&
+                                       structuredData['NotificationEmailOptIn'] === true;
 
                 if (shouldSendEmail) {
-                    console.log(`📧 Preparing email notification for: ${structuredData['notificationEmail']}`);
+                    console.log(`📧 Preparing email notification for: ${structuredData['NotificationEmail']}`);
 
                     // Run email sending async (non-blocking)
                     (async () => {
@@ -1425,8 +1425,8 @@ async function callNormalizationPipeline(structuredData, caseId, documentTypes =
 
                             // Send email notification
                             const emailResult = await emailService.sendCompletionNotification({
-                                to: structuredData['notificationEmail'],
-                                name: structuredData['notificationName'] || 'User',
+                                to: structuredData['NotificationEmail'],
+                                name: structuredData['NotificationName'] || 'User',
                                 streetAddress: streetAddress,
                                 caseId: caseId,
                                 dropboxLink: dropboxLink,
@@ -1434,7 +1434,7 @@ async function callNormalizationPipeline(structuredData, caseId, documentTypes =
                             });
 
                             if (emailResult.success) {
-                                console.log(`✅ Email notification sent successfully to ${structuredData['notificationEmail']}`);
+                                console.log(`✅ Email notification sent successfully to ${structuredData['NotificationEmail']}`);
                             } else {
                                 console.error(`❌ Email notification failed: ${emailResult.error}`);
                             }
