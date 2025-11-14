@@ -383,21 +383,44 @@ async function generateAndUploadPDF(formData, jobId, options = {}) {
     // Extract street address from transformed form data
     // The form data is already transformed, so address is in Full_Address object
     let streetAddress = 'Unknown-Address';
+
+    // Debug logging to diagnose missing street address issue
+    console.log('🔍 [PDF Service] Extracting street address from formData');
+    console.log('   formData.Full_Address:', JSON.stringify(formData.Full_Address, null, 2));
+    console.log('   formData["property-address"]:', formData['property-address']);
+
     if (formData.Full_Address && formData.Full_Address.Line1) {
       streetAddress = formData.Full_Address.Line1;
+      console.log('   ✅ Using Full_Address.Line1:', streetAddress);
     } else if (formData['property-address']) {
       // Fallback to raw field if Full_Address not present
       streetAddress = formData['property-address'];
+      console.log('   ✅ Using property-address fallback:', streetAddress);
+    } else {
+      console.log('   ⚠️  No street address found, using default:', streetAddress);
+    }
+
+    // Sanitize street address (remove invalid folder name characters)
+    streetAddress = streetAddress.trim();
+    if (!streetAddress || streetAddress === '') {
+      console.warn('   ⚠️  Street address is empty after trimming! Using Unknown-Address');
+      streetAddress = 'Unknown-Address';
     }
 
     // Find head of household plaintiff
     let headOfHouseholdName = 'Unknown-Plaintiff';
+    console.log('🔍 [PDF Service] Finding head of household');
+    console.log('   formData.PlaintiffDetails:', formData.PlaintiffDetails ? formData.PlaintiffDetails.length + ' plaintiffs' : 'undefined');
+
     if (formData.PlaintiffDetails && Array.isArray(formData.PlaintiffDetails)) {
       const headOfHousehold = formData.PlaintiffDetails.find(p => p.HeadOfHousehold === true);
       if (headOfHousehold && headOfHousehold.PlaintiffItemNumberName) {
         const firstName = headOfHousehold.PlaintiffItemNumberName.First || '';
         const lastName = headOfHousehold.PlaintiffItemNumberName.Last || '';
         headOfHouseholdName = `${firstName} ${lastName}`.trim() || 'Unknown-Plaintiff';
+        console.log('   ✅ Found head of household:', headOfHouseholdName);
+      } else {
+        console.log('   ⚠️  No head of household found with valid name');
       }
     }
 
@@ -414,6 +437,13 @@ async function generateAndUploadPDF(formData, jobId, options = {}) {
     // Not: /app/server/services/../../webhook_documents/... (which includes container prefix)
     const projectRoot = process.cwd();
     const outputDir = path.join(projectRoot, 'webhook_documents', streetAddress, headOfHouseholdName, 'Discovery Propounded');
+
+    console.log('📁 [PDF Service] Creating output directory');
+    console.log('   Project root:', projectRoot);
+    console.log('   Street address:', streetAddress);
+    console.log('   Head of household:', headOfHouseholdName);
+    console.log('   Full output path:', outputDir);
+
     await fs.mkdir(outputDir, { recursive: true });
 
     const tempFilePath = path.join(outputDir, filename);
