@@ -1,0 +1,2230 @@
+{
+  "doc_type": "PODS",
+  "profile_key": "pods",
+  "datasets": [
+    {
+      "dataset_id": "1-eXV5dZ-XkoTBi-pods",
+      "plaintiff": {
+        "plaintiff_id": "eXV5dZ",
+        "first_name": "Clark",
+        "last_name": "Kent",
+        "full_name": "Clark Kent",
+        "unit_number": "1"
+      },
+      "defendant": {
+        "defendant_id": "XkoTBi",
+        "first_name": "htd",
+        "last_name": "ewt",
+        "full_name": "htd ewt",
+        "entity_type": "hs",
+        "role": "Manager"
+      },
+      "pair_name": "Clark Kent vs htd ewt",
+      "interrogatory_count": 339,
+      "flag_count": 190,
+      "flags": {
+        "IsOwner": 6,
+        "IsManager": 1,
+        "IsOwnerManager": 40,
+        "HasAnts": 3,
+        "HasRoaches": 4,
+        "HasFlies": 2,
+        "HasBedbugs": 4,
+        "HasBees": 1,
+        "HasWasps": 1,
+        "HasHornets": 1,
+        "HasSpiders": 2,
+        "HasTermites": 2,
+        "HasMosquitos": 1,
+        "HasRatsMice": 6,
+        "HasSkunks": 2,
+        "HasBats": 1,
+        "HasRacoons": 2,
+        "HasPigeons": 1,
+        "HasOpossums": 1,
+        "HasVermin": 8,
+        "HasHeater": 5,
+        "HasAC": 5,
+        "HasVentilation": 3,
+        "HasHvac": 6,
+        "HasOutlets": 2,
+        "HasPanel": 1,
+        "HasWallSwitches": 1,
+        "HasExteriorLighting": 1,
+        "HasInteriorLighting": 2,
+        "HasLightFixtures": 1,
+        "HasFans": 1,
+        "HasElectrical": 3,
+        "HasToilet": 1,
+        "HasShower": 1,
+        "HasBath": 1,
+        "HasFixtures": 1,
+        "HasLeaks": 2,
+        "HasInsufficientWaterPressure": 1,
+        "HasNoHotWater": 2,
+        "HasSewageComingOut": 3,
+        "HasCloggedToilet": 1,
+        "HasCloggedBath": 1,
+        "HasCloggedSink": 1,
+        "HasCloggedShower": 1,
+        "HasNoCleanWaterSupply": 2,
+        "HasNoColdWater": 1,
+        "HasUnsanitaryWater": 2,
+        "HasClogs": 2,
+        "HasPlumbing": 3,
+        "HasSmokeAlarms": 1,
+        "HasFireExtinguisher": 1,
+        "HasNonCompliantElectricity": 2,
+        "HasNonGfiElectricalOutlets": 1,
+        "HasCarbonmonoxideDetectors": 1,
+        "HasFireHazard": 3,
+        "HasDepartmentOfEnvironmentalHealth": 1,
+        "HasDepartmentOfPublicHealth": 1,
+        "HasDepartmentOfHealthServices": 1,
+        "HasFireDepartment": 1,
+        "HasPoliceDepartment": 1,
+        "HasCodeEnforcement": 1,
+        "HasGovContact": 2,
+        "HasStove": 1,
+        "HasDishwasher": 1,
+        "HasWasherDryer": 2,
+        "HasOven": 1,
+        "HasMicrowave": 1,
+        "HasGarbageDisposal": 1,
+        "HasRefrigerator": 1,
+        "HasAppliances": 2,
+        "HasCabinets": 1,
+        "HasCabinetsBroken": 1,
+        "HasCabinetHinges": 1,
+        "HasCabinetAlignment": 1,
+        "HasUnevenFlooring": 1,
+        "HasCarpet": 1,
+        "HasTiles": 1,
+        "HasNailsStickingOut": 1,
+        "HasFloors": 2,
+        "HasBrokenWindows": 2,
+        "HasWindowScreens": 1,
+        "HasWindowLeaks": 1,
+        "HasWindowsDoNotLock": 1,
+        "HasMissingWindows": 1,
+        "HasBrokenMissingScreens": 1,
+        "HasWindows": 2,
+        "HasBrokenDoors": 10,
+        "HasDoorKnobs": 1,
+        "HasDoorLocks": 1,
+        "HasBrokenHinges": 1,
+        "HasSlidingGlassDoors": 1,
+        "HasIneffectiveWaterproofing": 1,
+        "HasWaterIntrusionInsects": 1,
+        "HasDoorsDoNotCloseProperly": 1,
+        "HasDoors": 3,
+        "HasHoleInCeiling": 1,
+        "HasBumpsInCeiling": 1,
+        "HasWaterStainsOnCeiling": 1,
+        "HasWaterStainsOnWall": 1,
+        "HasHoleInWall": 1,
+        "HasPaint": 1,
+        "HasExteriorDeckPorch": 1,
+        "HasWaterproofToilet": 1,
+        "HasWaterproofTub": 1,
+        "HasStaircase": 1,
+        "HasBasementFlood": 1,
+        "HasLeaksInGarage": 1,
+        "HasIneffectiveWeatherproofingOfAnyWindowsDoors": 1,
+        "HasIneffectiveWaterproofingOfTheTubsToilet": 1,
+        "HasSoftSpotsDueToLeaks": 1,
+        "HasHolesInCeilingWalls": 1,
+        "HasWaterStainsOnCeilingWalls": 1,
+        "HasStructure": 2,
+        "HasMailboxBroken": 1,
+        "HasParkingAreaIssues": 1,
+        "HasDamageToCars": 1,
+        "HasFlooding": 1,
+        "HasEntrancesBlocked": 1,
+        "HasSwimmingPool": 1,
+        "HasJacuzzi": 1,
+        "HasLaundryRoom": 1,
+        "HasRecreationRoom": 1,
+        "HasGym": 1,
+        "HasBlockedAreasDoors": 1,
+        "HasElevator": 4,
+        "HasFilthRubbishGarbage": 1,
+        "HasCommonAreaVermin": 1,
+        "HasBrokenGate": 1,
+        "HasCommonAreaInsects": 1,
+        "HasCommonArea": 2,
+        "HasDrugs": 1,
+        "HasSmoking": 1,
+        "HasNoisyNeighbors": 1,
+        "HasGangs": 1,
+        "HasNuisance": 2,
+        "HasMold": 4,
+        "HasMildew": 1,
+        "HasMushrooms": 1,
+        "HasRawSewageOnExterior": 1,
+        "HasNoxiousFumes": 1,
+        "HasChemicalsPaintContamination": 1,
+        "HasToxicWaterPollution": 1,
+        "HasOffensiveOdors": 1,
+        "HasHealthHazards": 2,
+        "HasUnlawfulDetainer": 1,
+        "HasEvictionThreat": 1,
+        "HasHarrassmentByDefendants": 1,
+        "HasHarrassmentMaintenanceManWorkers": 1,
+        "HasHarrassmentManagerStaff": 1,
+        "HasHarrassmentByOwnerAndTheirGuests": 1,
+        "HasHarrassmentOtherTenants": 1,
+        "HasIllegitimateNotices": 1,
+        "HasRefusalToMakeTimelyRepairs": 1,
+        "HasWrittenThreats": 1,
+        "HasAggressiveInappropriateLanguage": 1,
+        "HasPhysicalThreatsOrTouching": 1,
+        "HasNoticesSinglingOutOneTenant": 1,
+        "HasDuplicativeNotices": 1,
+        "HasUntimelyResponseFromLandlord": 1,
+        "HasHarassment": 2,
+        "HasNotices": 1,
+        "Has24HourNotices": 1,
+        "Has3DayNotices": 1,
+        "Has30DayNotices": 1,
+        "Has60DayNotices": 1,
+        "HasToQuitNotices": 1,
+        "HasPerformOrQuit": 1,
+        "HasWaterShutoffs": 1,
+        "HasGasLeaks": 1,
+        "HasElectricityShutoffs": 1,
+        "HasHeatShutoffs": 1,
+        "HasGasShutoffs": 1,
+        "HasSafety": 1,
+        "HasInoperableLocks": 1,
+        "HasBrokenSecurityGate": 1,
+        "HasSecurityCameras": 1,
+        "HasBrokenBuzzerToGetIn": 1,
+        "HasInjury": 1,
+        "HasNonresponsiveLandlord": 1,
+        "HasUnauthorizedEntries": 1,
+        "HasStolenItems": 1,
+        "HasDamagedItems": 1,
+        "HasAgeDiscrimination": 1,
+        "HasDisabilityDiscrimination": 1,
+        "HasRacialDiscrimination": 1,
+        "HasSecurityDeposit": 22,
+        "HasTrashProblems": 1,
+        "HasInadequateNumberOfTrashReceptacles": 1,
+        "HasInadequateServicingAndEmptyingTrashReceptacles": 1,
+        "HasLosAngeles": 1
+      },
+      "case_metadata": {
+        "property_address": "333",
+        "property_address_with_unit": "333 Unit 1",
+        "city": "Los Angeles",
+        "state": "North Carolina",
+        "zip": "28027",
+        "filing_city": "Los Angeles",
+        "filing_county": "North Carolina"
+      },
+      "template_name": "",
+      "filename_suffix": "Discovery Propounded PODs"
+    }
+  ],
+  "consolidated_flags": {
+    "IsOwner": {
+      "count": 6,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "IsManager": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "IsOwnerManager": {
+      "count": 40,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasAnts": {
+      "count": 3,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasRoaches": {
+      "count": 4,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasFlies": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasBedbugs": {
+      "count": 4,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasBees": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWasps": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasHornets": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasSpiders": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasTermites": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasMosquitos": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasRatsMice": {
+      "count": 6,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasSkunks": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasBats": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasRacoons": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasPigeons": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasOpossums": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasVermin": {
+      "count": 8,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasHeater": {
+      "count": 5,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasAC": {
+      "count": 5,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasVentilation": {
+      "count": 3,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasHvac": {
+      "count": 6,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasOutlets": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasPanel": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWallSwitches": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasExteriorLighting": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasInteriorLighting": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasLightFixtures": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasFans": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasElectrical": {
+      "count": 3,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasToilet": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasShower": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasBath": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasFixtures": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasLeaks": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasInsufficientWaterPressure": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasNoHotWater": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasSewageComingOut": {
+      "count": 3,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasCloggedToilet": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasCloggedBath": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasCloggedSink": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasCloggedShower": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasNoCleanWaterSupply": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasNoColdWater": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasUnsanitaryWater": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasClogs": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasPlumbing": {
+      "count": 3,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasSmokeAlarms": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasFireExtinguisher": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasNonCompliantElectricity": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasNonGfiElectricalOutlets": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasCarbonmonoxideDetectors": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasFireHazard": {
+      "count": 3,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasDepartmentOfEnvironmentalHealth": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasDepartmentOfPublicHealth": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasDepartmentOfHealthServices": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasFireDepartment": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasPoliceDepartment": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasCodeEnforcement": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasGovContact": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasStove": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasDishwasher": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWasherDryer": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasOven": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasMicrowave": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasGarbageDisposal": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasRefrigerator": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasAppliances": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasCabinets": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasCabinetsBroken": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasCabinetHinges": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasCabinetAlignment": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasUnevenFlooring": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasCarpet": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasTiles": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasNailsStickingOut": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasFloors": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasBrokenWindows": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWindowScreens": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWindowLeaks": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWindowsDoNotLock": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasMissingWindows": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasBrokenMissingScreens": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWindows": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasBrokenDoors": {
+      "count": 10,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasDoorKnobs": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasDoorLocks": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasBrokenHinges": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasSlidingGlassDoors": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasIneffectiveWaterproofing": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWaterIntrusionInsects": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasDoorsDoNotCloseProperly": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasDoors": {
+      "count": 3,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasHoleInCeiling": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasBumpsInCeiling": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWaterStainsOnCeiling": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWaterStainsOnWall": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasHoleInWall": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasPaint": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasExteriorDeckPorch": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWaterproofToilet": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWaterproofTub": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasStaircase": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasBasementFlood": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasLeaksInGarage": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasIneffectiveWeatherproofingOfAnyWindowsDoors": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasIneffectiveWaterproofingOfTheTubsToilet": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasSoftSpotsDueToLeaks": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasHolesInCeilingWalls": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWaterStainsOnCeilingWalls": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasStructure": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasMailboxBroken": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasParkingAreaIssues": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasDamageToCars": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasFlooding": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasEntrancesBlocked": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasSwimmingPool": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasJacuzzi": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasLaundryRoom": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasRecreationRoom": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasGym": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasBlockedAreasDoors": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasElevator": {
+      "count": 4,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasFilthRubbishGarbage": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasCommonAreaVermin": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasBrokenGate": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasCommonAreaInsects": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasCommonArea": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasDrugs": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasSmoking": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasNoisyNeighbors": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasGangs": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasNuisance": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasMold": {
+      "count": 4,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasMildew": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasMushrooms": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasRawSewageOnExterior": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasNoxiousFumes": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasChemicalsPaintContamination": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasToxicWaterPollution": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasOffensiveOdors": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasHealthHazards": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasUnlawfulDetainer": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasEvictionThreat": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasHarrassmentByDefendants": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasHarrassmentMaintenanceManWorkers": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasHarrassmentManagerStaff": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasHarrassmentByOwnerAndTheirGuests": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasHarrassmentOtherTenants": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasIllegitimateNotices": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasRefusalToMakeTimelyRepairs": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWrittenThreats": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasAggressiveInappropriateLanguage": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasPhysicalThreatsOrTouching": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasNoticesSinglingOutOneTenant": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasDuplicativeNotices": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasUntimelyResponseFromLandlord": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasHarassment": {
+      "count": 2,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasNotices": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "Has24HourNotices": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "Has3DayNotices": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "Has30DayNotices": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "Has60DayNotices": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasToQuitNotices": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasPerformOrQuit": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasWaterShutoffs": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasGasLeaks": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasElectricityShutoffs": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasHeatShutoffs": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasGasShutoffs": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasSafety": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasInoperableLocks": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasBrokenSecurityGate": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasSecurityCameras": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasBrokenBuzzerToGetIn": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasInjury": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasNonresponsiveLandlord": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasUnauthorizedEntries": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasStolenItems": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasDamagedItems": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasAgeDiscrimination": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasDisabilityDiscrimination": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasRacialDiscrimination": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasSecurityDeposit": {
+      "count": 22,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasTrashProblems": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasInadequateNumberOfTrashReceptacles": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasInadequateServicingAndEmptyingTrashReceptacles": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    },
+    "HasLosAngeles": {
+      "count": 1,
+      "datasets_present": 1,
+      "dataset_ids": [
+        "1-eXV5dZ-XkoTBi-pods"
+      ],
+      "plaintiff_defendant_pairs": [
+        "Clark Kent vs htd ewt"
+      ]
+    }
+  },
+  "top_20_flags": [
+    {
+      "flag": "IsOwnerManager",
+      "count": 40
+    },
+    {
+      "flag": "HasSecurityDeposit",
+      "count": 22
+    },
+    {
+      "flag": "HasBrokenDoors",
+      "count": 10
+    },
+    {
+      "flag": "HasVermin",
+      "count": 8
+    },
+    {
+      "flag": "IsOwner",
+      "count": 6
+    },
+    {
+      "flag": "HasRatsMice",
+      "count": 6
+    },
+    {
+      "flag": "HasHvac",
+      "count": 6
+    },
+    {
+      "flag": "HasHeater",
+      "count": 5
+    },
+    {
+      "flag": "HasAC",
+      "count": 5
+    },
+    {
+      "flag": "HasRoaches",
+      "count": 4
+    },
+    {
+      "flag": "HasBedbugs",
+      "count": 4
+    },
+    {
+      "flag": "HasElevator",
+      "count": 4
+    },
+    {
+      "flag": "HasMold",
+      "count": 4
+    },
+    {
+      "flag": "HasAnts",
+      "count": 3
+    },
+    {
+      "flag": "HasVentilation",
+      "count": 3
+    },
+    {
+      "flag": "HasElectrical",
+      "count": 3
+    },
+    {
+      "flag": "HasSewageComingOut",
+      "count": 3
+    },
+    {
+      "flag": "HasPlumbing",
+      "count": 3
+    },
+    {
+      "flag": "HasFireHazard",
+      "count": 3
+    },
+    {
+      "flag": "HasDoors",
+      "count": 3
+    }
+  ],
+  "summary": {
+    "total_datasets": 1,
+    "total_interrogatories": 339,
+    "average_interrogatories_per_dataset": 339.0,
+    "total_unique_flags": 190,
+    "flags_used_by_all_datasets": 190,
+    "flags_used_by_some_datasets": 0,
+    "plaintiff_defendant_pairs": [
+      "Clark Kent vs htd ewt"
+    ]
+  },
+  "metadata": {
+    "phase": "4.5",
+    "description": "Consolidated PODS profile across all plaintiff-defendant pairs",
+    "template_name": ""
+  }
+}

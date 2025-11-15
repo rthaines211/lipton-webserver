@@ -33,6 +33,7 @@ git push origin develop  # Auto-deploys to development
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
+- [Deployment Artifacts](#deployment-artifacts)
 - [Automated Deployment (CI/CD)](#automated-deployment-cicd)
 - [Manual Deployment](#manual-deployment)
 - [First-Time Setup](#first-time-setup)
@@ -69,6 +70,83 @@ gcloud config set project docmosis-tornado
 
 ---
 
+## Deployment Artifacts
+
+### What Gets Deployed
+
+The `.gcloudignore` file controls which files are included in Cloud Run deployments. Understanding this is critical for successful PDF generation.
+
+**Key Files INCLUDED in Deployment:**
+```
+✅ normalization work/pdf_templates/  # PDF templates (REQUIRED for CM-110 generation)
+   ├── cm110.pdf                      # Original encrypted template
+   └── cm110-decrypted.pdf            # Active template used by pdf-lib
+
+✅ server/                             # Backend services
+   ├── config/cm110-field-mapping.json   # PDF field mappings
+   ├── services/pdf-service.js          # PDF generation logic
+   ├── routes/pdf-routes.js             # API endpoints
+   └── utils/pdf-field-mapper.js        # Field mapping utilities
+
+✅ js/                                 # Frontend JavaScript
+✅ index.html                          # Main UI
+✅ server.js                           # Express server
+✅ package.json                        # Dependencies (includes pdf-lib, pg-boss)
+```
+
+**Files EXCLUDED from Deployment:**
+```
+❌ node_modules/        # Reinstalled during build
+❌ tests/               # Test files not needed in production
+❌ *.md                 # Documentation (except README.md)
+❌ .git/                # Git metadata
+❌ logs/                # Log files
+❌ data/                # Local form submissions
+❌ .env*                # Environment files (using Secrets Manager)
+```
+
+### Critical: PDF Templates Must Be Deployed
+
+**⚠️ IMPORTANT:** The `.gcloudignore` file has been configured to **INCLUDE** PDF templates:
+
+```gitignore
+# .gcloudignore contents:
+
+# IMPORTANT: Do NOT exclude PDF templates - they're needed for CM-110 generation
+# The following files MUST be included:
+# - normalization work/pdf_templates/cm110.pdf
+# - normalization work/pdf_templates/cm110-decrypted.pdf
+```
+
+**Why this matters:**
+- pdf-lib requires the template file at runtime
+- Template is loaded from `normalization work/pdf_templates/cm110-decrypted.pdf`
+- If templates are excluded, PDF generation will fail with "Template not found" error
+
+### Verifying Deployment Contents
+
+**After deployment, verify templates are present:**
+
+```bash
+# Connect to Cloud Run container (requires gcloud beta)
+gcloud beta run services proxy node-server --region=us-central1
+
+# In another terminal, check if templates exist
+curl http://localhost:8080/api/health/detailed
+# Look for: "pdfTemplates": {"available": true, "count": 2}
+```
+
+**Check deployment size:**
+```bash
+# View recent deployment
+gcloud run revisions list --service=node-server --region=us-central1 --limit=1
+
+# Deployment should be ~50-100MB
+# If it's only 5-10MB, templates may be missing
+```
+
+---
+
 ## Automated Deployment (CI/CD)
 
 ### GitHub Actions Workflow
@@ -97,6 +175,7 @@ The application uses GitHub Actions for automated deployments. The workflow is d
 - `config/production.env` - Production variables
 - `config/staging.env` - Staging variables
 - `config/development.env` - Development variables
+- `.gcloudignore` - Files excluded from Cloud Run deployment
 
 **All environment variables are automatically applied from these files.**
 

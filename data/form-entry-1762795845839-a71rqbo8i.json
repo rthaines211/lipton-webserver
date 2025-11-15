@@ -1,0 +1,236 @@
+{
+  "Form": {
+    "Id": "1",
+    "InternalName": "AutoPopulationForm",
+    "Name": "Auto-Population Form"
+  },
+  "PlaintiffDetails": [
+    {
+      "Id": "eXV5dZ",
+      "PlaintiffItemNumberName": {
+        "First": "Clark",
+        "FirstAndLast": "Clark Kent",
+        "Last": "Kent",
+        "Middle": null,
+        "MiddleInitial": null,
+        "Prefix": null,
+        "Suffix": null
+      },
+      "PlaintiffItemNumberType": "Individual",
+      "PlaintiffItemNumberAgeCategory": [
+        "Adult"
+      ],
+      "HeadOfHousehold": true,
+      "ItemNumber": 1,
+      "PlaintiffItemNumberDiscovery": {
+        "VerminIssue": true,
+        "Vermin": [
+          "Rats/Mice",
+          "Skunks",
+          "Bats",
+          "Raccoons",
+          "Pigeons",
+          "Opossums"
+        ],
+        "InsectIssues": true,
+        "Insects": [
+          "Ants",
+          "Roaches",
+          "Flies",
+          "Bedbugs",
+          "Wasps",
+          "Hornets",
+          "Spiders",
+          "Termites",
+          "Mosquitos",
+          "Bees"
+        ],
+        "HVACIssues": true,
+        "HVAC": [
+          "Air Conditioner",
+          "Heater",
+          "Ventilation"
+        ],
+        "Electrical": [
+          "Outlets",
+          "Panel",
+          "Wall Switches",
+          "Exterior Lighting",
+          "Interior Lighting",
+          "Light Fixtures",
+          "Fans"
+        ],
+        "ElectricalIssues": true,
+        "FireHazardIssues": true,
+        "GovernmentEntityContacted": true,
+        "AppliancesIssues": false,
+        "PlumbingIssues": true,
+        "CabinetsIssues": true,
+        "Fire Hazard": [
+          "Smoke Alarms",
+          "Fire Extinguisher",
+          "Non-compliant electricity",
+          "Non-GFI outlets near water",
+          "Carbon monoxide detectors"
+        ],
+        "Specific Government Entity Contacted": [
+          "Health Department",
+          "Housing Authority",
+          "Code Enforcement",
+          "Fire Department",
+          "Police Department",
+          "Department of Environmental Health",
+          "Department of Health Services"
+        ],
+        "Appliances": [],
+        "Plumbing": [
+          "Toilet",
+          "Insufficient water pressure",
+          "Clogged bath",
+          "Shower",
+          "No hot water",
+          "Clogged sinks",
+          "Bath",
+          "No cold water",
+          "Clogged shower",
+          "Fixtures",
+          "Sewage coming out",
+          "No Clean Water Supply",
+          "Leaks",
+          "Clogged toilets",
+          "Unsanitary water"
+        ],
+        "Cabinets": [
+          "Broken",
+          "Hinges",
+          "Alignment"
+        ],
+        "FlooringIssues": true,
+        "WindowsIssues": true,
+        "DoorIssues": true,
+        "Flooring": [
+          "Uneven",
+          "Carpet",
+          "Nails sticking out",
+          "Tiles"
+        ],
+        "Windows": [
+          "Broken",
+          "Screens",
+          "Leaks",
+          "Do not lock",
+          "Missing windows",
+          "Broken or missing screens"
+        ],
+        "Doors": [
+          "Broken",
+          "Knobs",
+          "Locks",
+          "Broken hinges",
+          "Sliding glass doors",
+          "Ineffective waterproofing",
+          "Water intrusion and/or insects",
+          "Do not close properly"
+        ],
+        "StructureIssues": true,
+        "Structure": [
+          "Bumps in ceiling",
+          "Hole in ceiling",
+          "Water stains on ceiling",
+          "Water stains on wall",
+          "Hole in wall",
+          "Paint",
+          "Exterior deck/porch",
+          "Waterproof toilet",
+          "Waterproof tub",
+          "Staircase",
+          "Basement flood",
+          "Leaks in garage",
+          "Soft Spots due to Leaks",
+          "Ineffective waterproofing of the tubs or toilet",
+          "Ineffective Weatherproofing of any windows doors"
+        ],
+        "CommonAreasIssues": false,
+        "Common areas": [],
+        "Select Trash Problems": [
+          "Inadequate number of receptacles",
+          "Properly servicing and emptying receptacles"
+        ],
+        "NuisanceIssues": true,
+        "Nuisance": [
+          "Drugs",
+          "Smoking",
+          "Noisy neighbors",
+          "Gangs"
+        ],
+        "Health hazard": [
+          "Mold",
+          "Mildew",
+          "Mushrooms",
+          "Raw sewage on exterior",
+          "Noxious fumes",
+          "Toxic water pollution",
+          "Offensive odors"
+        ],
+        "HealthHazardIssues": true,
+        "HarassmentIssues": false,
+        "Harassment": [],
+        "Select Notices Issues": [],
+        "Checkbox 44n6i": [],
+        "Injury Issues": false,
+        "Nonresponsive landlord Issues": false,
+        "Unauthorized entries": false,
+        "Stolen items": false,
+        "Damaged items": false,
+        "Age discrimination": false,
+        "Racial Discrimination": false,
+        "Disability discrimination": false,
+        "Unit": "1",
+        "Select Safety Issues": [],
+        "Security Deposit": false
+      }
+    }
+  ],
+  "PlaintiffDetails_Minimum": 1,
+  "DefendantDetails2": [
+    {
+      "Id": "XkoTBi",
+      "DefendantItemNumberName": {
+        "First": "htd",
+        "FirstAndLast": "htd ewt",
+        "Last": "ewt",
+        "Middle": null,
+        "MiddleInitial": null,
+        "Prefix": null,
+        "Suffix": null
+      },
+      "DefendantItemNumberType": "hs",
+      "DefendantItemNumberManagerOwner": "Manager",
+      "ItemNumber": 1
+    }
+  ],
+  "DefendantDetails2_Minimum": 1,
+  "DefendantDetails2_Maximum": 10,
+  "Full_Address": {
+    "City": "Los Angeles",
+    "CityStatePostalCode": "Los Angeles, North Carolina 28027",
+    "Country": "United States",
+    "CountryCode": "US",
+    "FullAddress": "333, Los Angeles, North Carolina 28027",
+    "FullInternationalAddress": "333, Los Angeles, North Carolina 28027, United States",
+    "Latitude": null,
+    "Line1": "333",
+    "Line2": null,
+    "Line3": null,
+    "Longitude": null,
+    "PostalCode": "28027",
+    "State": "North Carolina",
+    "StreetAddress": "333",
+    "Type": "Home"
+  },
+  "Filing city": "Los Angeles",
+  "Filing county": "North Carolina",
+  "Notification Email Opt-In": true,
+  "Notification Email": "rthaines21@gmail.com",
+  "serverTimestamp": "2025-11-10T17:30:45.851Z"
+}

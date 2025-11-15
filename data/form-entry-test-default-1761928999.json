@@ -1,0 +1,53 @@
+{
+  "Form": {
+    "Id": "1",
+    "InternalName": "AutoPopulationForm",
+    "Name": "Auto-Population Form"
+  },
+  "PlaintiffDetails": [
+    {
+      "Id": "ObYBHz",
+      "PlaintiffItemNumberName": {
+        "First": "Test",
+        "FirstAndLast": "Test User",
+        "Last": "User",
+        "Middle": null,
+        "MiddleInitial": null,
+        "Prefix": null,
+        "Suffix": null
+      },
+      "PlaintiffItemNumberType": "Individual",
+      "PlaintiffItemNumberAgeCategory": [
+        "Adult"
+      ],
+      "HeadOfHousehold": false,
+      "ItemNumber": 1
+    }
+  ],
+  "PlaintiffDetails_Minimum": 1,
+  "DefendantDetails2": [],
+  "DefendantDetails2_Minimum": 1,
+  "DefendantDetails2_Maximum": 10,
+  "Full_Address": {
+    "City": "Test City",
+    "CityStatePostalCode": "Test City, North Carolina 12345",
+    "Country": "United States",
+    "CountryCode": "US",
+    "FullAddress": "123 Test St, Test City, North Carolina 12345",
+    "FullInternationalAddress": "123 Test St, Test City, North Carolina 12345, United States",
+    "Latitude": null,
+    "Line1": "123 Test St",
+    "Line2": null,
+    "Line3": null,
+    "Longitude": null,
+    "PostalCode": "12345",
+    "State": "North Carolina",
+    "StreetAddress": "123 Test St",
+    "Type": "Home"
+  },
+  "Filing city": "Test",
+  "Filing county": "Test",
+  "Notification Email Opt-In": false,
+  "Notification Email": null,
+  "serverTimestamp": "2025-10-31T16:43:19.316Z"
+}

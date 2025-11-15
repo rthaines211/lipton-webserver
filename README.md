@@ -13,6 +13,8 @@ This application provides a comprehensive legal form for collecting plaintiff an
 - **Accessible Accordions**: Repeatable sections and issue categories use aria-synced accordion controls with collapse-all shortcuts
 - **Dual Storage System**: JSON files and PostgreSQL database storage
 - **Dropbox Integration**: ✅ Automatic cloud backup with folder structure preservation - **ACTIVE IN PRODUCTION** (see [DROPBOX_SETUP_COMPLETE.md](DROPBOX_SETUP_COMPLETE.md))
+- **CM-110 PDF Generation**: ✨ **NEW** - Automated filling of California CM-110 court forms with real-time progress tracking
+- **Job Queue System**: Asynchronous PDF generation with pg-boss for reliable background processing
 - **REST API**: Backend API for managing form submissions
 - **Automated Testing**: Playwright tests for form functionality
 
@@ -134,6 +136,7 @@ The application automatically deploys via GitHub Actions:
 
 ## API Endpoints
 
+### Form Management
 - `GET /` - Main form page
 - `GET /review.html` - Review page for submission preview
 - `GET /success` - Success confirmation page
@@ -143,7 +146,18 @@ The application automatically deploys via GitHub Actions:
 - `PUT /api/form-entries/:id` - Update form entry
 - `DELETE /api/form-entries/:id` - Delete form entry
 - `DELETE /api/form-entries/clear-all` - Delete all entries
+
+### PDF Generation (NEW)
+- `POST /api/pdf/generate` - Generate CM-110 PDF from form data
+- `GET /api/pdf/status/:jobId` - Get PDF generation job status
+- `GET /api/pdf/download/:jobId` - Download generated PDF
+- `POST /api/pdf/retry/:jobId` - Retry failed PDF generation
+- `GET /api/pdf/events/:jobId` - Server-Sent Events for real-time progress
+
+### Health & Monitoring
 - `GET /api/health` - Health check
+- `GET /health/detailed` - Detailed health status with dependencies
+- `GET /metrics` - Prometheus metrics
 
 ## Form Structure
 
@@ -310,14 +324,39 @@ The test suite includes:
 ### Project Structure
 
 ```
-├── index.html          # Main form page
+├── index.html          # Main form page with PDF generation UI
 ├── server.js           # Express server and data transformation
-├── script.js           # (Unused) - original form logic
 ├── styles.css          # Form styling
+├── js/                 # Frontend JavaScript modules
+│   ├── form-submission.js      # Form handling & submission
+│   ├── party-management.js     # Dynamic plaintiff/defendant sections
+│   ├── sse-client.js          # Real-time progress updates
+│   └── toast-notifications.js  # User feedback
+├── server/             # Backend services (NEW)
+│   ├── config/         # Configuration files
+│   │   ├── cm110-field-mapping.json  # PDF field mappings
+│   │   └── database.js               # Database connection
+│   ├── models/         # Data models
+│   │   └── pdf-generation-job.js     # Job queue model
+│   ├── routes/         # API routes
+│   │   └── pdf-routes.js             # PDF generation endpoints
+│   ├── services/       # Business logic services
+│   │   ├── pdf-service.js            # PDF generation & filling
+│   │   ├── job-queue-service.js      # Async job management
+│   │   ├── sse-service.js            # Server-Sent Events
+│   │   └── storage-service.js        # File storage operations
+│   └── utils/          # Utility functions
+│       ├── pdf-templates.js          # PDF template loading
+│       └── pdf-field-mapper.js       # Form-to-PDF field mapping
+├── normalization work/
+│   └── pdf_templates/  # CM-110 PDF templates
+│       ├── cm110.pdf                 # Original encrypted template
+│       └── cm110-decrypted.pdf       # Working template
 ├── tests/              # Playwright test files
 ├── data/               # Form submission storage
-├── playwright.config.js # Test configuration
-└── package.json        # Dependencies and scripts
+├── monitoring/         # Logging and metrics
+├── config/             # Environment configurations
+└── package.json        # Dependencies (pdf-lib, pg-boss added)
 ```
 
 ### Form Field Naming Convention

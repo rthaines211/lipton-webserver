@@ -9,6 +9,7 @@
 - [Rate Limiting](#rate-limiting)
 - [Endpoints](#endpoints)
   - [Form Entries](#form-entries)
+  - [PDF Generation](#pdf-generation) **NEW**
   - [Pipeline Management](#pipeline-management)
   - [Health & Monitoring](#health--monitoring)
   - [Static Pages](#static-pages)
@@ -424,6 +425,257 @@ Delete a specific form submission.
 - Deletes all JSON files in `data/` directory
 - Does NOT delete database records
 - Use with extreme caution in production
+
+---
+
+## PDF Generation
+
+### Generate CM-110 PDF
+
+Asynchronously generate a filled CM-110 PDF from form submission data.
+
+**Endpoint:** `POST /api/pdf/generate`
+
+**Authentication:** Required (production only)
+
+**Request Body:**
+```json
+{
+  "formData": {
+    "Form": { ... },
+    "PlaintiffDetails": [ ... ],
+    "DefendantDetails2": [ ... ],
+    "Full_Address": { ... },
+    "Filing city": "Los Angeles",
+    "Filing county": "Los Angeles County"
+  }
+}
+```
+
+**Alternative Request Body (using saved form):**
+```json
+{
+  "filename": "form-entry-1729539600000-abc123.json"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "jobId": "pdf-1729539600000-abc123xyz",
+  "status": "processing",
+  "message": "PDF generation started. Use /api/pdf/status/:jobId to track progress.",
+  "eventsUrl": "/api/pdf/events/pdf-1729539600000-abc123xyz"
+}
+```
+
+**Error Response:** `400 Bad Request`
+```json
+{
+  "success": false,
+  "error": "Missing required field: formData or filename"
+}
+```
+
+---
+
+### Get PDF Generation Status
+
+Check the status of a PDF generation job.
+
+**Endpoint:** `GET /api/pdf/status/:jobId`
+
+**Authentication:** Required (production only)
+
+**Path Parameters:**
+- `jobId` (string, required) - PDF job ID returned from /api/pdf/generate
+
+**Response:** `200 OK` (In Progress)
+```json
+{
+  "jobId": "pdf-1729539600000-abc123xyz",
+  "status": "processing",
+  "progress": 65,
+  "phase": "filling_fields",
+  "message": "Filling PDF form fields...",
+  "createdAt": "2025-11-14T12:00:00.000Z",
+  "filename": null,
+  "filePath": null
+}
+```
+
+**Response:** `200 OK` (Completed)
+```json
+{
+  "jobId": "pdf-1729539600000-abc123xyz",
+  "status": "completed",
+  "progress": 100,
+  "phase": "complete",
+  "message": "PDF generation completed successfully",
+  "createdAt": "2025-11-14T12:00:00.000Z",
+  "completedAt": "2025-11-14T12:00:15.000Z",
+  "filename": "CM-110_ClarkKent_20251114.pdf",
+  "filePath": "webhook_documents/1331 Yorkshire Place NW/Clark Kent/Discovery Propounded/CM-110_ClarkKent_20251114.pdf",
+  "dropboxUploaded": true,
+  "dropboxPath": "/Current Clients/1331 Yorkshire Place NW/Clark Kent/Discovery Propounded/CM-110_ClarkKent_20251114.pdf"
+}
+```
+
+**Response:** `200 OK` (Failed)
+```json
+{
+  "jobId": "pdf-1729539600000-abc123xyz",
+  "status": "failed",
+  "progress": 45,
+  "phase": "mapping_fields",
+  "message": "Failed to map form fields",
+  "error": "Missing required field: caseNumber",
+  "createdAt": "2025-11-14T12:00:00.000Z",
+  "failedAt": "2025-11-14T12:00:08.000Z"
+}
+```
+
+**Error Response:** `404 Not Found`
+```json
+{
+  "success": false,
+  "error": "Job not found",
+  "message": "PDF generation job 'pdf-123' does not exist"
+}
+```
+
+---
+
+### Download Generated PDF
+
+Download a completed PDF file.
+
+**Endpoint:** `GET /api/pdf/download/:jobId`
+
+**Authentication:** Required (production only)
+
+**Path Parameters:**
+- `jobId` (string, required) - PDF job ID
+
+**Response:** `200 OK`
+- **Content-Type:** `application/pdf`
+- **Content-Disposition:** `attachment; filename="CM-110_ClarkKent_20251114.pdf"`
+- **Body:** PDF file binary data
+
+**Error Response:** `404 Not Found`
+```json
+{
+  "success": false,
+  "error": "PDF not found",
+  "message": "PDF file for job 'pdf-123' does not exist or has not been generated yet"
+}
+```
+
+**Error Response:** `400 Bad Request`
+```json
+{
+  "success": false,
+  "error": "Job not completed",
+  "message": "PDF generation is still in progress. Current status: processing (65%)"
+}
+```
+
+---
+
+### Retry Failed PDF Generation
+
+Retry a failed PDF generation job.
+
+**Endpoint:** `POST /api/pdf/retry/:jobId`
+
+**Authentication:** Required (production only)
+
+**Path Parameters:**
+- `jobId` (string, required) - Failed PDF job ID
+
+**Request Body:** None
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "PDF generation job restarted",
+  "jobId": "pdf-1729539600000-abc123xyz",
+  "newJobId": "pdf-1729539700000-xyz789abc",
+  "status": "processing",
+  "eventsUrl": "/api/pdf/events/pdf-1729539700000-xyz789abc"
+}
+```
+
+**Error Response:** `404 Not Found`
+```json
+{
+  "success": false,
+  "error": "Job not found"
+}
+```
+
+**Error Response:** `400 Bad Request`
+```json
+{
+  "success": false,
+  "error": "Cannot retry completed job",
+  "message": "Job already completed successfully"
+}
+```
+
+---
+
+### Server-Sent Events for Real-Time Progress
+
+Subscribe to real-time PDF generation progress updates.
+
+**Endpoint:** `GET /api/pdf/events/:jobId`
+
+**Authentication:** Required (production only) - Pass token as query param `?token=xxx`
+
+**Path Parameters:**
+- `jobId` (string, required) - PDF job ID
+
+**Response:** `200 OK` (text/event-stream)
+
+**Event Format:**
+```
+event: status
+data: {"jobId":"pdf-123","status":"processing","phase":"loading_template","progress":10,"message":"Loading PDF template..."}
+
+event: progress
+data: {"jobId":"pdf-123","status":"processing","phase":"filling_fields","progress":60,"message":"Filling PDF form fields..."}
+
+event: complete
+data: {"jobId":"pdf-123","status":"completed","progress":100,"filename":"CM-110_ClarkKent_20251114.pdf"}
+
+event: error
+data: {"jobId":"pdf-123","status":"failed","error":"Missing required field: caseNumber"}
+```
+
+**Client Example:**
+```javascript
+const eventSource = new EventSource('/api/pdf/events/pdf-123?token=YOUR_TOKEN');
+
+eventSource.addEventListener('status', (event) => {
+  const data = JSON.parse(event.data);
+  console.log(`Status: ${data.phase} - ${data.progress}%`);
+});
+
+eventSource.addEventListener('complete', (event) => {
+  const data = JSON.parse(event.data);
+  console.log(`PDF ready: ${data.filename}`);
+  eventSource.close();
+});
+
+eventSource.addEventListener('error', (event) => {
+  const data = JSON.parse(event.data);
+  console.error(`Error: ${data.error}`);
+  eventSource.close();
+});
+```
 
 ---
 

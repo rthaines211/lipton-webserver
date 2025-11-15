@@ -18,6 +18,8 @@ The Legal Form Application is a full-stack web application that collects, proces
 - 💾 Dual storage: JSON files + PostgreSQL database
 - ☁️ Optional Dropbox cloud backup
 - 🔄 Python normalization pipeline integration
+- 📄 **CM-110 PDF Generation** - Automated court form filling with pdf-lib
+- ⚙️ **Job Queue System** - Asynchronous PDF processing with pg-boss
 - 📈 Prometheus metrics & monitoring
 - 🔒 Token-based authentication (production)
 - 🚀 Real-time Server-Sent Events (SSE) for progress tracking
@@ -49,6 +51,9 @@ graph TB
         Monitoring[Monitoring & Metrics<br/>Middleware]
         Logger[Winston Logger<br/>Structured Logging]
         Routes[API Routes]
+        PDFService[PDF Service<br/>CM-110 Generation]
+        JobQueue[Job Queue Service<br/>pg-boss]
+        SSEService[SSE Service<br/>Real-time Updates]
     end
 
     subgraph "Storage Layer"
@@ -88,6 +93,12 @@ graph TB
     Routes --> PostgreSQL
     Routes --> Dropbox
     Routes --> Pipeline
+    Routes --> PDFService
+
+    PDFService --> JobQueue
+    PDFService --> SSEService
+    PDFService --> Dropbox
+    JobQueue --> PostgreSQL
 
     Pipeline --> ETL
     ETL --> PostgreSQL
@@ -381,9 +392,80 @@ erDiagram
 /**
  * Dropbox Integration:
  * - Upload JSON files to Dropbox
+ * - Upload generated PDFs to Dropbox
  * - Preserve folder structure
  * - Error handling and retry logic
  * - Optional/configurable via env vars
+ */
+```
+
+#### **server/services/pdf-service.js** - PDF Generation (NEW)
+```javascript
+/**
+ * CM-110 PDF Generation Service:
+ * - Load PDF templates from normalization work/pdf_templates/
+ * - Fill PDF fields using pdf-lib library
+ * - Map form data to 204 CM-110 PDF fields
+ * - Real-time progress updates via SSE
+ * - Automatic Dropbox upload
+ * - Error handling and validation
+ *
+ * Phases:
+ * 1. Load template (10% progress)
+ * 2. Parse PDF structure (20% progress)
+ * 3. Map form fields (40% progress)
+ * 4. Fill PDF fields (60% progress)
+ * 5. Save PDF (80% progress)
+ * 6. Upload to Dropbox (90% progress)
+ * 7. Complete (100% progress)
+ */
+```
+
+#### **server/services/job-queue-service.js** - Async Job Management (NEW)
+```javascript
+/**
+ * Background Job Queue:
+ * - pg-boss job queue for reliable processing
+ * - Retry failed PDF generation jobs
+ * - Job status tracking
+ * - Configurable concurrency
+ * - Automatic cleanup of completed jobs
+ */
+```
+
+#### **server/services/sse-service.js** - Real-time Updates (NEW)
+```javascript
+/**
+ * Server-Sent Events:
+ * - Push real-time PDF generation progress to clients
+ * - Support multiple concurrent clients
+ * - Automatic reconnection handling
+ * - Event types: status, progress, error, complete
+ */
+```
+
+#### **server/utils/pdf-field-mapper.js** - Field Mapping (NEW)
+```javascript
+/**
+ * Form-to-PDF Field Mapping:
+ * - Maps 204 CM-110 PDF fields to form data
+ * - Handles case number (appears on all 5 pages)
+ * - Maps attorney information
+ * - Maps plaintiff/defendant data
+ * - Transforms data types (checkboxes, dates, text)
+ * - Uses cm110-field-mapping.json configuration
+ */
+```
+
+#### **server/config/cm110-field-mapping.json** - Configuration (NEW)
+```json
+/**
+ * CM-110 Field Mapping Configuration:
+ * - Verified PDF field names using pdftk
+ * - 204 total fields discovered in CM-110.pdf
+ * - Organized by section: case number, attorney, parties
+ * - Includes field types, max lengths, requirements
+ * - Version controlled for template updates
  */
 ```
 
@@ -498,6 +580,8 @@ CREATE INDEX idx_issue_options_category ON issue_options(category_id);
 - **Node.js v14+** - Runtime environment
 - **Express 4.x** - Web framework
 - **PostgreSQL 12+** - Relational database
+- **pdf-lib 1.17+** - PDF manipulation and form filling
+- **pg-boss 12.x** - PostgreSQL-based job queue
 - **Winston** - Structured logging
 - **Morgan** - HTTP request logging
 - **Prometheus Client** - Metrics collection

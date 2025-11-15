@@ -1,0 +1,128 @@
+{
+  "Form": {
+    "Id": "1",
+    "InternalName": "AutoPopulationForm",
+    "Name": "Auto-Population Form"
+  },
+  "PlaintiffDetails": [
+    {
+      "Id": "4Fr8xV",
+      "PlaintiffItemNumberName": {
+        "First": "Clark",
+        "FirstAndLast": "Clark Kent",
+        "Last": "Kent",
+        "Middle": null,
+        "MiddleInitial": null,
+        "Prefix": null,
+        "Suffix": null
+      },
+      "PlaintiffItemNumberType": "Individual",
+      "PlaintiffItemNumberAgeCategory": [
+        "Adult"
+      ],
+      "PlaintiffItemNumberDiscovery": {
+        "Unit": "1",
+        "VerminIssue": true,
+        "InsectIssues": false,
+        "HVACIssues": false,
+        "ElectricalIssues": false,
+        "FireHazardIssues": false,
+        "AppliancesIssues": false,
+        "PlumbingIssues": false,
+        "CabinetsIssues": false,
+        "FlooringIssues": false,
+        "WindowsIssues": false,
+        "DoorIssues": false,
+        "StructureIssues": false,
+        "CommonAreasIssues": false,
+        "TrashProblems": false,
+        "NuisanceIssues": false,
+        "HealthHazardIssues": false,
+        "HarassmentIssues": false,
+        "NoticesIssues": false,
+        "UtilityIssues": false,
+        "Safety": false,
+        "Vermin": [
+          "Rats/Mice",
+          "Bats",
+          "Raccoons",
+          "Pige"
+        ],
+        "Insects": [],
+        "HVAC": [],
+        "Electrical": [],
+        "Fire Hazard": [],
+        "Appliances": [],
+        "Plumbing": [],
+        "Cabinets": [],
+        "Flooring": [],
+        "Windows": [],
+        "Doors": [],
+        "Structure": [],
+        "Common areas": [],
+        "Select Trash Problems": [],
+        "Nuisance": [],
+        "Health hazard": [],
+        "Harassment": [],
+        "Select Notices Issues": [],
+        "Checkbox 44n6i": [],
+        "Select Safety Issues": [],
+        "Injury Issues": false,
+        "Nonresponsive landlord Issues": false,
+        "Unauthorized entries": false,
+        "Stolen items": false,
+        "Damaged items": false,
+        "Security Deposit": false,
+        "Age discrimination": false,
+        "Racial Discrimination": false,
+        "Disability discrimination": false,
+        "GovernmentEntityContacted": false
+      },
+      "HeadOfHousehold": true,
+      "ItemNumber": 1
+    }
+  ],
+  "PlaintiffDetails_Minimum": 1,
+  "DefendantDetails2": [
+    {
+      "Id": "ETKcG2",
+      "DefendantItemNumberName": {
+        "First": "a",
+        "FirstAndLast": "a a",
+        "Last": "a",
+        "Middle": null,
+        "MiddleInitial": null,
+        "Prefix": null,
+        "Suffix": null
+      },
+      "DefendantItemNumberType": "a",
+      "DefendantItemNumberManagerOwner": "Manager",
+      "ItemNumber": 1
+    }
+  ],
+  "DefendantDetails2_Minimum": 1,
+  "DefendantDetails2_Maximum": 10,
+  "Full_Address": {
+    "City": "Los Angeles",
+    "CityStatePostalCode": "Los Angeles, North Carolina 28027",
+    "Country": "United States",
+    "CountryCode": "US",
+    "FullAddress": "Hello, Los Angeles, North Carolina 28027",
+    "FullInternationalAddress": "Hello, Los Angeles, North Carolina 28027, United States",
+    "Latitude": null,
+    "Line1": "Hello",
+    "Line2": null,
+    "Line3": null,
+    "Longitude": null,
+    "PostalCode": "28027",
+    "State": "North Carolina",
+    "StreetAddress": "Hello",
+    "Type": "Home"
+  },
+  "Filing city": "Los Angeles",
+  "Filing county": "North Carolina",
+  "Notification Email Opt-In": true,
+  "Notification Email": "rthaines21@gmail.com",
+  "serverTimestamp": "2025-10-31T18:16:22.225Z",
+  "lastModified": "2025-11-03T21:18:40.901Z"
+}
