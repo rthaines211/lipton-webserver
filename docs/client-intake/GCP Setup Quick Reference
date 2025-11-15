@@ -1,0 +1,438 @@
+# GCP Setup Quick Reference
+**For:** Lipton Legal Client Intake System  
+**Version:** 2.1 (GCP-Ready)  
+**Setup Time:** ~2 hours
+
+---
+
+## 📁 Files You Received
+
+1. **Client_Intake_Implementation_Plan_GCP_READY.md** - Updated full plan
+2. **cloudbuild.yaml** - Production CI/CD pipeline
+3. **cloudbuild-staging.yaml** - Staging CI/CD pipeline
+4. **GCP_SETUP_QUICK_REFERENCE.md** - This file
+
+---
+
+## ⚡ Quick Start (Week 0, Day 5)
+
+### Prerequisites
+- [ ] Existing Cloud Run service (`node-server`)
+- [ ] Existing Cloud SQL instance (`legal-forms-db`)
+- [ ] GitHub repository connected to GCP
+- [ ] `gcloud` CLI installed and authenticated
+
+### Step 1: Enable Cloud SQL Proxy (5 min)
+
+```bash
+# Add Cloud SQL Proxy to your existing Cloud Run service
+gcloud run services update node-server \
+  --add-cloudsql-instances=docmosis-tornado:us-central1:legal-forms-db \
+  --region=us-central1
+
+# Verify
+gcloud run services describe node-server \
+  --region=us-central1 \
+  --format="value(metadata.annotations['run.googleapis.com/cloudsql-instances'])"
+```
+
+### Step 2: Create Secrets in Secret Manager (10 min)
+
+```bash
+# Create each secret
+echo -n "your-actual-access-token" | \
+  gcloud secrets create access-token --data-file=-
+
+echo -n "your-actual-sendgrid-key" | \
+  gcloud secrets create sendgrid-api-key --data-file=-
+
+echo -n "your-actual-db-password" | \
+  gcloud secrets create db-password --data-file=-
+
+echo -n "your-actual-recaptcha-secret" | \
+  gcloud secrets create recaptcha-secret-key --data-file=-
+
+# Grant Cloud Run access to secrets
+PROJECT_NUMBER=$(gcloud projects describe docmosis-tornado --format="value(projectNumber)")
+SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+
+for secret in access-token sendgrid-api-key db-password recaptcha-secret-key; do
+  gcloud secrets add-iam-policy-binding $secret \
+    --member="serviceAccount:${SERVICE_ACCOUNT}" \
+    --role="roles/secretmanager.secretAccessor"
+done
+```
+
+### Step 3: Add Files to Your Repository (5 min)
+
+```bash
+cd /path/to/lipton-webserver
+
+# Copy the cloudbuild files
+cp /path/to/cloudbuild.yaml .
+cp /path/to/cloudbuild-staging.yaml .
+
+# Create Dockerfile if you don't have one
+cat > Dockerfile << 'EOF'
+FROM node:20-slim
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN useradd -m -u 1001 appuser && chown -R appuser:appuser /app
+USER appuser
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=3s CMD node -e "require('http').get('http://localhost:8080/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); })"
+CMD ["node", "server.js"]
+EOF
+
+# Create .dockerignore
+cat > .dockerignore << 'EOF'
+node_modules
+npm-debug.log
+.env
+.git
+.gitignore
+*.md
+tests
+.vscode
+coverage
+EOF
+
+# Commit
+git add cloudbuild.yaml cloudbuild-staging.yaml Dockerfile .dockerignore
+git commit -m "Add Cloud Build CI/CD pipeline"
+```
+
+### Step 4: Set Up Cloud Build Triggers (15 min)
+
+```bash
+# Enable Cloud Build API
+gcloud services enable cloudbuild.googleapis.com
+
+# Create staging trigger (auto-deploys on any branch except main)
+gcloud builds triggers create github \
+  --name="auto-deploy-staging" \
+  --repo-name="lipton-webserver" \
+  --repo-owner="YOUR_GITHUB_USERNAME" \
+  --branch-pattern="^(?!main$).*" \
+  --build-config="cloudbuild-staging.yaml"
+
+# Create production trigger (requires manual approval)
+gcloud builds triggers create github \
+  --name="deploy-production" \
+  --repo-name="lipton-webserver" \
+  --repo-owner="YOUR_GITHUB_USERNAME" \
+  --branch-pattern="^main$" \
+  --build-config="cloudbuild.yaml" \
+  --require-approval
+
+# Verify
+gcloud builds triggers list
+```
+
+### Step 5: Grant Cloud Build Permissions (10 min)
+
+```bash
+PROJECT_NUMBER=$(gcloud projects describe docmosis-tornado --format="value(projectNumber)")
+CLOUD_BUILD_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
+
+# Grant Cloud Run Admin (to deploy services)
+gcloud projects add-iam-policy-binding docmosis-tornado \
+  --member="serviceAccount:${CLOUD_BUILD_SA}" \
+  --role="roles/run.admin"
+
+# Grant Service Account User (to act as Cloud Run SA)
+gcloud iam service-accounts add-iam-policy-binding \
+  "${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --member="serviceAccount:${CLOUD_BUILD_SA}" \
+  --role="roles/iam.serviceAccountUser"
+
+# Grant Secret Manager access
+gcloud projects add-iam-policy-binding docmosis-tornado \
+  --member="serviceAccount:${CLOUD_BUILD_SA}" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
+### Step 6: Update Database Connection Code (20 min)
+
+Replace your existing `/db/connection.js` with the version from the plan:
+
+```javascript
+const { Pool } = require('pg');
+
+const isCloudRun = process.env.K_SERVICE !== undefined;
+const INSTANCE_CONNECTION_NAME = process.env.INSTANCE_CONNECTION_NAME || 
+  'docmosis-tornado:us-central1:legal-forms-db';
+
+const pool = new Pool({
+  ...(isCloudRun ? {
+    host: `/cloudsql/${INSTANCE_CONNECTION_NAME}`,
+    database: process.env.DB_NAME || 'legal_forms',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD,
+    max: 10,
+  } : {
+    connectionString: process.env.DATABASE_URL,
+    max: 20,
+  }),
+  ssl: false,
+  idleTimeoutMillis: 5000,
+  connectionTimeoutMillis: 2000,
+  statement_timeout: 30000,
+  keepAlive: true,
+});
+
+// ... rest of connection.js from plan
+```
+
+### Step 7: Install Structured Logging (15 min)
+
+```bash
+npm install @google-cloud/logging --save
+
+# Create /monitoring/structured-logger.js (copy from plan)
+# Update server.js to use structured logger
+```
+
+### Step 8: Update Cloud Run Service (10 min)
+
+```bash
+# Update Cloud Run to use secrets
+gcloud run services update node-server \
+  --region=us-central1 \
+  --set-secrets="ACCESS_TOKEN=access-token:latest" \
+  --set-secrets="SENDGRID_API_KEY=sendgrid-api-key:latest" \
+  --set-secrets="DB_PASSWORD=db-password:latest" \
+  --set-secrets="RECAPTCHA_SECRET_KEY=recaptcha-secret-key:latest" \
+  --set-env-vars="NODE_ENV=production,INSTANCE_CONNECTION_NAME=docmosis-tornado:us-central1:legal-forms-db" \
+  --min-instances=1 \
+  --max-instances=20 \
+  --concurrency=80 \
+  --cpu=2 \
+  --memory=2Gi \
+  --timeout=60s \
+  --cpu-throttling
+```
+
+### Step 9: Test the Setup (10 min)
+
+```bash
+# Push a test branch to trigger staging deployment
+git checkout -b test/cloud-build-setup
+git commit --allow-empty -m "Test Cloud Build trigger"
+git push origin test/cloud-build-setup
+
+# Watch the build
+gcloud builds list --ongoing
+
+# View build logs
+gcloud builds log $(gcloud builds list --limit=1 --format="value(id)")
+
+# Test staging endpoint
+STAGING_URL=$(gcloud run services describe node-server-staging \
+  --region=us-central1 \
+  --format="value(status.url)")
+
+curl $STAGING_URL/health
+curl $STAGING_URL/health/ready
+```
+
+---
+
+## 🔍 Verification Checklist
+
+After completing setup, verify:
+
+```bash
+# 1. Cloud SQL Proxy enabled
+gcloud run services describe node-server \
+  --region=us-central1 \
+  --format="value(metadata.annotations)" | grep cloudsql
+
+# 2. Secrets exist
+gcloud secrets list
+
+# 3. Cloud Build triggers configured
+gcloud builds triggers list
+
+# 4. Cloud Run using secrets (not env vars)
+gcloud run services describe node-server \
+  --region=us-central1 \
+  --format="yaml" | grep -A 5 secrets
+
+# 5. Health endpoints work
+curl https://YOUR-SERVICE.run.app/health
+curl https://YOUR-SERVICE.run.app/health/ready
+
+# 6. Structured logging works
+gcloud logging read "resource.type=cloud_run_revision AND jsonPayload.service=intake-service" --limit=10
+```
+
+---
+
+## 📊 What Changed from Manual Deployment
+
+### Before (Manual):
+```bash
+# You had to manually:
+gcloud run deploy node-server --source .
+# No tests run automatically
+# No gradual rollout
+# Secrets in environment variables
+# Direct database connection
+```
+
+### After (Automated):
+```bash
+# Just push to GitHub:
+git push origin main
+
+# Cloud Build automatically:
+# ✅ Runs all tests (unit, integration, E2E)
+# ✅ Builds Docker image with caching
+# ✅ Deploys with --no-traffic
+# ✅ Runs smoke tests
+# ✅ Gradual rollout: 10% → 50% → 100%
+# ✅ Monitors errors at each stage
+# ✅ Rolls back on failure
+# ✅ Cleans up old revisions
+
+# Secrets from Secret Manager (encrypted)
+# Cloud SQL Proxy (optimized connections)
+# Structured logging (better debugging)
+```
+
+---
+
+## 🚀 How to Deploy After Setup
+
+### Deploy to Staging (Automatic)
+```bash
+# Create any branch except 'main'
+git checkout -b feature/new-intake-form
+# Make changes...
+git commit -m "Add intake form"
+git push origin feature/new-intake-form
+
+# Cloud Build automatically deploys to staging
+# View build: https://console.cloud.google.com/cloud-build/builds
+```
+
+### Deploy to Production (Manual Approval)
+```bash
+# Merge to main
+git checkout main
+git merge feature/new-intake-form
+git push origin main
+
+# Cloud Build:
+# 1. Runs all tests
+# 2. Deploys with --no-traffic
+# 3. Waits for your approval
+
+# Approve in Cloud Console:
+# https://console.cloud.google.com/cloud-build/builds
+
+# Cloud Build then:
+# 4. Routes 10% traffic → monitor
+# 5. Routes 50% traffic → monitor
+# 6. Routes 100% traffic → done!
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### Build Fails on Tests
+```bash
+# View detailed logs
+gcloud builds log BUILD_ID
+
+# Run tests locally
+npm test
+```
+
+### Smoke Tests Fail
+```bash
+# Check health endpoint manually
+curl https://YOUR-SERVICE.run.app/health/detailed
+
+# View Cloud Run logs
+gcloud run services logs read node-server --region=us-central1
+```
+
+### Database Connection Fails
+```bash
+# Verify Cloud SQL Proxy is enabled
+gcloud run services describe node-server \
+  --region=us-central1 \
+  --format="value(metadata.annotations)" | grep cloudsql
+
+# Verify database password secret
+gcloud secrets versions access latest --secret=db-password
+
+# Test connection from Cloud Shell
+gcloud sql connect legal-forms-db --user=postgres
+```
+
+### Secrets Not Accessible
+```bash
+# Verify IAM permissions
+gcloud secrets get-iam-policy access-token
+
+# Should show:
+# - YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com
+# - YOUR_PROJECT_NUMBER@cloudbuild.gserviceaccount.com
+```
+
+---
+
+## 💰 Cost Impact
+
+| Item | Before | After | Change |
+|------|--------|-------|--------|
+| Cloud SQL | $35/mo | $120/mo | +$85/mo |
+| Cloud Run | Pay-per-use | Min 1 instance (+$7/mo) | +$7/mo |
+| Cloud Build | Manual (free) | ~30 builds/mo | +$15/mo |
+| Secret Manager | N/A | 4 secrets | +$0.24/mo |
+| **TOTAL** | **$35/mo** | **$142/mo** | **+$107/mo** |
+
+**Annual:** ~$1,284 additional cost  
+**ROI:** Prevents $10K+ revenue loss from downtime, saves 5+ hrs/week manual deployment time
+
+---
+
+## 📚 Next Steps
+
+1. ✅ Complete Week 0, Day 5 setup (this document)
+2. ✅ Test staging deployment works
+3. ✅ Review updated implementation plan
+4. ✅ Begin Week 1 (Refactoring)
+
+---
+
+## 🆘 Need Help?
+
+**Cloud Build Issues:**
+- Docs: https://cloud.google.com/build/docs
+- Troubleshooting: https://cloud.google.com/build/docs/troubleshooting
+
+**Cloud Run Issues:**
+- Docs: https://cloud.google.com/run/docs
+- Troubleshooting: https://cloud.google.com/run/docs/troubleshooting
+
+**Cloud SQL Proxy:**
+- Docs: https://cloud.google.com/sql/docs/postgres/connect-run
+
+**Secret Manager:**
+- Docs: https://cloud.google.com/secret-manager/docs
+
+---
+
+**Setup Status:** ⬜ Not Started  
+**Estimated Time:** 2 hours  
+**Difficulty:** Medium  
+**Prerequisites:** Existing GCP infrastructure  
+
+Good luck! 🚀
