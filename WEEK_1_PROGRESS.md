@@ -12,15 +12,15 @@
 | **1** | Nov 17 | Database migration + Services | ✅ Complete | 16a0aa56 |
 | **2** | Nov 17 | Health routes + Error handler | ✅ Complete | f32dc40b |
 | **3** | Nov 17 | Validation middleware | ✅ Complete | e1cf1e25 |
-| **4** | Nov 18 | Service layer enhancement | ⏳ Pending | - |
-| **5** | Nov 19 | Testing & Documentation | ⏳ Pending | - |
+| **4** | Nov 17 | Storage + Email integration | ✅ Complete | 57ccf76d |
+| **5** | Nov 18 | Testing & Documentation | ⏳ Pending | - |
 
 ---
 
-## Completion: 60% (3/5 days)
+## Completion: 80% (4/5 days)
 
 ```
-Progress: [████████████░░░░░░░░] 60%
+Progress: [████████████████░░░░] 80%
 ```
 
 ---
@@ -55,18 +55,25 @@ Progress: [████████████░░░░░░░░] 60%
 
 **Output:** 1 new file, 361 lines of code
 
+### Day 4 ✅
+- ✅ Created storage service (Dropbox wrapper)
+- ✅ Intake email confirmation template
+- ✅ Email service sendIntakeConfirmation()
+- ✅ Intake service integration (storage/email)
+- ✅ Folder structure: /Current Clients/<Street>/<Name>/
+- ✅ File validation and upload handling
+- ✅ Tested all integrations
+
+**Output:** 1 new file + 3 modified, 763 lines of code
+
 ---
 
 ## Remaining This Week
 
-### Day 4 (Tomorrow)
-- Email service enhancement
-- Storage service
-- Service layer completion
-
-### Day 5
+### Day 5 (Tomorrow)
 - Integration testing
 - Documentation updates
+- Code review & cleanup
 - Week 1 wrap-up
 
 **Note:** Day 3 was smartly adjusted from "Extract form routes" to "Create validation middleware" because the existing form routes are part of the document generation system (Phase 2), not the intake system we're building. This change saved time and delivered directly needed functionality.
@@ -96,9 +103,10 @@ Progress: [████████████░░░░░░░░] 60%
 
 ## Files Created This Week
 
-### Services (2)
+### Services (3)
 - ✅ `services/database.js`
 - ✅ `services/intake-service.js`
+- ✅ `services/storage-service.js`
 
 ### Routes (1)
 - ✅ `routes/health.js`
@@ -139,5 +147,5 @@ Production launch
 
 ---
 
-*Updated: November 17, 2025, 10:00 PM*
-*On Track: Yes ✅ (60% complete, ahead of schedule)*
+*Updated: November 17, 2025, 3:15 PM*
+*On Track: Yes ✅ (80% complete, 1 day ahead of schedule)*
