@@ -351,10 +351,21 @@ router.get('/', asyncHandler(async (req, res) => {
                     }
                 }
 
+                // Extract street address from structured data
+                let streetAddress = 'Unknown Address';
+                if (data.PropertyAddressLine1) {
+                    streetAddress = data.PropertyAddressLine1;
+                } else if (data['property-address']) {
+                    streetAddress = data['property-address'];
+                }
+
                 return {
                     id: fileInfo.name.replace('form-entry-', '').replace('.json', ''),
                     filename: fileInfo.name,
                     timestamp: data.serverTimestamp || fileInfo.updated,
+                    submittedAt: data.serverTimestamp || fileInfo.updated, // Frontend expects submittedAt
+                    serverTimestamp: data.serverTimestamp || fileInfo.updated, // Fallback field
+                    streetAddress: streetAddress, // Frontend expects streetAddress
                     plaintiffName: plaintiffName,
                     plaintiffCount: plaintiffCount,
                     defendantCount: defendantCount,
@@ -391,9 +402,11 @@ router.get('/:id', asyncHandler(async (req, res) => {
         });
     }
 
+    // Frontend expects data.entry, not data.data
     res.json({
         success: true,
-        data: data
+        entry: data,  // Changed from "data: data" to "entry: data"
+        data: data    // Keep for backward compatibility
     });
 }));
 
