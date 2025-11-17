@@ -53,7 +53,12 @@ async function checkLiveness() {
         uptime: process.uptime(),
         service: process.env.SERVICE_NAME || 'legal-form-app',
         version: process.env.APP_VERSION || '1.0.0',
-        environment: process.env.NODE_ENV || 'development'
+        environment: process.env.NODE_ENV || 'development',
+        deploymentInfo: {
+            branch: process.env.GITHUB_REF_NAME || 'dev/intake-system',
+            deployment: process.env.NODE_ENV === 'development' ? 'node-server-dev' : 'production',
+            dbHost: process.env.DB_HOST ? 'Connected' : 'Not configured'
+        }
     };
 }
 
