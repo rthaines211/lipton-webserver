@@ -152,3 +152,6 @@ monitoring/grafana/data/
 .dropbox.cache
 google-cloud-cli-linux-x86_64.tar.gz
 google-cloud-sdk/
+
+# Cloud SQL Proxy
+cloud-sql-proxy

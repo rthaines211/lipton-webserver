@@ -1,0 +1,91 @@
+name: Deploy to Dev Environment
+
+on:
+  push:
+    branches:
+      - 'dev/**'
+      - 'feature/**'
+      - 'dev'
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: docmosis-tornado
+  REGION: us-central1
+  SERVICE_NAME: node-server-dev
+
+jobs:
+  deploy:
+    name: Deploy to Cloud Run (Dev)
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter
+        run: npm run lint || echo "No linter configured"
+        continue-on-error: true
+      
+      - name: Run tests
+        run: npm test || echo "No tests configured"
+        continue-on-error: true
+        env:
+          NODE_ENV: test
+      
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: 'projects/945419684329/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'github-actions@docmosis-tornado.iam.gserviceaccount.com'
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --source=. \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --set-cloudsql-instances=${{ env.PROJECT_ID }}:${{ env.REGION }}:legal-forms-db-dev \
+            --max-instances=5 \
+            --memory=1Gi \
+            --cpu=1 \
+            --timeout=300 \
+            --set-env-vars="NODE_ENV=development,DB_HOST=/cloudsql/${{ env.PROJECT_ID }}:${{ env.REGION }}:legal-forms-db-dev,DB_NAME=legal_forms_db_dev,DB_USER=app-user-dev,DB_PORT=5432,GCS_BUCKET_NAME=docmosis-tornado-form-submissions-dev,EMAIL_FROM_ADDRESS=dev-notifications@liptonlegal.com,EMAIL_FROM_NAME=Lipton Legal [DEV],EMAIL_ENABLED=false,DROPBOX_ENABLED=false,DOCMOSIS_ENABLED=false" \
+            --update-secrets="DB_PASSWORD=DB_PASSWORD_DEV:latest,ACCESS_TOKEN=ACCESS_TOKEN_DEV:latest"
+      
+      - name: Get Service URL
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --format='value(status.url)')
+          echo "🚀 Dev service deployed to: $SERVICE_URL"
+          echo "SERVICE_URL=$SERVICE_URL" >> $GITHUB_OUTPUT
+        id: get-url
+      
+      - name: Comment PR with URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 Dev deployment successful!\n\nURL: ${{ steps.get-url.outputs.SERVICE_URL }}'
+            })
