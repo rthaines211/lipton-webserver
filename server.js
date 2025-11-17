@@ -86,6 +86,9 @@ const {
     sendHealthResponse
 } = require('./monitoring/health-checks');
 
+// Routes
+const healthRoutes = require('./routes/health');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -482,6 +485,9 @@ app.use((req, res, next) => {
     }
     next();
 });
+
+// Mount health check routes (no auth required for health checks)
+app.use('/health', healthRoutes);
 
 // Apply authentication to all routes (except health checks, handled in middleware)
 app.use(requireAuth);
@@ -2265,90 +2271,17 @@ app.get('/metrics', async (req, res) => {
 /**
  * Health Check Endpoints
  *
- * Three levels of health checks for different purposes:
+ * MOVED TO: routes/health.js
+ * These endpoints have been extracted to a separate router module for better organization.
+ * The router is mounted at /health in the middleware section above.
+ *
+ * Three levels of health checks:
  * 1. /health or /api/health - Liveness probe (is app running?)
  * 2. /health/ready - Readiness probe (is app ready for traffic?)
  * 3. /health/detailed - Full diagnostics (all components)
  */
 
-// Liveness Probe - Basic health check
-// Used by: Kubernetes liveness probes, basic monitoring
-// Always returns 200 if the process is running
-app.get(['/health', '/api/health'], async (req, res) => {
-    try {
-        const health = await checkLiveness();
-        sendHealthResponse(res, health);
-    } catch (error) {
-        logger.error('Liveness check failed', { error: error.message });
-        res.status(500).json({
-            status: 'unhealthy',
-            error: 'Liveness check failed',
-            timestamp: new Date().toISOString()
-        });
-    }
-});
-
-// Readiness Probe - Dependency health check
-// Used by: Kubernetes readiness probes, load balancers
-// Returns 200 only if critical dependencies (database) are healthy
-app.get('/health/ready', async (req, res) => {
-    try {
-        const health = await checkReadiness(pool, {
-            checkExternalServices: false // Don't check optional services for readiness
-        });
-
-        sendHealthResponse(res, health);
-
-        // Log if unhealthy
-        if (health.status === 'unhealthy') {
-            logger.warn('Readiness check failed', {
-                errors: health.errors,
-                checks: health.checks
-            });
-        }
-    } catch (error) {
-        logger.error('Readiness check failed', { error: error.message });
-        res.status(503).json({
-            status: 'unhealthy',
-            error: 'Readiness check failed',
-            timestamp: new Date().toISOString()
-        });
-    }
-});
-
-// Detailed Health Check - Full diagnostics
-// Used by: Debugging, monitoring dashboards, ops teams
-// Returns comprehensive health information for all components
-app.get('/health/detailed', async (req, res) => {
-    try {
-        const health = await checkDetailed(pool, {
-            pipelineApiUrl: PIPELINE_CONFIG.enabled ? PIPELINE_CONFIG.apiUrl : null,
-            dropboxEnabled: process.env.DROPBOX_ENABLED === 'true'
-        });
-
-        sendHealthResponse(res, health);
-
-        // Log warnings and errors
-        if (health.warnings && health.warnings.length > 0) {
-            logger.warn('Health check warnings detected', {
-                warnings: health.warnings
-            });
-        }
-
-        if (health.errors && health.errors.length > 0) {
-            logger.error('Health check errors detected', {
-                errors: health.errors
-            });
-        }
-    } catch (error) {
-        logger.error('Detailed health check failed', { error: error.message });
-        res.status(500).json({
-            status: 'unhealthy',
-            error: 'Detailed health check failed',
-            timestamp: new Date().toISOString()
-        });
-    }
-});
+// Health routes now handled by routes/health.js (see line ~490)
 
 /**
  * Pipeline Status Polling Endpoint (Phase 5)
