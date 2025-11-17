@@ -353,7 +353,9 @@ router.get('/', asyncHandler(async (req, res) => {
 
                 // Extract street address from structured data
                 let streetAddress = 'Unknown Address';
-                if (data.PropertyAddressLine1) {
+                if (data.Full_Address && data.Full_Address.StreetAddress) {
+                    streetAddress = data.Full_Address.StreetAddress;
+                } else if (data.PropertyAddressLine1) {
                     streetAddress = data.PropertyAddressLine1;
                 } else if (data['property-address']) {
                     streetAddress = data['property-address'];
