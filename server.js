@@ -89,6 +89,9 @@ const {
 // Routes
 const healthRoutes = require('./routes/health');
 
+// Middleware
+const { errorHandler } = require('./middleware/error-handler');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -2952,33 +2955,9 @@ app.use('*', (req, res) => {
 // Error logging middleware (logs errors before handling)
 app.use(errorLoggingMiddleware);
 
-// Error handler
-app.use((error, req, res, next) => {
-    // Error already logged by errorLoggingMiddleware
-
-    // ============================================================
-    // SSE/STREAMING RESPONSE FIX
-    // ============================================================
-    // Check if headers were already sent (indicates SSE or streaming response)
-    // If headers are already sent, we can't send a JSON error response
-    // because that would try to set headers again, causing ERR_HTTP_HEADERS_SENT
-    if (res.headersSent) {
-        // Headers already sent - this is a streaming response (like SSE)
-        // Log the error but don't try to send a response
-        console.error('Error in streaming response:', error.message);
-        console.error('Stack:', error.stack);
-
-        // Let Express clean up the connection
-        return next(error);
-    }
-
-    // Headers not yet sent - send normal JSON error response
-    res.status(error.statusCode || error.status || 500).json({
-        success: false,
-        error: error.message || 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
-});
+// Centralized error handler (from middleware/error-handler.js)
+// This handler provides consistent error responses and proper logging
+app.use(errorHandler);
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
