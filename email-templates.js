@@ -351,8 +351,198 @@ This is an automated notification sent because you requested to be notified when
     return { subject, html, text };
 }
 
+/**
+ * Get intake confirmation email template
+ *
+ * Use this template when a client submits their intake form.
+ * Provides confirmation, intake number, and Dropbox link for document uploads.
+ *
+ * @param {Object} options - Template options
+ * @param {string} options.firstName - Client first name (e.g., "John")
+ * @param {string} options.lastName - Client last name (e.g., "Doe")
+ * @param {string} options.streetAddress - Property address (e.g., "123 Main Street")
+ * @param {string} options.intakeNumber - Intake reference number (e.g., "INT-2025-00001")
+ * @param {string} options.dropboxLink - Shared Dropbox folder link for uploads
+ * @returns {{subject: string, html: string, text: string}} Email template object
+ */
+function getIntakeConfirmationTemplate(options) {
+    const { firstName, lastName, streetAddress, intakeNumber, dropboxLink } = options;
+
+    // Escape user-provided data to prevent XSS
+    const safeName = escapeHtml(firstName || 'Client');
+    const safeAddress = escapeHtml(streetAddress || 'your property');
+    const safeIntakeNumber = escapeHtml(intakeNumber || 'N/A');
+    const safeDropboxLink = escapeHtml(dropboxLink || '#');
+
+    // Format current date/time
+    const submittedDate = formatDate();
+
+    // Subject line format: "Intake Submitted - {intakeNumber}"
+    const subject = `Intake Submitted - ${intakeNumber}`;
+
+    // HTML email template
+    const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intake Confirmation - Lipton Legal</title>
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
+    </style>
+    <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f4;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 20px 10px;">
+                <table role="presentation" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="padding: 0;">
+                            <table role="presentation" style="width: 100%; background: linear-gradient(135deg, #1F2A44 0%, #2A3B5A 100%);">
+                                <tr>
+                                    <td style="padding: 30px; text-align: center;">
+                                        <h1 style="margin: 0 0 8px; font-size: 32px; font-weight: bold; color: #FFFFFF; letter-spacing: 0.5px;">
+                                            Lipton Legal Group
+                                        </h1>
+                                        <p style="margin: 0; font-size: 15px; color: rgba(255, 255, 255, 0.9);">
+                                            Client Intake System
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 30px 30px;">
+
+                            <!-- Main Message -->
+                            <p style="margin: 0 0 25px; font-size: 18px; line-height: 1.6; color: #333333; font-weight: 500;">
+                                Thank you, ${safeName}! We have successfully received your intake submission.
+                            </p>
+
+                            <!-- Details Box -->
+                            <table role="presentation" style="width: 100%; border-left: 4px solid #1F2A44; background-color: #f8f9fa; margin: 20px 0; border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 18px;">
+                                        <p style="margin: 8px 0; font-size: 15px; color: #333333;">
+                                            📋 <strong>Reference Number:</strong> ${safeIntakeNumber}
+                                        </p>
+                                        <p style="margin: 8px 0; font-size: 15px; color: #333333;">
+                                            📍 <strong>Property Address:</strong> ${safeAddress}
+                                        </p>
+                                        <p style="margin: 8px 0; font-size: 15px; color: #333333;">
+                                            📅 <strong>Submitted:</strong> ${submittedDate}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Security Message -->
+                            <table role="presentation" style="width: 100%; background-color: #e8f5e9; border-left: 4px solid #4caf50; margin: 20px 0; border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 15px;">
+                                        <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #333333;">
+                                            🔒 Your information is secure and will be reviewed by our legal team. All data is encrypted and stored in compliance with privacy regulations.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Upload Documents Section -->
+                            <p style="margin: 20px 0 15px; font-size: 16px; line-height: 1.6; color: #333333; font-weight: 600;">
+                                📎 Upload Additional Documents
+                            </p>
+                            <p style="margin: 0 0 20px; font-size: 15px; line-height: 1.6; color: #666666;">
+                                Use the link below to upload any additional documents directly to your secure case folder. You can upload identification, supporting documents, or any other relevant files.
+                            </p>
+
+                            <!-- CTA Button -->
+                            <table role="presentation" style="width: 100%; margin: 20px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="${safeDropboxLink}" style="display: inline-block; padding: 14px 30px; background-color: #00AEEF; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                                            Upload Documents
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Alternative Link -->
+                            <p style="margin: 15px 0; font-size: 14px; color: #666666; text-align: center;">
+                                Or copy and paste this link into your browser:
+                            </p>
+                            <p style="margin: 0 0 20px; font-size: 14px; color: #00AEEF; word-break: break-all; text-align: center;">
+                                <a href="${safeDropboxLink}" style="color: #00AEEF; text-decoration: underline;">
+                                    ${safeDropboxLink}
+                                </a>
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 20px 30px 30px; border-top: 1px solid #e0e0e0;">
+                            <p style="margin: 0 0 10px; font-size: 14px; color: #333333; line-height: 1.6;">
+                                <strong>Questions?</strong> Feel free to contact our office if you have any questions about your submission.
+                            </p>
+                            <p style="margin: 0; font-size: 12px; color: #999999; line-height: 1.5;">
+                                This is an automated confirmation email. Please save your reference number for future correspondence. Your intake submission has been securely received and will be reviewed by our legal team.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+    `.trim();
+
+    // Plain text version (fallback for clients that don't support HTML)
+    const text = `
+LIPTON LEGAL GROUP - Client Intake System
+
+Thank you, ${firstName}! We have successfully received your intake submission.
+
+SUBMISSION DETAILS:
+- Reference Number: ${intakeNumber}
+- Property Address: ${streetAddress}
+- Submitted: ${submittedDate}
+
+SECURITY:
+Your information is secure and will be reviewed by our legal team. All data is encrypted and stored in compliance with privacy regulations.
+
+UPLOAD ADDITIONAL DOCUMENTS:
+You can upload additional documents to your secure case folder using this link:
+${dropboxLink}
+
+Accepted documents include:
+- Identification (driver's license, passport, etc.)
+- Supporting documents (contracts, agreements, etc.)
+- Any other relevant files
+
+QUESTIONS?
+Feel free to contact our office if you have any questions about your submission.
+
+---
+This is an automated confirmation email. Please save your reference number (${intakeNumber}) for future correspondence.
+    `.trim();
+
+    return { subject, html, text };
+}
+
 // Export template functions
 module.exports = {
     getCompletionEmailTemplate,
-    getCompletionEmailTemplateNoLink
+    getCompletionEmailTemplateNoLink,
+    getIntakeConfirmationTemplate
 };

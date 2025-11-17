@@ -3,11 +3,14 @@
  *
  * Business logic for client intake form submissions.
  * Handles creating, retrieving, searching, and updating intake records.
+ * Integrates with storage and email services for complete workflow.
  *
  * @module services/intake-service
  */
 
 const db = require('./database');
+const storageService = require('./storage-service');
+const emailService = require('../email-service');
 
 class IntakeService {
     /**
@@ -239,6 +242,146 @@ class IntakeService {
             intake_data: {},
             message: 'Resume will be implemented in Week 3'
         };
+    }
+
+    /**
+     * Create Dropbox folder and send confirmation email for intake submission
+     *
+     * This method orchestrates the post-submission workflow:
+     * 1. Creates client folder in Dropbox: /Current Clients/<Street>/<Name>/
+     * 2. Generates shared link for client document uploads
+     * 3. Sends confirmation email with intake number and Dropbox link
+     *
+     * @param {Object} intakeData - Intake submission data
+     * @param {string} intakeData.client_email - Client email address
+     * @param {string} intakeData.first_name - Client first name
+     * @param {string} intakeData.last_name - Client last name
+     * @param {string} intakeData.current_street_address - Property street address
+     * @param {string} intakeNumber - Generated intake number (INT-2025-00001)
+     * @returns {Promise<{folderCreated: boolean, linkCreated: boolean, emailSent: boolean, dropboxLink?: string}>}
+     *
+     * @example
+     * const result = await IntakeService.processIntakeSubmission(intakeData, 'INT-2025-00001');
+     * // Returns: { folderCreated: true, linkCreated: true, emailSent: true, dropboxLink: '...' }
+     */
+    static async processIntakeSubmission(intakeData, intakeNumber) {
+        const result = {
+            folderCreated: false,
+            linkCreated: false,
+            emailSent: false,
+            dropboxLink: null,
+            errors: []
+        };
+
+        const fullName = `${intakeData.first_name} ${intakeData.last_name}`;
+        const streetAddress = intakeData.current_street_address;
+
+        // Step 1: Create client folder in Dropbox
+        if (storageService.isEnabled()) {
+            const folderResult = await storageService.createClientFolder(streetAddress, fullName);
+
+            if (folderResult.success) {
+                result.folderCreated = true;
+                console.log(`✅ Dropbox folder created for ${fullName}`);
+
+                // Step 2: Create shared link
+                const sharedLink = await storageService.createDropboxSharedLink(streetAddress, fullName);
+
+                if (sharedLink) {
+                    result.linkCreated = true;
+                    result.dropboxLink = sharedLink;
+                    console.log(`✅ Dropbox link generated: ${sharedLink}`);
+                } else {
+                    result.errors.push('Failed to create Dropbox shared link');
+                    console.warn('⚠️  Could not create shared link, will skip in email');
+                }
+            } else {
+                result.errors.push(`Dropbox folder creation failed: ${folderResult.error}`);
+                console.error(`❌ Dropbox folder creation failed: ${folderResult.error}`);
+            }
+        } else {
+            result.errors.push('Dropbox is disabled');
+            console.warn('⚠️  Dropbox is disabled, skipping folder creation');
+        }
+
+        // Step 3: Send confirmation email (with or without Dropbox link)
+        if (emailService.isEnabled()) {
+            const emailResult = await emailService.sendIntakeConfirmation({
+                to: intakeData.client_email,
+                firstName: intakeData.first_name,
+                lastName: intakeData.last_name,
+                streetAddress: streetAddress,
+                intakeNumber: intakeNumber,
+                dropboxLink: result.dropboxLink || 'https://liptonlegal.com' // Fallback URL
+            });
+
+            if (emailResult.success) {
+                result.emailSent = true;
+                console.log(`✅ Confirmation email sent to ${intakeData.client_email}`);
+            } else {
+                result.errors.push(`Email failed: ${emailResult.error}`);
+                console.error(`❌ Email send failed: ${emailResult.error}`);
+            }
+        } else {
+            result.errors.push('Email service is disabled');
+            console.warn('⚠️  Email service is disabled, skipping confirmation email');
+        }
+
+        return result;
+    }
+
+    /**
+     * Upload document to client's Dropbox folder
+     *
+     * @param {string} streetAddress - Client's street address
+     * @param {string} fullName - Client's full name
+     * @param {Object} file - File object (from multer)
+     * @param {string} documentType - Type: identification, supporting-docs, additional-files
+     * @returns {Promise<{success: boolean, dropboxPath?: string, error?: string}>}
+     *
+     * @example
+     * const result = await IntakeService.uploadIntakeDocument(
+     *   '123 Main Street',
+     *   'John Doe',
+     *   req.file,
+     *   'identification'
+     * );
+     */
+    static async uploadIntakeDocument(streetAddress, fullName, file, documentType = 'additional-files') {
+        if (!storageService.isEnabled()) {
+            return {
+                success: false,
+                error: 'Dropbox storage is not enabled'
+            };
+        }
+
+        return await storageService.uploadIntakeDocument(streetAddress, fullName, file, documentType);
+    }
+
+    /**
+     * Get Dropbox folder path for a client
+     *
+     * @param {string} streetAddress - Client's street address
+     * @param {string} fullName - Client's full name
+     * @returns {string} Dropbox folder path
+     *
+     * @example
+     * const path = IntakeService.getClientDropboxPath('123 Main St', 'John Doe');
+     * // Returns: '/Current Clients/123 Main St/John Doe'
+     */
+    static getClientDropboxPath(streetAddress, fullName) {
+        return storageService.getClientFolderPath(streetAddress, fullName);
+    }
+
+    /**
+     * Validate file for upload
+     *
+     * @param {Object} file - File object
+     * @param {string} documentType - Document type
+     * @returns {{valid: boolean, error?: string}}
+     */
+    static validateFileUpload(file, documentType) {
+        return storageService.validateFileUpload(file, documentType);
     }
 }
 

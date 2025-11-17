@@ -297,6 +297,125 @@ async function sendCompletionNotification(options) {
 }
 
 /**
+ * Send intake confirmation email to client
+ *
+ * Sends a professional confirmation email when a client submits their intake form.
+ * Includes intake number, property address, and Dropbox link for document uploads.
+ *
+ * @param {Object} options - Email confirmation options
+ * @param {string} options.to - Client email address
+ * @param {string} options.firstName - Client first name (e.g., "John")
+ * @param {string} options.lastName - Client last name (e.g., "Doe")
+ * @param {string} options.streetAddress - Property address (e.g., "123 Main Street")
+ * @param {string} options.intakeNumber - Intake reference number (e.g., "INT-2025-00001")
+ * @param {string} options.dropboxLink - Shared Dropbox folder link for uploads
+ * @returns {Promise<{success: boolean, error?: string}>}
+ *
+ * @example
+ * const result = await sendIntakeConfirmation({
+ *   to: 'client@example.com',
+ *   firstName: 'John',
+ *   lastName: 'Doe',
+ *   streetAddress: '123 Main Street',
+ *   intakeNumber: 'INT-2025-00001',
+ *   dropboxLink: 'https://www.dropbox.com/...'
+ * });
+ *
+ * if (result.success) {
+ *   console.log('Confirmation email sent!');
+ * } else {
+ *   console.error('Email failed:', result.error);
+ * }
+ */
+async function sendIntakeConfirmation(options) {
+    // Ensure SendGrid is initialized
+    if (!initialized) {
+        initialize();
+    }
+
+    // Check if email service is enabled
+    if (!isEnabled()) {
+        logger.warn('⚠️  Email service is disabled. Skipping intake confirmation email.');
+        return {
+            success: false,
+            error: 'Email service is disabled'
+        };
+    }
+
+    // Validate required parameters
+    if (!options || typeof options !== 'object') {
+        logger.error('❌ Invalid options provided to sendIntakeConfirmation');
+        return {
+            success: false,
+            error: 'Invalid options'
+        };
+    }
+
+    const { to, firstName, lastName, streetAddress, intakeNumber, dropboxLink } = options;
+
+    // Validate recipient email
+    if (!validateEmail(to)) {
+        logger.error(`❌ Invalid email address: ${to}`);
+        return {
+            success: false,
+            error: 'Invalid email address'
+        };
+    }
+
+    // Validate required fields
+    if (!firstName || !intakeNumber || !dropboxLink) {
+        logger.error('❌ Missing required fields for intake confirmation');
+        return {
+            success: false,
+            error: 'Missing required fields (firstName, intakeNumber, or dropboxLink)'
+        };
+    }
+
+    // Log email sending attempt
+    logger.info('📧 Preparing to send intake confirmation');
+    logger.info(`   To: ${to}`);
+    logger.info(`   Name: ${firstName} ${lastName || ''}`);
+    logger.info(`   Address: ${streetAddress || 'N/A'}`);
+    logger.info(`   Intake #: ${intakeNumber}`);
+    logger.info(`   Dropbox Link: Yes`);
+
+    try {
+        // Get intake confirmation email template
+        const template = emailTemplates.getIntakeConfirmationTemplate({
+            firstName: firstName,
+            lastName: lastName || '',
+            streetAddress: streetAddress || 'your property',
+            intakeNumber: intakeNumber,
+            dropboxLink: dropboxLink
+        });
+
+        // Construct SendGrid email object
+        const emailData = {
+            to: to.trim(),
+            from: {
+                email: CONFIG.fromAddress,
+                name: CONFIG.fromName
+            },
+            subject: template.subject,
+            text: template.text,
+            html: template.html
+        };
+
+        // Send email with retry logic
+        const result = await sendWithRetry(emailData, CONFIG.maxRetries);
+
+        return result;
+
+    } catch (error) {
+        logger.error('❌ Unexpected error in sendIntakeConfirmation:', error);
+        return {
+            success: false,
+            error: error.message || 'Unexpected error'
+        };
+    }
+}
+
+/**
  * Get current email service configuration (for debugging)
  * @returns {Object} Current configuration (with API key redacted)
  */
@@ -315,6 +434,7 @@ function getConfig() {
 // Export public functions
 module.exports = {
     sendCompletionNotification,
+    sendIntakeConfirmation,
     isEnabled,
     validateEmail,
     getConfig
