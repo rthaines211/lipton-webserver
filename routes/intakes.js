@@ -334,16 +334,13 @@ router.post('/', async (req, res) => {
             plumbing_no_hot_water,
             plumbing_no_water,
             plumbing_low_pressure,
-            plumbing_leaky_pipes,
-            plumbing_burst_pipes,
+            plumbing_leaks,
             plumbing_clogged_drains,
             plumbing_toilet_not_working,
             plumbing_shower_not_working,
             plumbing_sink_not_working,
-            plumbing_sewage_backup,
-            plumbing_water_damage,
-            plumbing_flooding,
-            plumbing_water_discoloration,
+            plumbing_sewer_backup,
+            plumbing_mold_from_leaks,
             plumbing_other,
             plumbing_other_details,
             plumbing_details,
@@ -353,7 +350,7 @@ router.post('/', async (req, res) => {
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
             $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
             $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
-            $31, $32, $33, $34, $35
+            $31, $32
           )
         `;
 
@@ -382,15 +379,12 @@ router.post('/', async (req, res) => {
           formData.plumbingNoWater || false,
           formData.plumbingLowPressure || false,
           formData.plumbingLeakyPipes || false,
-          formData.plumbingBurstPipes || false,
           formData.plumbingCloggedDrains || false,
           formData.plumbingToiletNotWorking || false,
           formData.plumbingShowerNotWorking || false,
           formData.plumbingSinkNotWorking || false,
           formData.plumbingSewageBackup || false,
-          formData.plumbingWaterDamage || false,
-          formData.plumbingFlooding || false,
-          formData.plumbingWaterDiscoloration || false,
+          formData.plumbingMoldFromLeaks || false,
           formData.plumbingOther || false,
           formData.plumbingOtherDetails || null,
           formData.plumbingDetails || null,
@@ -706,11 +700,11 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       // Plumbing issues
       if (buildingIssues.plumbing_no_hot_water) docGenData['issue-plumbing-no-hot-water'] = true;
       if (buildingIssues.plumbing_no_water) docGenData['issue-plumbing-no-water'] = true;
-      if (buildingIssues.plumbing_leaky_pipes) docGenData['issue-plumbing-leaks'] = true;
+      if (buildingIssues.plumbing_leaks) docGenData['issue-plumbing-leaks'] = true;
       if (buildingIssues.plumbing_clogged_drains) docGenData['issue-plumbing-clogged'] = true;
       if (buildingIssues.plumbing_toilet_not_working) docGenData['issue-plumbing-toilet'] = true;
-      if (buildingIssues.plumbing_sewage_backup) docGenData['issue-plumbing-sewage'] = true;
-      if (buildingIssues.plumbing_flooding) docGenData['issue-plumbing-flooding'] = true;
+      if (buildingIssues.plumbing_sewer_backup) docGenData['issue-plumbing-sewage'] = true;
+      if (buildingIssues.plumbing_mold_from_leaks) docGenData['issue-plumbing-mold'] = true;
 
       // Add issue descriptions if available
       if (buildingIssues.structural_details) {
