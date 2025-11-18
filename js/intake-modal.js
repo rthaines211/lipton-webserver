@@ -114,7 +114,7 @@ async function searchIntakes() {
         // Fetch intakes from API
         const response = await fetch(`/api/intakes${query}`, {
             headers: {
-                'Access-Token': INTAKE_ACCESS_TOKEN || '',
+                'Authorization': `Bearer ${INTAKE_ACCESS_TOKEN}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -237,7 +237,7 @@ async function loadIntakeIntoForm(intakeId) {
         // Fetch intake in doc-gen format
         const response = await fetch(`/api/intakes/${intakeId}/doc-gen-format`, {
             headers: {
-                'Access-Token': INTAKE_ACCESS_TOKEN || '',
+                'Authorization': `Bearer ${INTAKE_ACCESS_TOKEN}`,
                 'Content-Type': 'application/json'
             }
         });
