@@ -63,7 +63,7 @@ jobs:
             --memory=1Gi \
             --cpu=1 \
             --timeout=300 \
-            --set-env-vars="NODE_ENV=development,DB_HOST=/cloudsql/${{ env.PROJECT_ID }}:${{ env.REGION }}:legal-forms-db-dev,DB_NAME=legal_forms_db_dev,DB_USER=app-user-dev,DB_PORT=5432,GCS_BUCKET_NAME=docmosis-tornado-form-submissions-dev,EMAIL_FROM_ADDRESS=dev-notifications@liptonlegal.com,EMAIL_FROM_NAME=Lipton Legal [DEV],EMAIL_ENABLED=false,DROPBOX_ENABLED=false,DOCMOSIS_ENABLED=true" \
+            --set-env-vars="NODE_ENV=development,DB_HOST=/cloudsql/${{ env.PROJECT_ID }}:${{ env.REGION }}:legal-forms-db-dev,DB_NAME=legal_forms_db_dev,DB_USER=app-user-dev,DB_PORT=5432,GCS_BUCKET_NAME=docmosis-tornado-form-submissions-dev,EMAIL_FROM_ADDRESS=dev-notifications@liptonlegal.com,EMAIL_FROM_NAME=Lipton Legal [DEV],EMAIL_ENABLED=false,DROPBOX_ENABLED=false,DOCMOSIS_ENABLED=true,PIPELINE_API_ENABLED=true,EXECUTE_PIPELINE_ON_SUBMIT=true,PIPELINE_API_URL=https://python-pipeline-zyiwmzwenq-uc.a.run.app" \
             --update-secrets="DB_PASSWORD=DB_PASSWORD_DEV:latest,ACCESS_TOKEN=ACCESS_TOKEN_DEV:latest,DOCMOSIS_ACCESS_KEY=docmosis-key:latest"
       
       - name: Get Service URL
