@@ -90,12 +90,9 @@ const {
 const healthRoutes = require('./routes/health');
 const formRoutes = require('./routes/forms');
 const pipelineRoutes = require('./routes/pipeline');
-const metricsRoutes = require('./routes/metrics');
-const intakesRoutes = require('./routes/intakes');
 
 // Services
 const FormTransformer = require('./services/form-transformer');
-const pipelineService = require('./services/pipeline-service');
 
 // Middleware
 const { errorHandler } = require('./middleware/error-handler');
@@ -307,6 +304,74 @@ async function deleteFormData(filename) {
     }
 }
 
+/**
+ * Pipeline Status Cache (Phase 5)
+ *
+ * In-memory cache to track pipeline execution status for real-time polling.
+ * Each entry expires after 15 minutes to prevent memory leaks.
+ *
+ * Structure:
+ * {
+ *   [caseId]: {
+ *     status: 'pending' | 'processing' | 'success' | 'failed' | 'skipped',
+ *     startTime: timestamp,
+ *     endTime: timestamp | null,
+ *     executionTime: number | null,
+ *     error: string | null,
+ *     result: object | null,
+ *     expiresAt: timestamp
+ *   }
+ * }
+ */
+const pipelineStatusCache = new Map();
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+
+/**
+ * Store pipeline status in cache
+ */
+function setPipelineStatus(caseId, statusData) {
+    pipelineStatusCache.set(caseId, {
+        ...statusData,
+        expiresAt: Date.now() + CACHE_TTL
+    });
+}
+
+/**
+ * Retrieve pipeline status from cache
+ */
+function getPipelineStatus(caseId) {
+    const status = pipelineStatusCache.get(caseId);
+    if (!status) {
+        return null;
+    }
+
+    // Check if expired
+    if (Date.now() > status.expiresAt) {
+        pipelineStatusCache.delete(caseId);
+        return null;
+    }
+
+    return status;
+}
+
+/**
+ * Clean up expired cache entries (runs every 5 minutes)
+ */
+setInterval(() => {
+    const now = Date.now();
+    let cleaned = 0;
+
+    for (const [caseId, status] of pipelineStatusCache.entries()) {
+        if (now > status.expiresAt) {
+            pipelineStatusCache.delete(caseId);
+            cleaned++;
+        }
+    }
+
+    if (cleaned > 0) {
+        console.log(`🧹 Cleaned ${cleaned} expired pipeline status entries from cache`);
+    }
+}, 5 * 60 * 1000); // Run every 5 minutes
 
 // Middleware
 app.use(cors());
@@ -377,9 +442,6 @@ app.use((req, res, next) => {
 // Mount health check routes (no auth required for health checks)
 app.use('/health', healthRoutes);
 
-// Mount metrics route (Week 2 Day 4: Extracted to routes/metrics.js)
-app.use('/metrics', metricsRoutes);
-
 // Apply authentication to all routes (except health checks, handled in middleware)
 app.use(requireAuth);
 
@@ -398,24 +460,24 @@ formRoutes.initializeRouter({
     formDataExists,
     listFormEntries,
     saveToDatabase,
-    pipelineService,  // Week 2 Day 3: Now uses pipeline service
+    callNormalizationPipeline,
+    setPipelineStatus,
+    getPipelineStatus,
     metricsModule,
-    PIPELINE_CONFIG: pipelineService.getConfig()  // Get config from service
+    PIPELINE_CONFIG
 });
 app.use('/api/form-entries', formRoutes);
 
 // Initialize and mount pipeline routes with helper function injection
-// Week 2 Day 3: Pipeline now uses pipelineService directly (imported in routes file)
 pipelineRoutes.initializeRouter({
     pool,
+    getPipelineStatus,
+    callNormalizationPipeline,
     formDataExists,
     readFormData,
     dataDir
 });
 app.use('/api', pipelineRoutes);
-
-// Mount client intake routes (Week 4: Client Intake System)
-app.use('/api/intakes', intakesRoutes);
 
 /**
  * Transform raw form data into structured format matching goalOutput.md
@@ -440,6 +502,19 @@ app.use('/api/intakes', intakesRoutes);
  * - If user skips notification: submitter_name='Anonymous', submitter_email=''
  * - If user provides info: uses actual values from notificationName and notificationEmail
  */
+
+/**
+ * Call the Python normalization pipeline API
+ *
+ * Sends the structured form data to the Python FastAPI service which executes
+ * the complete 5-phase normalization pipeline.
+ *
+ * @param {Object} structuredData - The structured form data
+ * @param {string} caseId - The database case ID for reference
+ * @param {Array<string>} documentTypes - Array of document types to generate (PHASE 2.1)
+ * @returns {Promise<Object>} Pipeline execution results
+ */
+}
 
 async function saveToDatabase(structuredData, rawPayload, documentTypes = ['srogs', 'pods', 'admissions']) {
     const client = await pool.connect();
@@ -631,6 +706,33 @@ async function saveToDatabase(structuredData, rawPayload, documentTypes = ['srog
 //
 // The routes are initialized below with helper function injection
 // ============================================================
+
+/**
+ * Prometheus Metrics Endpoint
+ *
+ * GET /metrics
+ *
+ * Exposes application metrics in Prometheus format for scraping.
+ * This endpoint is used by Prometheus server to collect metrics.
+ *
+ * Metrics include:
+ * - HTTP request rates, latencies, and error rates
+ * - Form submission statistics
+ * - Pipeline execution metrics
+ * - Database performance metrics
+ * - Dropbox upload statistics
+ * - Node.js runtime metrics (memory, CPU, event loop)
+ */
+app.get('/metrics', async (req, res) => {
+    try {
+        res.set('Content-Type', metricsModule.register.contentType);
+        const metrics = await metricsModule.register.metrics();
+        res.end(metrics);
+    } catch (error) {
+        console.error('❌ Error generating metrics:', error);
+        res.status(500).end('Error generating metrics');
+    }
+});
 
 /**
  * Health Check Endpoints

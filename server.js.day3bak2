@@ -90,12 +90,9 @@ const {
 const healthRoutes = require('./routes/health');
 const formRoutes = require('./routes/forms');
 const pipelineRoutes = require('./routes/pipeline');
-const metricsRoutes = require('./routes/metrics');
-const intakesRoutes = require('./routes/intakes');
 
 // Services
 const FormTransformer = require('./services/form-transformer');
-const pipelineService = require('./services/pipeline-service');
 
 // Middleware
 const { errorHandler } = require('./middleware/error-handler');
@@ -307,6 +304,74 @@ async function deleteFormData(filename) {
     }
 }
 
+/**
+ * Pipeline Status Cache (Phase 5)
+ *
+ * In-memory cache to track pipeline execution status for real-time polling.
+ * Each entry expires after 15 minutes to prevent memory leaks.
+ *
+ * Structure:
+ * {
+ *   [caseId]: {
+ *     status: 'pending' | 'processing' | 'success' | 'failed' | 'skipped',
+ *     startTime: timestamp,
+ *     endTime: timestamp | null,
+ *     executionTime: number | null,
+ *     error: string | null,
+ *     result: object | null,
+ *     expiresAt: timestamp
+ *   }
+ * }
+ */
+const pipelineStatusCache = new Map();
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+
+/**
+ * Store pipeline status in cache
+ */
+function setPipelineStatus(caseId, statusData) {
+    pipelineStatusCache.set(caseId, {
+        ...statusData,
+        expiresAt: Date.now() + CACHE_TTL
+    });
+}
+
+/**
+ * Retrieve pipeline status from cache
+ */
+function getPipelineStatus(caseId) {
+    const status = pipelineStatusCache.get(caseId);
+    if (!status) {
+        return null;
+    }
+
+    // Check if expired
+    if (Date.now() > status.expiresAt) {
+        pipelineStatusCache.delete(caseId);
+        return null;
+    }
+
+    return status;
+}
+
+/**
+ * Clean up expired cache entries (runs every 5 minutes)
+ */
+setInterval(() => {
+    const now = Date.now();
+    let cleaned = 0;
+
+    for (const [caseId, status] of pipelineStatusCache.entries()) {
+        if (now > status.expiresAt) {
+            pipelineStatusCache.delete(caseId);
+            cleaned++;
+        }
+    }
+
+    if (cleaned > 0) {
+        console.log(`🧹 Cleaned ${cleaned} expired pipeline status entries from cache`);
+    }
+}, 5 * 60 * 1000); // Run every 5 minutes
 
 // Middleware
 app.use(cors());
@@ -377,9 +442,6 @@ app.use((req, res, next) => {
 // Mount health check routes (no auth required for health checks)
 app.use('/health', healthRoutes);
 
-// Mount metrics route (Week 2 Day 4: Extracted to routes/metrics.js)
-app.use('/metrics', metricsRoutes);
-
 // Apply authentication to all routes (except health checks, handled in middleware)
 app.use(requireAuth);
 
@@ -398,24 +460,24 @@ formRoutes.initializeRouter({
     formDataExists,
     listFormEntries,
     saveToDatabase,
-    pipelineService,  // Week 2 Day 3: Now uses pipeline service
+    callNormalizationPipeline,
+    setPipelineStatus,
+    getPipelineStatus,
     metricsModule,
-    PIPELINE_CONFIG: pipelineService.getConfig()  // Get config from service
+    PIPELINE_CONFIG
 });
 app.use('/api/form-entries', formRoutes);
 
 // Initialize and mount pipeline routes with helper function injection
-// Week 2 Day 3: Pipeline now uses pipelineService directly (imported in routes file)
 pipelineRoutes.initializeRouter({
     pool,
+    getPipelineStatus,
+    callNormalizationPipeline,
     formDataExists,
     readFormData,
     dataDir
 });
 app.use('/api', pipelineRoutes);
-
-// Mount client intake routes (Week 4: Client Intake System)
-app.use('/api/intakes', intakesRoutes);
 
 /**
  * Transform raw form data into structured format matching goalOutput.md
@@ -440,6 +502,389 @@ app.use('/api/intakes', intakesRoutes);
  * - If user skips notification: submitter_name='Anonymous', submitter_email=''
  * - If user provides info: uses actual values from notificationName and notificationEmail
  */
+
+/**
+ * Call the Python normalization pipeline API
+ *
+ * Sends the structured form data to the Python FastAPI service which executes
+ * the complete 5-phase normalization pipeline.
+ *
+ * @param {Object} structuredData - The structured form data
+ * @param {string} caseId - The database case ID for reference
+ * @param {Array<string>} documentTypes - Array of document types to generate (PHASE 2.1)
+ * @returns {Promise<Object>} Pipeline execution results
+ */
+async function callNormalizationPipeline(structuredData, caseId, documentTypes = ['srogs', 'pods', 'admissions']) {
+    if (!PIPELINE_CONFIG.enabled || !PIPELINE_CONFIG.executeOnSubmit) {
+        // Store skipped status in cache (Phase 5)
+        setPipelineStatus(caseId, {
+            status: 'skipped',
+            phase: 'complete',
+            progress: 100,
+            currentPhase: null,
+            totalPhases: 5,
+            startTime: Date.now(),
+            endTime: Date.now(),
+            executionTime: 0,
+            error: null,
+            result: { reason: 'Pipeline disabled in configuration' }
+        });
+        return { skipped: true, reason: 'Pipeline disabled in configuration' };
+    }
+
+    try {
+        console.log(`📋 Calling normalization pipeline (Case ID: ${caseId})...`);
+        const startTime = Date.now();
+
+        // Store initial processing status in cache with phase tracking
+        setPipelineStatus(caseId, {
+            status: 'processing',
+            phase: 'pipeline_started',
+            progress: 40,  // 40% after form saved and database written
+            currentPhase: 'Generating legal documents...',
+            totalPhases: 5,
+            startTime: startTime,
+            endTime: null,
+            executionTime: null,
+            error: null,
+            result: null,
+            documentProgress: { completed: 0, total: 0, current: '' }
+        });
+
+        const headers = { 'Content-Type': 'application/json' };
+        if (PIPELINE_CONFIG.apiKey) {
+            headers['X-API-Key'] = PIPELINE_CONFIG.apiKey;
+        }
+
+        // Add case ID to the request data
+        structuredData.case_id = caseId;
+
+        // ============================================================
+        // PHASE 2.1: ADD DOCUMENT TYPES TO PIPELINE REQUEST
+        // ============================================================
+        // Pass selected document types to Python pipeline
+        // Python will use this to filter which profiles get generated in Phase 4
+        structuredData.document_types = documentTypes;
+        console.log(`📄 Passing document types to pipeline: ${documentTypes.join(', ')}`);
+        // ============================================================
+
+        // ============================================================
+        // FIX FOR PYTHON API COMPATIBILITY (2025-10-22)
+        // ============================================================
+        // Python API expects different field names than what Node.js sends:
+        // - snake_case 'item_number' instead of PascalCase 'ItemNumber'
+        // - 'property_address' instead of 'streetAddress' in Full_Address
+        // - 'zip' instead of 'zipCode' in Full_Address
+        // This transformation ensures compatibility while maintaining backwards compatibility
+        // ============================================================
+        if (structuredData.PlaintiffDetails && Array.isArray(structuredData.PlaintiffDetails)) {
+            structuredData.PlaintiffDetails = structuredData.PlaintiffDetails.map(plaintiff => ({
+                ...plaintiff,
+                item_number: plaintiff.ItemNumber || plaintiff.item_number || 1
+            }));
+        }
+
+        if (structuredData.DefendantDetails2 && Array.isArray(structuredData.DefendantDetails2)) {
+            structuredData.DefendantDetails2 = structuredData.DefendantDetails2.map(defendant => ({
+                ...defendant,
+                item_number: defendant.ItemNumber || defendant.item_number || 1
+            }));
+        }
+
+        // Add property_address and zip fields that Python expects
+        if (structuredData.Full_Address) {
+            structuredData.property_address = structuredData.Full_Address.StreetAddress ||
+                                             structuredData.Full_Address.Line1 ||
+                                             structuredData.streetAddress ||
+                                             '';
+            structuredData.zip = structuredData.Full_Address.PostalCode ||
+                               structuredData.Full_Address.zipCode ||
+                               structuredData.zipCode ||
+                               '';
+
+            // Also ensure Full_Address has the expected fields
+            structuredData.Full_Address.property_address = structuredData.property_address;
+            structuredData.Full_Address.zip = structuredData.zip;
+        }
+
+        // CRITICAL FIX: Ensure filing fields are sent to Python
+        // Keys with spaces don't serialize properly via axios, so DELETE them and use PascalCase only
+        const filingCity = structuredData['Filing city'] || structuredData.FilingCity || '';
+        const filingCounty = structuredData['Filing county'] || structuredData.FilingCounty || '';
+        const notifOptIn = structuredData['Notification Email Opt-In'] || false;
+        const notifEmail = structuredData['Notification Email'] || null;
+
+        // Delete the space-separated keys that axios can't serialize
+        delete structuredData['Filing city'];
+        delete structuredData['Filing county'];
+        delete structuredData['Notification Email Opt-In'];
+        delete structuredData['Notification Email'];
+
+        // Set PascalCase versions that axios CAN serialize
+        structuredData.FilingCity = filingCity;
+        structuredData.FilingCounty = filingCounty;
+        structuredData.NotificationEmailOptIn = notifOptIn;
+        structuredData.NotificationEmail = notifEmail;
+
+        // ============================================================
+        // GIVE SSE CLIENT TIME TO CONNECT
+        // ============================================================
+        // Wait 1.5 seconds before calling pipeline to allow frontend
+        // to establish SSE connection first (frontend connects at 1.2s)
+        console.log(`⏸️  Waiting 1.5 seconds for SSE connection to establish...`);
+
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Start the pipeline in the background
+        const pipelinePromise = axios.post(
+            `${PIPELINE_CONFIG.apiUrl}/api/normalize`,
+            structuredData,
+            {
+                headers: headers,
+                timeout: PIPELINE_CONFIG.timeout,
+                validateStatus: (status) => status < 500
+            }
+        );
+
+        // ============================================================
+        // DOCUMENT GENERATION PROGRESS TRACKING
+        // ============================================================
+        // While the Python pipeline executes, we poll its progress API
+        // to get real-time updates on document generation (1/32, 2/32, etc.)
+        // This allows the frontend to display incremental progress to users
+        // instead of just showing "processing" then jumping to "complete".
+        //
+        // The progress is stored in the pipeline status cache and picked up
+        // by the frontend's polling of /api/pipeline-status/:caseId
+        // ============================================================
+        console.log(`🚀 Starting document progress polling for case ${caseId} every 2 seconds...`);
+        const progressInterval = setInterval(async () => {
+            try {
+                console.log(`🔄 Polling document progress for case ${caseId}...`);
+                const progressResponse = await axios.get(`${PIPELINE_CONFIG.apiUrl}/api/progress/${caseId}`, {
+                    timeout: 10000  // Increase timeout to 10 seconds
+                });
+
+                console.log(`📡 Progress response received:`, JSON.stringify(progressResponse.data));
+
+                if (progressResponse.data && progressResponse.data.total > 0) {
+                    const docProgress = {
+                        completed: progressResponse.data.completed,
+                        total: progressResponse.data.total,
+                        current: progressResponse.data.current_doc
+                    };
+
+                    console.log(`📊 Document progress: ${docProgress.completed}/${docProgress.total} - ${docProgress.current}`);
+
+                    // Update cache with document progress
+                    const currentStatus = getPipelineStatus(caseId);
+                    if (currentStatus) {
+                        console.log(`✅ Updating pipeline status cache with document progress`);
+                        setPipelineStatus(caseId, {
+                            ...currentStatus,
+                            documentProgress: docProgress,
+                            currentPhase: `Generating legal documents... (${docProgress.completed}/${docProgress.total} completed)`,
+                            progress: Math.min(90, 40 + (docProgress.completed / docProgress.total) * 50)
+                        });
+                    } else {
+                        console.warn(`⚠️  No current status found in cache for case ${caseId}`);
+                    }
+                } else {
+                    console.log(`⏳ No document progress data yet (total: ${progressResponse.data?.total || 0})`);
+                }
+            } catch (error) {
+                // Progress polling failed, but don't fail the main pipeline
+                console.log(`⚠️  Progress polling failed: ${error.message}`);
+            }
+        }, 2000); // Poll every 2 seconds
+
+        // Ensure progress polling is always cleaned up, even if pipeline fails
+        try {
+            // Wait for pipeline completion
+            const response = await pipelinePromise;
+
+            const executionTime = Date.now() - startTime;
+
+            if (response.data.success) {
+                console.log(`✅ Pipeline completed successfully in ${executionTime}ms`);
+
+                // Extract webhook summary
+                const webhookSummary = response.data.webhook_summary || null;
+                if (webhookSummary) {
+                    console.log(`📄 Documents generated: ${webhookSummary.total_sets} (${webhookSummary.succeeded} succeeded, ${webhookSummary.failed} failed)`);
+                }
+
+                if (response.data.phase_results) {
+                    Object.entries(response.data.phase_results).forEach(([phase, results]) => {
+                        console.log(`   - ${phase}:`, JSON.stringify(results));
+                    });
+                }
+
+                // Store success status in cache with webhook details
+                setPipelineStatus(caseId, {
+                    status: 'success',
+                    phase: 'complete',
+                    progress: 100,
+                    currentPhase: webhookSummary ? `Generated ${webhookSummary.total_sets} documents` : 'Complete',
+                    totalPhases: 5,
+                    startTime: startTime,
+                    endTime: Date.now(),
+                    executionTime: executionTime,
+                    error: null,
+                    result: response.data,
+                    webhookSummary: webhookSummary  // Add webhook details
+                });
+
+                // ============================================
+                // EMAIL NOTIFICATION LOGIC
+                // ============================================
+                // Send email notification if user opted in
+                // This runs asynchronously and does not block the pipeline response
+
+                const shouldSendEmail = structuredData['NotificationEmail'] &&
+                                       structuredData['NotificationEmailOptIn'] === true;
+
+                if (shouldSendEmail) {
+                    console.log(`📧 Preparing email notification for: ${structuredData['NotificationEmail']}`);
+
+                    // Run email sending async (non-blocking)
+                    (async () => {
+                        try {
+                            // Extract street address from form data (multiple possible locations)
+                            const streetAddress =
+                                structuredData['Property address'] ||
+                                structuredData.Full_Address?.StreetAddress ||
+                                structuredData['street-address'] ||
+                                'your property';
+
+                            console.log(`📍 Property address: ${streetAddress}`);
+
+                            // Try to get Dropbox shared link (if Dropbox enabled)
+                            let dropboxLink = null;
+
+                            if (dropboxService.isEnabled()) {
+                                // Format folder path for Dropbox using configured base path
+                                const folderPath = `${dropboxService.config.basePath}/${streetAddress}`;
+                                console.log(`📁 Checking Dropbox folder: ${folderPath}`);
+
+                                dropboxLink = await dropboxService.createSharedLink(folderPath);
+
+                                if (dropboxLink) {
+                                    console.log(`✅ Dropbox link generated successfully`);
+                                } else {
+                                    console.log(`⚠️  Dropbox link generation failed (will send email without link)`);
+                                }
+                            } else {
+                                console.log(`ℹ️  Dropbox disabled (will send email without link)`);
+                            }
+
+                            // Send email notification
+                            const emailResult = await emailService.sendCompletionNotification({
+                                to: structuredData['NotificationEmail'],
+                                name: structuredData['NotificationName'] || 'User',
+                                streetAddress: streetAddress,
+                                caseId: caseId,
+                                dropboxLink: dropboxLink,
+                                documentCount: webhookSummary?.total_sets || 32
+                            });
+
+                            if (emailResult.success) {
+                                console.log(`✅ Email notification sent successfully to ${structuredData['NotificationEmail']}`);
+                            } else {
+                                console.error(`❌ Email notification failed: ${emailResult.error}`);
+                            }
+
+                        } catch (emailError) {
+                            // Log error but don't fail the pipeline
+                            console.error('❌ Email notification error (non-blocking):', emailError);
+                        }
+                    })();
+
+                } else {
+                    console.log(`ℹ️  Email notification skipped (user did not opt in)`);
+                }
+
+                // ============================================
+                // END EMAIL NOTIFICATION LOGIC
+                // ============================================
+
+                return {
+                    success: true,
+                    executionTime: executionTime,
+                    case_id: caseId,
+                    ...response.data
+                };
+            } else {
+                const errorMessage = response.data.error || 'Unknown pipeline error';
+                console.error(`❌ Pipeline failed: ${errorMessage}`);
+
+                // Store failure status in cache (Phase 5)
+                setPipelineStatus(caseId, {
+                    status: 'failed',
+                    phase: 'failed',
+                    progress: 0,
+                    currentPhase: null,
+                    totalPhases: 5,
+                    startTime: startTime,
+                    endTime: Date.now(),
+                    executionTime: executionTime,
+                    error: errorMessage,
+                    result: null
+                });
+
+                if (PIPELINE_CONFIG.continueOnFailure) {
+                    console.log('⚠️  Continuing despite pipeline failure');
+                    return {
+                        success: false,
+                        error: errorMessage,
+                        case_id: caseId,
+                        continued: true
+                    };
+                } else {
+                    throw new Error(`Pipeline failed: ${errorMessage}`);
+                }
+            }
+        } finally {
+            // Always clear the progress polling interval, even if pipeline fails or errors occur
+            clearInterval(progressInterval);
+            console.log(`🧹 Progress polling cleaned up for case ${caseId}`);
+        }
+
+    } catch (error) {
+        const errorMessage = error.response?.data?.error || error.message;
+        console.error('❌ Pipeline API call failed:', errorMessage);
+
+        if (error.code === 'ECONNREFUSED') {
+            console.error(`   ⚠️  Connection refused - is the Python API running on ${PIPELINE_CONFIG.apiUrl}?`);
+        }
+
+        // Store error status in cache (Phase 5)
+        setPipelineStatus(caseId, {
+            status: 'failed',
+            phase: 'failed',
+            progress: 0,
+            currentPhase: null,
+            totalPhases: 5,
+            startTime: Date.now(),
+            endTime: Date.now(),
+            executionTime: 0,
+            error: errorMessage,
+            result: null
+        });
+
+        if (PIPELINE_CONFIG.continueOnFailure) {
+            console.log('⚠️  Continuing despite pipeline error');
+            return {
+                success: false,
+                error: errorMessage,
+                case_id: caseId,
+                continued: true
+            };
+        } else {
+            throw error;
+        }
+    }
+}
 
 async function saveToDatabase(structuredData, rawPayload, documentTypes = ['srogs', 'pods', 'admissions']) {
     const client = await pool.connect();
@@ -631,6 +1076,33 @@ async function saveToDatabase(structuredData, rawPayload, documentTypes = ['srog
 //
 // The routes are initialized below with helper function injection
 // ============================================================
+
+/**
+ * Prometheus Metrics Endpoint
+ *
+ * GET /metrics
+ *
+ * Exposes application metrics in Prometheus format for scraping.
+ * This endpoint is used by Prometheus server to collect metrics.
+ *
+ * Metrics include:
+ * - HTTP request rates, latencies, and error rates
+ * - Form submission statistics
+ * - Pipeline execution metrics
+ * - Database performance metrics
+ * - Dropbox upload statistics
+ * - Node.js runtime metrics (memory, CPU, event loop)
+ */
+app.get('/metrics', async (req, res) => {
+    try {
+        res.set('Content-Type', metricsModule.register.contentType);
+        const metrics = await metricsModule.register.metrics();
+        res.end(metrics);
+    } catch (error) {
+        console.error('❌ Error generating metrics:', error);
+        res.status(500).end('Error generating metrics');
+    }
+});
 
 /**
  * Health Check Endpoints
