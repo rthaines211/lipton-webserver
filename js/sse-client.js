@@ -21,10 +21,18 @@ class JobProgressStream {
         // Use current server if no URL provided (same-origin)
         const baseUrl = sseUrl || window.location.origin;
 
-        // Build SSE URL without authentication token
+        // Build SSE URL with authentication token from URL params
         const streamPath = `/api/jobs/${jobId}/stream`;
-        this.sseUrl = `${baseUrl}${streamPath}`;
-        console.log(`🔐 SSE URL: ${this.sseUrl}`);
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
+        // Include token in SSE URL if present
+        if (token) {
+            this.sseUrl = `${baseUrl}${streamPath}?token=${encodeURIComponent(token)}`;
+        } else {
+            this.sseUrl = `${baseUrl}${streamPath}`;
+        }
+        console.log(`🔐 SSE URL: ${this.sseUrl.replace(/token=[^&]*/, 'token=***')}`);
 
         this.eventSource = null;
         this.isConnected = false;

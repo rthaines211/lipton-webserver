@@ -43,6 +43,32 @@
  */
 
 /**
+ * Get authentication token from URL parameters
+ * @returns {string|null} The token if found, null otherwise
+ */
+function getAuthToken() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('token');
+}
+
+/**
+ * Get authentication headers for fetch requests
+ * @returns {Object} Headers object with Authorization if token is present
+ */
+function getAuthHeaders() {
+    const token = getAuthToken();
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
+}
+
+/**
  * Show the confirmation modal before form submission
  * Performs pre-submission validation and displays review data
  */
@@ -434,9 +460,7 @@ async function handleSubmissionSuccess(result) {
                     // Trigger PDF generation
                     const pdfResponse = await fetch('/api/pdf/generate', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        headers: getAuthHeaders(),
                         body: JSON.stringify({
                             formData: fullFormData
                         })
