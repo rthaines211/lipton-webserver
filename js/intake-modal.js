@@ -18,13 +18,23 @@ let ACCESS_TOKEN = null;
 
 /**
  * Initialize the intake modal system
- * Gets the access token from localStorage if available
+ * Gets the access token from URL parameters or localStorage
  */
 function initIntakeModal() {
-    // Get access token from localStorage (set during authentication)
-    ACCESS_TOKEN = localStorage.getItem('ACCESS_TOKEN');
+    // Get access token from URL parameter first (primary method)
+    const urlParams = new URLSearchParams(window.location.search);
+    ACCESS_TOKEN = urlParams.get('token');
 
+    // Fallback to localStorage if URL param not present
     if (!ACCESS_TOKEN) {
+        ACCESS_TOKEN = localStorage.getItem('ACCESS_TOKEN');
+    }
+
+    // Store in localStorage for future use
+    if (ACCESS_TOKEN) {
+        localStorage.setItem('ACCESS_TOKEN', ACCESS_TOKEN);
+        console.log('Access token initialized for intake modal');
+    } else {
         console.warn('No access token found. Intake modal will require authentication.');
     }
 }
