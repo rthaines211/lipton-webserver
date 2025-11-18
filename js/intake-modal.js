@@ -13,8 +13,12 @@
  * Last Updated: 2025-11-18
  */
 
-let currentIntakes = [];
-let ACCESS_TOKEN = null;
+// Wrap in IIFE to avoid global variable conflicts
+(function() {
+    'use strict';
+
+    let currentIntakes = [];
+    let INTAKE_ACCESS_TOKEN = null;
 
 /**
  * Initialize the intake modal system
@@ -23,16 +27,16 @@ let ACCESS_TOKEN = null;
 function initIntakeModal() {
     // Get access token from URL parameter first (primary method)
     const urlParams = new URLSearchParams(window.location.search);
-    ACCESS_TOKEN = urlParams.get('token');
+    INTAKE_ACCESS_TOKEN = urlParams.get('token');
 
     // Fallback to localStorage if URL param not present
-    if (!ACCESS_TOKEN) {
-        ACCESS_TOKEN = localStorage.getItem('ACCESS_TOKEN');
+    if (!INTAKE_ACCESS_TOKEN) {
+        INTAKE_ACCESS_TOKEN = localStorage.getItem('INTAKE_ACCESS_TOKEN');
     }
 
     // Store in localStorage for future use
-    if (ACCESS_TOKEN) {
-        localStorage.setItem('ACCESS_TOKEN', ACCESS_TOKEN);
+    if (INTAKE_ACCESS_TOKEN) {
+        localStorage.setItem('INTAKE_ACCESS_TOKEN', INTAKE_ACCESS_TOKEN);
         console.log('Access token initialized for intake modal');
     } else {
         console.warn('No access token found. Intake modal will require authentication.');
@@ -110,7 +114,7 @@ async function searchIntakes() {
         // Fetch intakes from API
         const response = await fetch(`/api/intakes${query}`, {
             headers: {
-                'Access-Token': ACCESS_TOKEN || '',
+                'Access-Token': INTAKE_ACCESS_TOKEN || '',
                 'Content-Type': 'application/json'
             }
         });
@@ -233,7 +237,7 @@ async function loadIntakeIntoForm(intakeId) {
         // Fetch intake in doc-gen format
         const response = await fetch(`/api/intakes/${intakeId}/doc-gen-format`, {
             headers: {
-                'Access-Token': ACCESS_TOKEN || '',
+                'Access-Token': INTAKE_ACCESS_TOKEN || '',
                 'Content-Type': 'application/json'
             }
         });
@@ -432,3 +436,12 @@ document.addEventListener('keydown', (e) => {
         }
     }
 });
+
+// Expose functions to global scope for inline event handlers
+window.openIntakeModal = openIntakeModal;
+window.closeIntakeModal = closeIntakeModal;
+window.searchIntakes = searchIntakes;
+window.loadIntakeIntoForm = loadIntakeIntoForm;
+window.previewIntake = previewIntake;
+
+})(); // Close IIFE
