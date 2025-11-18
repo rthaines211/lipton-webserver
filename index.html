@@ -2083,6 +2083,17 @@
                     <div class="section-header">
                         <h2 class="section-title">1. Address of the Property</h2>
                     </div>
+
+                    <!-- Load from Intake Button -->
+                    <div style="padding: 0 20px 15px 20px;">
+                        <button type="button" class="btn" onclick="openIntakeModal()" style="background: #00AEEF; display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-search"></i> Load from Client Intake
+                        </button>
+                        <span style="margin-left: 12px; color: #64748B; font-size: 14px;">
+                            <i class="fas fa-info-circle"></i> Auto-fill this form with data from a submitted client intake
+                        </span>
+                    </div>
+
                     <div class="section-content">
                         <div class="form-grid">
                             <div style="grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto; gap: 15px;">
@@ -7497,6 +7508,446 @@
         }
     </script>
     
+    <!-- Intake Search Modal -->
+    <div id="intake-search-modal" class="intake-modal" style="display: none;">
+        <div class="intake-modal-overlay" onclick="closeIntakeModal()"></div>
+        <div class="intake-modal-content">
+            <!-- Modal Header -->
+            <div class="intake-modal-header">
+                <h2><i class="fas fa-search"></i> Load from Client Intake</h2>
+                <button class="intake-modal-close" onclick="closeIntakeModal()" aria-label="Close modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="intake-modal-body">
+                <!-- Search & Filters -->
+                <div class="intake-search-controls">
+                    <div class="intake-search-bar">
+                        <input
+                            type="text"
+                            id="intake-search-input"
+                            placeholder="Search by name, email, or address..."
+                            onkeypress="if(event.key==='Enter') searchIntakes()"
+                        >
+                        <button onclick="searchIntakes()" class="btn-search">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+
+                    <div class="intake-filter-row">
+                        <select id="intake-filter-status" onchange="searchIntakes()">
+                            <option value="">All Statuses</option>
+                            <option value="pending">New</option>
+                            <option value="under_review">Under Review</option>
+                            <option value="approved">Approved</option>
+                        </select>
+
+                        <select id="intake-filter-date" onchange="searchIntakes()">
+                            <option value="30">Last 30 days</option>
+                            <option value="60">Last 60 days</option>
+                            <option value="90">Last 90 days</option>
+                            <option value="all">All time</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Results Table -->
+                <div class="intake-results-container">
+                    <table id="intake-results-table" class="intake-table">
+                        <thead>
+                            <tr>
+                                <th>Client Name</th>
+                                <th>Property Address</th>
+                                <th>Submitted</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="intake-table-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+
+                    <!-- Loading State -->
+                    <div id="intake-loading-state" class="intake-state-message" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading intakes...</p>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="intake-empty-state" class="intake-state-message" style="display: none;">
+                        <i class="fas fa-inbox"></i>
+                        <p>No intakes found matching your search.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="intake-modal-footer">
+                <button class="btn btn-secondary" onclick="closeIntakeModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Intake Modal Styles -->
+    <style>
+        /* Modal Container */
+        .intake-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .intake-modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .intake-modal-content {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(31, 42, 68, 0.3);
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s ease;
+            z-index: 10001;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Modal Header */
+        .intake-modal-header {
+            background: linear-gradient(135deg, #1F2A44 0%, #2A3B5A 100%);
+            color: white;
+            padding: 20px 24px;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 3px solid #00AEEF;
+        }
+
+        .intake-modal-header h2 {
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .intake-modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+
+        .intake-modal-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(90deg);
+        }
+
+        /* Modal Body */
+        .intake-modal-body {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Search Controls */
+        .intake-search-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .intake-search-bar {
+            display: flex;
+            gap: 8px;
+        }
+
+        .intake-search-bar input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .intake-search-bar input:focus {
+            outline: none;
+            border-color: #00AEEF;
+            box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+        }
+
+        .btn-search {
+            background: #00AEEF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-search:hover {
+            background: #0098d1;
+            box-shadow: 0 2px 8px rgba(0, 174, 239, 0.3);
+        }
+
+        .intake-filter-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .intake-filter-row select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .intake-filter-row select:hover {
+            border-color: #00AEEF;
+        }
+
+        .intake-filter-row select:focus {
+            outline: none;
+            border-color: #00AEEF;
+            box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+        }
+
+        /* Results Container */
+        .intake-results-container {
+            flex: 1;
+            position: relative;
+            overflow-y: auto;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+        }
+
+        /* Results Table */
+        .intake-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .intake-table thead {
+            position: sticky;
+            top: 0;
+            background: #F8F9FA;
+            z-index: 1;
+        }
+
+        .intake-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #1F2A44;
+            border-bottom: 2px solid #E2E8F0;
+        }
+
+        .intake-table td {
+            padding: 12px;
+            border-bottom: 1px solid #F1F3F5;
+        }
+
+        .intake-table tbody tr {
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        .intake-table tbody tr:hover {
+            background: #F8F9FA;
+        }
+
+        /* Status Badges */
+        .intake-status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .intake-status-pending {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .intake-status-under_review {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .intake-status-approved {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        /* Action Buttons */
+        .intake-action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-right: 4px;
+        }
+
+        .intake-action-btn-primary {
+            background: #00AEEF;
+            color: white;
+        }
+
+        .intake-action-btn-primary:hover {
+            background: #0098d1;
+        }
+
+        .intake-action-btn-secondary {
+            background: #E2E8F0;
+            color: #1F2A44;
+        }
+
+        .intake-action-btn-secondary:hover {
+            background: #CBD5E0;
+        }
+
+        /* State Messages */
+        .intake-state-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            color: #64748B;
+        }
+
+        .intake-state-message i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .intake-state-message p {
+            margin: 0;
+            font-size: 15px;
+        }
+
+        .fa-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal Footer */
+        .intake-modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #E2E8F0;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* Notification */
+        .intake-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 20000;
+            animation: slideInRight 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .intake-notification-success {
+            background: #D1FAE5;
+            color: #065F46;
+            border-left: 4px solid #10B981;
+        }
+
+        .intake-notification-error {
+            background: #FEE2E2;
+            color: #991B1B;
+            border-left: 4px solid #EF4444;
+        }
+    </style>
+
+    <!-- Intake Modal JavaScript -->
+    <script src="js/intake-modal.js?v=1"></script>
+
     <!-- SSE Progress Tracking Modules -->
     <script src="js/progress-state.js?v=2"></script>
     <script src="js/sse-client.js?v=4"></script>
