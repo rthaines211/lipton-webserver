@@ -1213,7 +1213,9 @@ function pollPdfStatus(jobId) {
         attempts++;
 
         try {
-            const response = await fetch(`/api/pdf/status/${jobId}`);
+            const response = await fetch(`/api/pdf/status/${jobId}`, {
+                headers: getAuthHeaders()
+            });
 
             if (!response.ok) {
                 if (attempts >= maxAttempts) {
