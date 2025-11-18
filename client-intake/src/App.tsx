@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IntakeForm } from './components/IntakeForm'
+import { IntakeFormExpanded } from './components/IntakeFormExpanded'
 
 function App() {
   const [submitted, setSubmitted] = useState(false)
@@ -20,7 +20,7 @@ function App() {
       }
 
       const result = await response.json()
-      setIntakeNumber(result.intakeNumber)
+      setIntakeNumber(result.data.intakeNumber)
       setSubmitted(true)
     } catch (error) {
       console.error('Error submitting form:', error)
@@ -62,7 +62,7 @@ function App() {
             <p className="text-gray-600">Please provide your information so we can evaluate your case</p>
           </div>
 
-          <IntakeForm onSubmit={handleSubmit} />
+          <IntakeFormExpanded onSubmit={handleSubmit} />
         </div>
       </div>
     </div>

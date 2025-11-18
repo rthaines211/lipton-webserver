@@ -277,53 +277,62 @@ async function loadIntakeIntoForm(intakeId) {
 function populateDocGenForm(data) {
     console.log('Populating form with data:', data);
 
-    // Property Information
-    setFieldValue('property-address', data['property-address']);
-    setFieldValue('apartment-unit', data['apartment-unit']);
-    setFieldValue('city', data['city']);
-    setFieldValue('state', data['state']);
-    setFieldValue('zip-code', data['zip-code']);
-    setFieldValue('filing-county', data['filing-county']);
-
-    // Plaintiff 1 (Primary Client)
-    setFieldValue('plaintiff-1-firstname', data['plaintiff-1-firstname']);
-    setFieldValue('plaintiff-1-lastname', data['plaintiff-1-lastname']);
-    setFieldValue('plaintiff-1-phone', data['plaintiff-1-phone']);
-    setFieldValue('plaintiff-1-email', data['plaintiff-1-email']);
-    setFieldValue('plaintiff-1-address', data['plaintiff-1-address']);
-    setFieldValue('plaintiff-1-unit', data['plaintiff-1-unit']);
-    setFieldValue('plaintiff-1-city', data['plaintiff-1-city']);
-    setFieldValue('plaintiff-1-state', data['plaintiff-1-state']);
-    setFieldValue('plaintiff-1-zip', data['plaintiff-1-zip']);
-
-    // Defendant 1 (Landlord)
-    setFieldValue('defendant-1-name', data['defendant-1-name']);
-    setFieldValue('defendant-1-company', data['defendant-1-company']);
-    setFieldValue('defendant-1-address', data['defendant-1-address']);
-    setFieldValue('defendant-1-city', data['defendant-1-city']);
-    setFieldValue('defendant-1-state', data['defendant-1-state']);
-    setFieldValue('defendant-1-zip', data['defendant-1-zip']);
-    setFieldValue('defendant-1-phone', data['defendant-1-phone']);
-    setFieldValue('defendant-1-email', data['defendant-1-email']);
-
-    // Lease Information
-    setFieldValue('lease-start-date', data['lease-start-date']);
-    setFieldValue('monthly-rent', data['monthly-rent']);
-    setFieldValue('security-deposit', data['security-deposit']);
-
-    // Issue Checkboxes
-    // Set all issue checkboxes that are true in the data
-    for (const [fieldName, value] of Object.entries(data)) {
-        if (fieldName.startsWith('issue-') && value === true) {
-            setCheckboxValue(fieldName, true);
+    // Ensure at least one plaintiff exists before populating
+    const plaintiffsContainer = document.getElementById('plaintiffs-container');
+    if (plaintiffsContainer && plaintiffsContainer.children.length === 0) {
+        // Call the global addPlaintiff function to create plaintiff #1
+        if (typeof window.addPlaintiff === 'function') {
+            window.addPlaintiff();
+            console.log('Created plaintiff #1 for intake data population');
         }
     }
 
-    // Issue Descriptions
-    setFieldValue('structural-issue-description', data['structural-issue-description']);
-    setFieldValue('plumbing-issue-description', data['plumbing-issue-description']);
+    // Wait for DOM to update before populating fields
+    // Use setTimeout to allow plaintiff creation to complete
+    setTimeout(() => {
+        // Property Information
+        setFieldValue('property-address', data['property-address']);
+        setFieldValue('apartment-unit', data['apartment-unit']);
+        setFieldValue('city', data['city']);
+        setFieldValue('state', data['state']);
+        setFieldValue('zip-code', data['zip-code']);
+        setFieldValue('filing-county', data['filing-county']);
 
-    console.log('Form population complete');
+        // Plaintiff 1 (Primary Client)
+        // Only populate fields that exist in the attorney form
+        // Handle both naming conventions (with and without hyphens in "firstname"/"lastname")
+        setFieldValue('plaintiff-1-first-name', data['plaintiff-1-first-name'] || data['plaintiff-1-firstname']);
+        setFieldValue('plaintiff-1-last-name', data['plaintiff-1-last-name'] || data['plaintiff-1-lastname']);
+
+        // Set age radio button (adult/child) based on is-adult flag
+        if (data['plaintiff-1-is-adult']) {
+            setRadioValue('plaintiff-1-age', 'adult');
+        } else if (data['plaintiff-1-is-adult'] === false) {
+            setRadioValue('plaintiff-1-age', 'child');
+        }
+
+        // Set head of household radio button
+        if (data['plaintiff-1-head-of-household']) {
+            setRadioValue('plaintiff-1-head', 'yes');
+        }
+
+        // Issue Checkboxes - only populate those that exist in the form
+        // The attorney form uses a simplified set of issues compared to the intake form
+        const issueMapping = {
+            // Only include issues that actually exist as checkboxes in the attorney form
+            // Map from intake API field names to attorney form field names
+            // (Currently the forms may use different field naming - need to check actual checkbox names)
+        };
+
+        // Try to set issue checkboxes - these may not all exist in the simple attorney form
+        for (const [fieldName, value] of Object.entries(data)) {
+            if (fieldName.startsWith('issue-') && value === true) {
+                setCheckboxValue(fieldName, true);
+            }
+        }
+
+        console.log('Form population complete');
+    }, 100); // Wait 100ms for DOM to update
 }
 
 /**
@@ -367,6 +376,29 @@ function setCheckboxValue(fieldName, checked) {
         field.dispatchEvent(new Event('change', { bubbles: true }));
     } else {
         console.warn(`Checkbox not found: ${fieldName}`);
+    }
+}
+
+/**
+ * Set a radio button value by name
+ * @param {string} radioName - Name of the radio button group
+ * @param {string} value - Value to select
+ */
+function setRadioValue(radioName, value) {
+    // Find all radio buttons with this name
+    const radios = document.querySelectorAll(`input[type="radio"][name="${radioName}"]`);
+
+    // Select the one with matching value
+    radios.forEach(radio => {
+        if (radio.value === value) {
+            radio.checked = true;
+            // Trigger change event for any listeners
+            radio.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    });
+
+    if (radios.length === 0) {
+        console.warn(`Radio group not found: ${radioName}`);
     }
 }
 

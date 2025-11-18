@@ -91,7 +91,7 @@ const healthRoutes = require('./routes/health');
 const formRoutes = require('./routes/forms');
 const pipelineRoutes = require('./routes/pipeline');
 const metricsRoutes = require('./routes/metrics');
-const intakesRoutes = require('./routes/intakes');
+const intakesRoutes = require('./routes/intakes-jsonb');
 
 // Services
 const FormTransformer = require('./services/form-transformer');

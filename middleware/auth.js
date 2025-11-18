@@ -39,6 +39,12 @@ function requireAuth(req, res, next) {
         return next();
     }
 
+    // Skip auth for client intake form submissions (public endpoint)
+    // But require auth for GET requests (viewing/listing intakes - admin only)
+    if (req.path === '/api/intakes' && req.method === 'POST') {
+        return next();
+    }
+
     // Skip auth for static assets (JS, CSS, images, fonts, etc.)
     // These files contain no sensitive data and are needed for the browser to render the page
     const staticFileExtensions = [
