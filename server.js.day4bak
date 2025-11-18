@@ -91,7 +91,6 @@ const healthRoutes = require('./routes/health');
 const formRoutes = require('./routes/forms');
 const pipelineRoutes = require('./routes/pipeline');
 const metricsRoutes = require('./routes/metrics');
-const intakesRoutes = require('./routes/intakes-jsonb');
 
 // Services
 const FormTransformer = require('./services/form-transformer');
@@ -377,9 +376,6 @@ app.use((req, res, next) => {
 // Mount health check routes (no auth required for health checks)
 app.use('/health', healthRoutes);
 
-// Mount metrics route (Week 2 Day 4: Extracted to routes/metrics.js)
-app.use('/metrics', metricsRoutes);
-
 // Apply authentication to all routes (except health checks, handled in middleware)
 app.use(requireAuth);
 
@@ -413,9 +409,6 @@ pipelineRoutes.initializeRouter({
     dataDir
 });
 app.use('/api', pipelineRoutes);
-
-// Mount client intake routes (Week 4: Client Intake System)
-app.use('/api/intakes', intakesRoutes);
 
 /**
  * Transform raw form data into structured format matching goalOutput.md
@@ -631,6 +624,33 @@ async function saveToDatabase(structuredData, rawPayload, documentTypes = ['srog
 //
 // The routes are initialized below with helper function injection
 // ============================================================
+
+/**
+ * Prometheus Metrics Endpoint
+ *
+ * GET /metrics
+ *
+ * Exposes application metrics in Prometheus format for scraping.
+ * This endpoint is used by Prometheus server to collect metrics.
+ *
+ * Metrics include:
+ * - HTTP request rates, latencies, and error rates
+ * - Form submission statistics
+ * - Pipeline execution metrics
+ * - Database performance metrics
+ * - Dropbox upload statistics
+ * - Node.js runtime metrics (memory, CPU, event loop)
+ */
+app.get('/metrics', async (req, res) => {
+    try {
+        res.set('Content-Type', metricsModule.register.contentType);
+        const metrics = await metricsModule.register.metrics();
+        res.end(metrics);
+    } catch (error) {
+        console.error('❌ Error generating metrics:', error);
+        res.status(500).end('Error generating metrics');
+    }
+});
 
 /**
  * Health Check Endpoints
