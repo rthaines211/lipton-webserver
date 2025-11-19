@@ -323,7 +323,129 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   await page.fill('#pestFirstNoticed', '2023-08-01');
   await page.fill('#pestReportedDate', '2023-08-10');
 
-  console.log('   ✓ Building & housing issues completed (ALL 7 categories filled)');
+  // FIRE HAZARD ISSUES (8 fields: 1 master + 5 checkboxes + 1 details + 2 dates)
+  console.log('   → Fire Hazard Issues...');
+  await page.check('#hasFireHazardIssues');
+  await page.check('#fireHazardExposedWiring');
+  await page.check('#fireHazardBlockedExits');
+  await page.check('#fireHazardNoSmokeDetectors');
+  await page.fill('#fireHazardDetails', 'Exposed electrical wiring in bedroom wall - visible sparking. Fire exit blocked by landlord storage. No working smoke detectors in unit - batteries dead for months.');
+  await page.fill('#fireHazardFirstNoticed', '2024-01-15');
+  await page.fill('#fireHazardReportedDate', '2024-01-20');
+
+  // UTILITY ISSUES (8 fields: 1 master + 5 checkboxes + 1 details + 2 dates)
+  console.log('   → Utility Issues...');
+  await page.check('#hasUtilityIssues');
+  await page.check('#utilityNoHotWater');
+  await page.check('#utilityNoHeat');
+  await page.fill('#utilityDetails', 'No hot water for 3 weeks - landlord refuses to fix boiler. No heat in winter - apartment temperature drops to 50°F at night.');
+  await page.fill('#utilityFirstNoticed', '2024-01-01');
+  await page.fill('#utilityReportedDate', '2024-01-05');
+
+  // FLOORING ISSUES (7 fields: 1 master + 4 checkboxes + 1 details + 2 dates)
+  console.log('   → Flooring Issues...');
+  await page.check('#hasFlooringIssues');
+  await page.check('#flooringDamaged');
+  await page.check('#flooringUneven');
+  await page.fill('#flooringDetails', 'Hardwood floors severely damaged with large holes - dangerous for children. Uneven floors causing trip hazards throughout apartment.');
+  await page.fill('#flooringFirstNoticed', '2023-06-01');
+  await page.fill('#flooringReportedDate', '2023-06-15');
+
+  // WINDOW ISSUES (9 fields: 1 master + 6 checkboxes + 1 details + 2 dates)
+  console.log('   → Window Issues...');
+  await page.check('#hasWindowIssues');
+  await page.check('#windowBroken');
+  await page.check('#windowDrafty');
+  await page.check('#windowNoScreens');
+  await page.fill('#windowDetails', 'Two broken windows in living room - covered with cardboard. All windows extremely drafty - cold air comes through. No window screens - mosquitoes and flies come in.');
+  await page.fill('#windowFirstNoticed', '2023-09-01');
+  await page.fill('#windowReportedDate', '2023-09-10');
+
+  // DOOR ISSUES (11 fields: 1 master + 8 checkboxes + 1 details + 2 dates)
+  console.log('   → Door Issues...');
+  await page.check('#hasDoorIssues');
+  await page.check('#doorNoLock');
+  await page.check('#doorDamaged');
+  await page.check('#doorWontClose');
+  await page.fill('#doorDetails', 'Front door lock completely broken - serious security risk. Bedroom door damaged and won\'t close properly. Bathroom door won\'t stay shut.');
+  await page.fill('#doorFirstNoticed', '2023-07-01');
+  await page.fill('#doorReportedDate', '2023-07-15');
+
+  // CABINET ISSUES (6 fields: 1 master + 3 checkboxes + 1 details + 2 dates)
+  console.log('   → Cabinet Issues...');
+  await page.check('#hasCabinetIssues');
+  await page.check('#cabinetBroken');
+  await page.check('#cabinetMissing');
+  await page.fill('#cabinetDetails', 'Kitchen cabinets broken - doors falling off hinges. Two cabinets completely missing - no storage space.');
+  await page.fill('#cabinetFirstNoticed', '2023-05-01');
+  await page.fill('#cabinetReportedDate', '2023-05-10');
+
+  // COMMON AREA ISSUES (19 fields: 1 master + 16 checkboxes + 1 details + 2 dates)
+  console.log('   → Common Area Issues...');
+  await page.check('#hasCommonAreaIssues');
+  await page.check('#commonAreaHallwayDirty');
+  await page.check('#commonAreaStairsDamaged');
+  await page.check('#commonAreaElevatorBroken');
+  await page.check('#commonAreaLaundryBroken');
+  await page.check('#commonAreaNoSecurity');
+  await page.fill('#commonAreaDetails', 'Hallways never cleaned - garbage everywhere. Stairs damaged and dangerous. Elevator broken for 6 months. Laundry room machines all broken. No building security - front door never locks.');
+  await page.fill('#commonAreaFirstNoticed', '2023-04-01');
+  await page.fill('#commonAreaReportedDate', '2023-04-10');
+
+  // TRASH PROBLEMS (5 fields: 1 master + 2 checkboxes + 1 details + 2 dates)
+  console.log('   → Trash Problems...');
+  await page.check('#hasTrashProblems');
+  await page.check('#trashNotCollected');
+  await page.check('#trashOverflowing');
+  await page.fill('#trashDetails', 'Trash not collected for weeks - piling up in hallways. Dumpsters always overflowing - attracting rats and roaches.');
+  await page.fill('#trashFirstNoticed', '2023-08-15');
+  await page.fill('#trashReportedDate', '2023-08-20');
+
+  // NUISANCE ISSUES (7 fields: 1 master + 4 checkboxes + 1 details + 2 dates)
+  console.log('   → Nuisance Issues...');
+  await page.check('#hasNuisanceIssues');
+  await page.check('#nuisanceNoise');
+  await page.check('#nuisanceSmell');
+  await page.fill('#nuisanceDetails', 'Constant loud noise from upstairs neighbor day and night - landlord refuses to address. Terrible smell from garbage chute - unbearable in summer.');
+  await page.fill('#nuisanceFirstNoticed', '2023-03-01');
+  await page.fill('#nuisanceReportedDate', '2023-03-15');
+
+  // HEALTH HAZARD ISSUES (10 fields: 1 master + 7 checkboxes + 1 details + 2 dates)
+  console.log('   → Health Hazard Issues...');
+  await page.check('#hasHealthHazardIssues');
+  await page.check('#healthHazardMold');
+  await page.check('#healthHazardLeadPaint');
+  await page.check('#healthHazardPoorVentilation');
+  await page.fill('#healthHazardDetails', 'Black mold growing on all walls and ceiling from water leaks - causing respiratory problems for entire family. Peeling lead paint in children\'s bedroom - very dangerous. Poor ventilation - no windows open in bathroom.');
+  await page.fill('#healthHazardFirstNoticed', '2023-02-01');
+  await page.fill('#healthHazardReportedDate', '2023-02-10');
+
+  // GOVERNMENT ENTITIES CONTACTED (9 fields: 1 master + 7 checkboxes + 1 details, NO dates)
+  console.log('   → Government Entities Contacted...');
+  await page.check('#hasGovernmentEntitiesContacted');
+  await page.check('#govEntityHPD');
+  await page.check('#govEntityDOB');
+  await page.check('#govEntity311');
+  await page.fill('#governmentEntitiesDetails', 'Filed multiple complaints with HPD about mold and heating issues. DOB inspection revealed code violations. Called 311 numerous times for various building problems.');
+
+  // NOTICE ISSUES (8 fields: 1 master + 6 checkboxes + 1 details, NO dates)
+  console.log('   → Notice Issues...');
+  await page.check('#hasNoticeIssues');
+  await page.check('#noticeEviction');
+  await page.check('#noticeRentIncrease');
+  await page.fill('#noticeDetails', 'Received eviction notice after complaining about repairs. Landlord trying to force us out with unreasonable rent increase notice.');
+
+  // SAFETY ISSUES (9 fields: 1 master + 6 checkboxes + 1 details + 2 dates)
+  console.log('   → Safety Issues...');
+  await page.check('#hasSafetyIssues');
+  await page.check('#safetyNoFireExtinguisher');
+  await page.check('#safetyBlockedFireEscape');
+  await page.check('#safetyDamagedFireEscape');
+  await page.fill('#safetyDetails', 'No fire extinguisher in building. Fire escape blocked by landlord storage. Fire escape rusted and unstable - dangerous to use.');
+  await page.fill('#safetyFirstNoticed', '2023-10-01');
+  await page.fill('#safetyReportedDate', '2023-10-15');
+
+  console.log('   ✓ Building & housing issues completed (ALL 20 categories filled)');
   await page.click('button:has-text("Next")');
   await expect(page.getByText('Step 8 of 9')).toBeVisible();
 
@@ -406,11 +528,11 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   console.log('║ Step 4 (Property):          20 fields                 ║');
   console.log('║ Step 5 (Household):         15 fields (3 members)     ║');
   console.log('║ Step 6 (Landlord):          10 fields                 ║');
-  console.log('║ Step 7 (Issues):            97 fields (7 categories)  ║');
+  console.log('║ Step 7 (Issues):           213 fields (20 categories) ║');
   console.log('║ Step 8 (Review):             0 fields (read-only)     ║');
   console.log('║ Step 9 (Submit):          SUBMITTED                   ║');
   console.log('╠════════════════════════════════════════════════════════╣');
-  console.log(`║ TOTAL FIELDS FILLED:       174 fields                 ║`);
+  console.log(`║ TOTAL FIELDS FILLED:       290 fields                 ║`);
   console.log(`║ Intake Number:             ${intakeNumber}                ║`);
   console.log('╚════════════════════════════════════════════════════════╝');
 });
