@@ -1180,27 +1180,31 @@
 
         .radio-group {
             display: flex;
-            gap: 20px;
-            margin-top: 8px;
+            gap: 15px;
+            margin-top: 0;
             flex-wrap: wrap;
+            align-items: center;
         }
 
         .radio-group.inline {
-            display: inline-flex;
+            display: flex;
             gap: 15px;
-            margin-top: 5px;
+            margin-top: 0;
+            flex-wrap: wrap;
+            align-items: center;
         }
 
         .radio-item {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 12px;
+            padding: 10px 16px;
             border-radius: 6px;
             transition: all 0.2s ease;
             cursor: pointer;
-            border: 1px solid #E2E8F0;
+            border: 2px solid #E2E8F0;
             background: #FFFFFF;
+            white-space: nowrap;
         }
 
         .radio-item:hover {

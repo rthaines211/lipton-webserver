@@ -316,18 +316,54 @@ function populateDocGenForm(data) {
             setRadioValue('plaintiff-1-head', 'yes');
         }
 
-        // Issue Checkboxes - only populate those that exist in the form
-        // The attorney form uses a simplified set of issues compared to the intake form
+        // Issue Checkboxes - Map from intake API field names to doc-gen form field names
+        // Doc-gen form uses: {category}-{Item}-{plaintiffNumber}
+        // API returns: issue-{category}-{item}
         const issueMapping = {
-            // Only include issues that actually exist as checkboxes in the attorney form
-            // Map from intake API field names to attorney form field names
-            // (Currently the forms may use different field naming - need to check actual checkbox names)
+            // Pest/Vermin issues
+            'issue-pest-rodents': 'vermin-RatsMice-1',
+
+            // Insect issues
+            'issue-pest-cockroaches': 'insect-Roaches-1',
+            'issue-pest-bed-bugs': 'insect-Bedbugs-1',
+
+            // HVAC issues
+            'issue-hvac-no-heat': 'hvac-Heater-1',
+            'issue-hvac-no-ac': 'hvac-AirConditioner-1',
+            'issue-hvac-poor-ventilation': 'hvac-Ventilation-1',
+
+            // Electrical issues
+            'issue-electrical-outages': 'electrical-Panel-1',
+            'issue-electrical-sparks': 'electrical-Outlets-1',
+            'issue-electrical-overloaded': 'electrical-Panel-1',
+
+            // Plumbing issues
+            'issue-plumbing-leaks': 'plumbing-Leaks-1',
+            'issue-plumbing-no-pressure': 'plumbing-Insufficientwaterpressure-1',
+            'issue-plumbing-no-hot-water': 'plumbing-Nohotwater-1',
+            'issue-plumbing-sewer-backup': 'plumbing-Sewagecomingout-1',
+            'issue-plumbing-clogged-drains': 'plumbing-Cloggedsinks-1',
+
+            // Mold/Health Hazard issues
+            'issue-mold-visible': 'health-hazard-Mold-1',
+            'issue-mold-smell': 'health-hazard-Mold-1',
+            'issue-mold-extensive': 'health-hazard-Mold-1',
+
+            // Water/Structure issues
+            'issue-water-leak': 'structure-Leaksingarage-1',
+            'issue-water-damage': 'structure-Waterstainsonwall-1',
+            'issue-water-standing': 'structure-Basementflood-1',
+
+            // Safety issues
+            'issue-safety-no-smoke': 'fire-hazard-SmokeAlarms-1',
+            'issue-safety-no-co': 'fire-hazard-Carbonmonoxidedetectors-1',
+            'issue-safety-broken-locks': 'safety-Inoperablelocks-1',
         };
 
-        // Try to set issue checkboxes - these may not all exist in the simple attorney form
-        for (const [fieldName, value] of Object.entries(data)) {
-            if (fieldName.startsWith('issue-') && value === true) {
-                setCheckboxValue(fieldName, true);
+        // Populate issue checkboxes using mapping
+        for (const [apiFieldName, docGenFieldName] of Object.entries(issueMapping)) {
+            if (data[apiFieldName] === true) {
+                setCheckboxValue(docGenFieldName, true);
             }
         }
 
