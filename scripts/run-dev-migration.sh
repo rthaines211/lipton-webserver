@@ -35,6 +35,19 @@ fi
 echo "✅ Cloud SQL Proxy ready"
 echo ""
 
+# Get password from Google Secret Manager if not already set
+if [ -z "$DB_PASSWORD_DEV" ]; then
+    echo "Retrieving DB_PASSWORD_DEV from Secret Manager..."
+    export DB_PASSWORD_DEV=$(gcloud secrets versions access latest --secret="DB_PASSWORD_DEV" 2>/dev/null)
+
+    if [ -z "$DB_PASSWORD_DEV" ]; then
+        echo "❌ Failed to retrieve DB_PASSWORD_DEV from Secret Manager"
+        kill $PROXY_PID 2>/dev/null || true
+        exit 1
+    fi
+    echo "✅ Password retrieved successfully"
+fi
+
 # Run migrations using the migration runner
 # NOTE: Do NOT set INSTANCE_CONNECTION_NAME when using local proxy
 # Setting it forces Unix socket mode instead of TCP
