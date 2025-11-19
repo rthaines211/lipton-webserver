@@ -124,57 +124,122 @@ router.post('/', async (req, res) => {
     } : null;
 
     const buildingIssues = {
-      // Structural
+      // Structural Issues - ALL fields from intake form
       hasStructuralIssues: formData.hasStructuralIssues || false,
-      structuralCracks: formData.structuralCracks || false,
-      structuralLeaning: formData.structuralLeaning || false,
-      structuralCollapse: formData.structuralCollapse || false,
+      structuralCeilingDamage: formData.structuralCeilingDamage || false,
+      structuralWallCracks: formData.structuralWallCracks || false,
+      structuralFloorDamage: formData.structuralFloorDamage || false,
+      structuralFoundationIssues: formData.structuralFoundationIssues || false,
+      structuralRoofLeaks: formData.structuralRoofLeaks || false,
+      structuralWindowDamage: formData.structuralWindowDamage || false,
+      structuralDoorDamage: formData.structuralDoorDamage || false,
+      structuralStairsUnsafe: formData.structuralStairsUnsafe || false,
+      structuralBalconyUnsafe: formData.structuralBalconyUnsafe || false,
+      structuralRailingMissing: formData.structuralRailingMissing || false,
+      structuralOther: formData.structuralOther || false,
+      structuralDetails: formData.structuralDetails || null,
+      structuralFirstNoticed: formData.structuralFirstNoticed || null,
+      structuralReportedDate: formData.structuralReportedDate || null,
 
-      // Plumbing
+      // Plumbing Issues - ALL fields from intake form
       hasPlumbingIssues: formData.hasPlumbingIssues || false,
-      plumbingLeaks: formData.plumbingLeaks || false,
-      plumbingNoPressure: formData.plumbingNoPressure || false,
       plumbingNoHotWater: formData.plumbingNoHotWater || false,
-      plumbingSewerBackup: formData.plumbingSewerBackup || false,
+      plumbingNoWater: formData.plumbingNoWater || false,
+      plumbingLowPressure: formData.plumbingLowPressure || false,
+      plumbingLeaks: formData.plumbingLeaks || false,
+      plumbingBurstPipes: formData.plumbingBurstPipes || false,
       plumbingCloggedDrains: formData.plumbingCloggedDrains || false,
+      plumbingToiletNotWorking: formData.plumbingToiletNotWorking || false,
+      plumbingShowerNotWorking: formData.plumbingShowerNotWorking || false,
+      plumbingSinkNotWorking: formData.plumbingSinkNotWorking || false,
+      plumbingSewerBackup: formData.plumbingSewerBackup || false,
+      plumbingWaterDamage: formData.plumbingWaterDamage || false,
+      plumbingFlooding: formData.plumbingFlooding || false,
+      plumbingWaterDiscoloration: formData.plumbingWaterDiscoloration || false,
+      plumbingOther: formData.plumbingOther || false,
+      plumbingDetails: formData.plumbingDetails || null,
+      plumbingFirstNoticed: formData.plumbingFirstNoticed || null,
+      plumbingReportedDate: formData.plumbingReportedDate || null,
 
-      // Heating/Cooling
+      // Electrical Issues - ALL fields from intake form
+      hasElectricalIssues: formData.hasElectricalIssues || false,
+      electricalNoPower: formData.electricalNoPower || false,
+      electricalPartialOutages: formData.electricalPartialOutages || false,
+      electricalExposedWiring: formData.electricalExposedWiring || false,
+      electricalSparkingOutlets: formData.electricalSparkingOutlets || false,
+      electricalBrokenOutlets: formData.electricalBrokenOutlets || false,
+      electricalBrokenSwitches: formData.electricalBrokenSwitches || false,
+      electricalFlickeringLights: formData.electricalFlickeringLights || false,
+      electricalCircuitBreakerIssues: formData.electricalCircuitBreakerIssues || false,
+      electricalInsufficientOutlets: formData.electricalInsufficientOutlets || false,
+      electricalBurningSmell: formData.electricalBurningSmell || false,
+      electricalOther: formData.electricalOther || false,
+      electricalDetails: formData.electricalDetails || null,
+      electricalFirstNoticed: formData.electricalFirstNoticed || null,
+      electricalReportedDate: formData.electricalReportedDate || null,
+
+      // HVAC Issues - ALL fields from intake form
       hasHvacIssues: formData.hasHvacIssues || false,
       hvacNoHeat: formData.hvacNoHeat || false,
-      hvacNoAC: formData.hvacNoAC || false,
-      hvacPoorVentilation: formData.hvacPoorVentilation || false,
+      hvacInadequateHeat: formData.hvacInadequateHeat || false,
+      hvacNoAirConditioning: formData.hvacNoAirConditioning || false,
+      hvacInadequateCooling: formData.hvacInadequateCooling || false,
+      hvacBrokenThermostat: formData.hvacBrokenThermostat || false,
+      hvacGasSmell: formData.hvacGasSmell || false,
+      hvacCarbonMonoxideDetectorMissing: formData.hvacCarbonMonoxideDetectorMissing || false,
+      hvacVentilationPoor: formData.hvacVentilationPoor || false,
+      hvacOther: formData.hvacOther || false,
+      hvacDetails: formData.hvacDetails || null,
+      hvacFirstNoticed: formData.hvacFirstNoticed || null,
+      hvacReportedDate: formData.hvacReportedDate || null,
 
-      // Electrical
-      hasElectricalIssues: formData.hasElectricalIssues || false,
-      electricalOutages: formData.electricalOutages || false,
-      electricalSparks: formData.electricalSparks || false,
-      electricalOverloaded: formData.electricalOverloaded || false,
+      // Appliance Issues - ALL fields from intake form
+      hasApplianceIssues: formData.hasApplianceIssues || false,
+      applianceRefrigeratorBroken: formData.applianceRefrigeratorBroken || false,
+      applianceStoveBroken: formData.applianceStoveBroken || false,
+      applianceOvenBroken: formData.applianceOvenBroken || false,
+      applianceDishwasherBroken: formData.applianceDishwasherBroken || false,
+      applianceGarbageDisposalBroken: formData.applianceGarbageDisposalBroken || false,
+      applianceWasherBroken: formData.applianceWasherBroken || false,
+      applianceDryerBroken: formData.applianceDryerBroken || false,
+      applianceOther: formData.applianceOther || false,
+      applianceDetails: formData.applianceDetails || null,
 
-      // Pest
+      // Security Issues - ALL fields from intake form
+      hasSecurityIssues: formData.hasSecurityIssues || false,
+      securityBrokenLocks: formData.securityBrokenLocks || false,
+      securityBrokenWindows: formData.securityBrokenWindows || false,
+      securityBrokenDoors: formData.securityBrokenDoors || false,
+      securityNoDeadbolt: formData.securityNoDeadbolt || false,
+      securityBrokenGate: formData.securityBrokenGate || false,
+      securityBrokenIntercom: formData.securityBrokenIntercom || false,
+      securityInadequateLighting: formData.securityInadequateLighting || false,
+      securityNoSmokeDetector: formData.securityNoSmokeDetector || false,
+      securityBreakIns: formData.securityBreakIns || false,
+      securityOther: formData.securityOther || false,
+      securityDetails: formData.securityDetails || null,
+
+      // Pest Issues - ALL fields from intake form
       hasPestIssues: formData.hasPestIssues || false,
-      pestRodents: formData.pestRodents || false,
+      pestRats: formData.pestRats || false,
+      pestMice: formData.pestMice || false,
       pestCockroaches: formData.pestCockroaches || false,
-      pestBedBugs: formData.pestBedBugs || false,
+      pestBedbugs: formData.pestBedbugs || false,
+      pestFleas: formData.pestFleas || false,
+      pestAnts: formData.pestAnts || false,
+      pestTermites: formData.pestTermites || false,
+      pestSpiders: formData.pestSpiders || false,
+      pestWasps: formData.pestWasps || false,
+      pestBees: formData.pestBees || false,
+      pestOtherInsects: formData.pestOtherInsects || false,
+      pestBirds: formData.pestBirds || false,
+      pestRaccoons: formData.pestRaccoons || false,
+      pestOtherVermin: formData.pestOtherVermin || false,
+      pestDetails: formData.pestDetails || null,
+      pestFirstNoticed: formData.pestFirstNoticed || null,
+      pestReportedDate: formData.pestReportedDate || null,
 
-      // Mold
-      hasMoldIssues: formData.hasMoldIssues || false,
-      moldVisible: formData.moldVisible || false,
-      moldSmell: formData.moldSmell || false,
-      moldExtensive: formData.moldExtensive || false,
-
-      // Water
-      hasWaterIssues: formData.hasWaterIssues || false,
-      waterLeak: formData.waterLeak || false,
-      waterDamage: formData.waterDamage || false,
-      waterStanding: formData.waterStanding || false,
-
-      // Safety
-      hasSafetyIssues: formData.hasSafetyIssues || false,
-      safetyNoSmoke: formData.safetyNoSmoke || false,
-      safetyNoCO: formData.safetyNoCO || false,
-      safetyBrokenLocks: formData.safetyBrokenLocks || false,
-
-      // Other
+      // Legacy fields for backwards compatibility (can be removed later)
       hasOtherIssues: formData.hasOtherIssues || false,
       otherDescription: formData.otherIssuesDescription || null,
     };
