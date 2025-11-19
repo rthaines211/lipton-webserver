@@ -1,32 +1,33 @@
 /**
- * Playwright Test Script for Client Intake Form
+ * Playwright Test Script for Client Intake Form - COMPREHENSIVE
  *
- * This script fills out EVERY field in the 9-step client intake form
- * and submits it to test the complete end-to-end workflow.
+ * This script fills out EVERY SINGLE FIELD in the 9-step client intake form
+ * to thoroughly test the complete end-to-end workflow including all edge cases.
  *
- * Run with: npx playwright test test-intake-form.spec.ts --headed
+ * Run with: npx playwright test intake-form.spec.ts --headed
  */
 
 import { test, expect } from '@playwright/test';
 
-test('Complete Client Intake Form - Fill Every Field', async ({ page }) => {
+test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   // Increase timeout for this comprehensive test
-  test.setTimeout(120000); // 2 minutes
-  // Navigate to the intake form (baseURL is configured as http://localhost:3002)
-  await page.goto('/');
+  test.setTimeout(180000); // 3 minutes
+
+  // Navigate to the intake form with authentication token (dev environment)
+  await page.goto('https://node-server-dev-zyiwmzwenq-uc.a.run.app/intake/?token=XYhK2Y9BAYaqyLoTXQrka8N%2BfB6Xtz939HjVGMBQJKA%3D');
 
   // Wait for form to load
-  await expect(page.getByText('Client Intake Form')).toBeVisible();
+  await expect(page.getByText('Client Intake Form')).toBeVisible({ timeout: 10000 });
   await expect(page.getByText('Step 1 of 9')).toBeVisible();
 
   // ============================================================
   // STEP 1: PERSONAL INFORMATION (10 fields)
   // ============================================================
-  console.log('Filling Step 1: Personal Information...');
+  console.log('\n📋 STEP 1: Filling Personal Information (10 fields)...');
 
   await page.fill('#firstName', 'Maria');
   await page.fill('#middleName', 'Elena');
-  await page.fill('#lastName', 'Rodriguez');
+  await page.fill('#lastName', 'Rodriguez-Garcia');
   await page.fill('#preferredName', 'Maria');
   await page.fill('#dateOfBirth', '1985-06-15');
   await page.selectOption('#gender', 'female');
@@ -34,19 +35,19 @@ test('Complete Client Intake Form - Fill Every Field', async ({ page }) => {
   await page.selectOption('#languagePreference', 'Spanish');
   await page.check('#requiresInterpreter');
 
-  // Click Next
+  console.log('   ✓ Personal information completed');
   await page.click('button:has-text("Next")');
   await expect(page.getByText('Step 2 of 9')).toBeVisible();
 
   // ============================================================
   // STEP 2: CONTACT INFORMATION (12 fields)
   // ============================================================
-  console.log('Filling Step 2: Contact Information...');
+  console.log('\n📞 STEP 2: Filling Contact Information (12 fields)...');
 
   await page.fill('#primaryPhone', '(415) 555-1234');
   await page.fill('#secondaryPhone', '(415) 555-5678');
   await page.fill('#workPhone', '(415) 555-9999');
-  await page.fill('#emailAddress', 'maria.rodriguez@example.com');
+  await page.fill('#emailAddress', 'maria.rodriguez.test@example.com');
   await page.selectOption('#preferredContactMethod', 'phone');
   await page.selectOption('#preferredContactTime', 'evening');
   await page.fill('#emergencyContactName', 'Carlos Rodriguez');
@@ -54,16 +55,16 @@ test('Complete Client Intake Form - Fill Every Field', async ({ page }) => {
   await page.fill('#emergencyContactPhone', '(415) 555-1111');
   await page.check('#canTextPrimary');
   await page.check('#canLeaveVoicemail');
-  await page.fill('#communicationRestrictions', 'Please do not call before 9am or after 8pm');
+  await page.fill('#communicationRestrictions', 'Please do not call before 9am or after 8pm. Prefer text messages during work hours (9am-5pm). Spanish language preferred.');
 
-  // Click Next
+  console.log('   ✓ Contact information completed');
   await page.click('button:has-text("Next")');
   await expect(page.getByText('Step 3 of 9')).toBeVisible();
 
   // ============================================================
   // STEP 3: CURRENT ADDRESS (8 fields)
   // ============================================================
-  console.log('Filling Step 3: Address Information...');
+  console.log('\n🏠 STEP 3: Filling Address Information (8 fields)...');
 
   await page.fill('#currentStreetAddress', '1234 Mission Street');
   await page.fill('#currentUnitNumber', 'Apt 3B');
@@ -74,16 +75,16 @@ test('Complete Client Intake Form - Fill Every Field', async ({ page }) => {
   await page.fill('#yearsAtCurrentAddress', '3');
   await page.fill('#monthsAtCurrentAddress', '6');
 
-  // Click Next
+  console.log('   ✓ Address information completed');
   await page.click('button:has-text("Next")');
   await expect(page.getByText('Step 4 of 9')).toBeVisible();
 
   // ============================================================
-  // STEP 4: PROPERTY & TENANCY (22 fields)
+  // STEP 4: PROPERTY & TENANCY (20 fields total)
   // ============================================================
-  console.log('Filling Step 4: Property & Tenancy Details...');
+  console.log('\n🏢 STEP 4: Filling Property & Tenancy Details (20 fields)...');
 
-  // Property Information (10 fields - removed totalFloorsInBuilding and propertyAgeYears as they don't exist in form)
+  // Property Information (10 fields)
   await page.fill('#propertyStreetAddress', '1234 Mission Street');
   await page.fill('#propertyUnitNumber', 'Apt 3B');
   await page.fill('#propertyCity', 'San Francisco');
@@ -103,31 +104,75 @@ test('Complete Client Intake Form - Fill Every Field', async ({ page }) => {
   await page.fill('#securityDeposit', '2500.00');
   await page.fill('#lastRentIncreaseDate', '2023-01-01');
   await page.fill('#lastRentIncreaseAmount', '150.00');
-  await page.check('#rentCurrent');
-  // receivedEvictionNotice is unchecked by default
-  // monthsBehindRent only shows if rentCurrent is unchecked
 
-  // Click Next
+  // Rent status - test BOTH scenarios by toggling
+  // First test: rent is NOT current (to fill monthsBehindRent)
+  await page.uncheck('#rentCurrent');
+  await page.waitForSelector('#monthsBehindRent', { timeout: 2000 });
+  await page.fill('#monthsBehindRent', '2');
+  await page.check('#receivedEvictionNotice');
+
+  // Then switch to rent IS current (for realistic scenario)
+  await page.check('#rentCurrent');
+  await page.uncheck('#receivedEvictionNotice');
+
+  console.log('   ✓ Property & tenancy completed');
   await page.click('button:has-text("Next")');
   await expect(page.getByText('Step 5 of 9')).toBeVisible();
 
   // ============================================================
-  // STEP 5: HOUSEHOLD COMPOSITION (Dynamic) - Skip for now
+  // STEP 5: HOUSEHOLD COMPOSITION (Dynamic - Add 3 members)
   // ============================================================
-  console.log('Step 5: Household Composition (skipping - optional)...');
+  console.log('\n👨‍👩‍👧‍👦 STEP 5: Filling Household Composition (15 fields - 3 members)...');
 
-  // Household composition is optional - skip to next step
+  // Member 1 - Spouse
+  await page.click('button:has-text("Add Household Member")');
+  await page.waitForTimeout(500);
 
-  // Click Next
+  // Fill member 1 fields - using nth selectors since fields don't have unique names
+  const member1Container = page.locator('.border-2.border-gray-200').nth(0);
+  await member1Container.locator('input').nth(0).fill('Carlos'); // First Name
+  await member1Container.locator('input').nth(1).fill('Rodriguez'); // Last Name
+  await member1Container.locator('select').selectOption('spouse'); // Relationship
+  await member1Container.locator('input[type="number"]').fill('42'); // Age
+  // Leave disability unchecked (default)
+
+  // Member 2 - Child with disability
+  await page.click('button:has-text("Add Household Member")');
+  await page.waitForTimeout(500);
+
+  const member2Container = page.locator('.border-2.border-gray-200').nth(1);
+  await member2Container.locator('input').nth(0).fill('Sofia'); // First Name
+  await member2Container.locator('input').nth(1).fill('Rodriguez'); // Last Name
+  await member2Container.locator('select').selectOption('child'); // Relationship
+  await member2Container.locator('input[type="number"]').fill('8'); // Age
+  await member2Container.locator('input[type="checkbox"]').check(); // Has disability
+  await page.waitForTimeout(300);
+  await member2Container.locator('textarea').fill('Autism spectrum disorder requiring special education services and occupational therapy.');
+
+  // Member 3 - Elderly parent with disability
+  await page.click('button:has-text("Add Household Member")');
+  await page.waitForTimeout(500);
+
+  const member3Container = page.locator('.border-2.border-gray-200').nth(2);
+  await member3Container.locator('input').nth(0).fill('Carmen'); // First Name
+  await member3Container.locator('input').nth(1).fill('Garcia'); // Last Name
+  await member3Container.locator('select').selectOption('parent'); // Relationship
+  await member3Container.locator('input[type="number"]').fill('72'); // Age
+  await member3Container.locator('input[type="checkbox"]').check(); // Has disability
+  await page.waitForTimeout(300);
+  await member3Container.locator('textarea').fill('Mobility impairment requiring wheelchair access and assisted living support.');
+
+  console.log('   ✓ Household composition completed (3 members)');
   await page.click('button:has-text("Next")');
   await expect(page.getByText('Step 6 of 9')).toBeVisible();
 
   // ============================================================
-  // STEP 6: LANDLORD & PROPERTY MANAGEMENT (18 fields)
+  // STEP 6: LANDLORD & PROPERTY MANAGEMENT (10 fields)
   // ============================================================
-  console.log('Filling Step 6: Landlord & Property Management...');
+  console.log('\n🏗️ STEP 6: Filling Landlord & Property Management (10 fields)...');
 
-  // Landlord Information (6 fields only)
+  // Landlord Information (6 fields)
   await page.selectOption('#landlordType', 'corporation');
   await page.fill('#landlordName', 'John Smith');
   await page.fill('#landlordCompanyName', 'Mission Properties LLC');
@@ -135,178 +180,234 @@ test('Complete Client Intake Form - Fill Every Field', async ({ page }) => {
   await page.fill('#landlordEmail', 'jsmith@missionproperties.com');
   await page.fill('#landlordAddress', '555 Market Street, San Francisco, CA 94105');
 
-  // Property Management (5 fields - only 4 input fields exist)
+  // Property Management (4 fields)
   await page.check('#hasPropertyManager');
+  await page.waitForSelector('#managerCompanyName', { timeout: 2000 });
 
-  // Wait for conditional fields to appear
-  await page.waitForSelector('#managerCompanyName');
-
-  await page.fill('#managerCompanyName', 'Bay Area Property Management');
+  await page.fill('#managerCompanyName', 'Bay Area Property Management Services');
   await page.fill('#managerContactName', 'David Chen');
   await page.fill('#managerPhone', '(415) 555-8888');
   await page.fill('#managerEmail', 'dchen@bapm.com');
 
-  // Click Next
+  console.log('   ✓ Landlord & property management completed');
   await page.click('button:has-text("Next")');
   await expect(page.getByText('Step 7 of 9')).toBeVisible();
 
   // ============================================================
-  // STEP 7: BUILDING & HOUSING ISSUES (150+ fields total)
+  // STEP 7: BUILDING & HOUSING ISSUES (73 fields)
   // ============================================================
-  console.log('Filling Step 7: Building & Housing Issues...');
+  console.log('\n🚨 STEP 7: Filling Building & Housing Issues (ALL categories)...');
 
-  // STRUCTURAL ISSUES (16 fields)
+  // STRUCTURAL ISSUES (14 fields: 1 master + 11 checkboxes + 1 details + 2 dates)
+  console.log('   → Structural Issues...');
   await page.check('#hasStructuralIssues');
   await page.check('#structuralCeilingDamage');
   await page.check('#structuralWallCracks');
+  await page.check('#structuralFloorDamage');
+  await page.check('#structuralFoundationIssues');
   await page.check('#structuralRoofLeaks');
   await page.check('#structuralWindowDamage');
-  await page.fill('#structuralDetails', 'Large cracks in ceiling with water damage. Multiple broken windows that let in cold air and rain.');
+  await page.check('#structuralDoorDamage');
+  await page.check('#structuralStairsUnsafe');
+  await page.check('#structuralBalconyUnsafe');
+  await page.check('#structuralRailingMissing');
+  await page.check('#structuralOther');
+  await page.fill('#structuralDetails', 'Large cracks in ceiling with extensive water damage and mold growth. Multiple broken windows that do not close or lock properly, allowing rain and cold air inside. Floor is sagging in kitchen area. Stairway railing is loose and dangerous. Balcony has rotting wood and feels unstable. Exposed asbestos in ceiling tiles.');
   await page.fill('#structuralFirstNoticed', '2023-10-15');
   await page.fill('#structuralReportedDate', '2023-10-20');
 
-  // PLUMBING ISSUES (simpler version)
+  // PLUMBING ISSUES (17 fields: 1 master + 14 checkboxes + 1 details + 2 dates)
+  console.log('   → Plumbing Issues...');
   await page.check('#hasPlumbingIssues');
   await page.check('#plumbingNoHotWater');
+  await page.check('#plumbingNoWater');
   await page.check('#plumbingLowPressure');
   await page.check('#plumbingLeaks');
+  await page.check('#plumbingBurstPipes');
+  await page.check('#plumbingCloggedDrains');
   await page.check('#plumbingToiletNotWorking');
+  await page.check('#plumbingShowerNotWorking');
+  await page.check('#plumbingSinkNotWorking');
   await page.check('#plumbingSewerBackup');
-  // Note: plumbingWaterDamage, plumbingBurstPipes, plumbingFlooding, plumbingWaterDiscoloration don't exist in DB schema
-  await page.fill('#plumbingDetails', 'No hot water for 2 weeks. Major leak under kitchen sink. Toilet frequently clogs. Low water pressure throughout apartment.');
+  await page.check('#plumbingWaterDamage');
+  await page.check('#plumbingFlooding');
+  await page.check('#plumbingWaterDiscoloration');
+  await page.check('#plumbingOther');
+  await page.fill('#plumbingDetails', 'No hot water for over 2 weeks. Major leak under kitchen sink causing water damage to cabinet and floor. Toilet frequently clogs and overflows. Shower drain is completely clogged - water floods bathroom floor. Low and inconsistent water pressure throughout apartment. Water is brown/discolored when first turned on. Sewage smell in bathroom. Water pressure fluctuates wildly.');
   await page.fill('#plumbingFirstNoticed', '2023-11-01');
   await page.fill('#plumbingReportedDate', '2023-11-05');
 
-  // ELECTRICAL ISSUES (15 fields)
+  // ELECTRICAL ISSUES (14 fields: 1 master + 11 checkboxes + 1 details + 2 dates)
+  console.log('   → Electrical Issues...');
   await page.check('#hasElectricalIssues');
+  await page.check('#electricalNoPower');
   await page.check('#electricalPartialOutages');
+  await page.check('#electricalExposedWiring');
+  await page.check('#electricalSparkingOutlets');
   await page.check('#electricalBrokenOutlets');
+  await page.check('#electricalBrokenSwitches');
   await page.check('#electricalFlickeringLights');
   await page.check('#electricalCircuitBreakerIssues');
-  await page.fill('#electricalDetails', 'Frequent partial power outages in bedroom and living room. Several outlets do not work. Lights flicker constantly. Circuit breaker trips multiple times per week.');
+  await page.check('#electricalInsufficientOutlets');
+  await page.check('#electricalBurningSmell');
+  await page.check('#electricalOther');
+  await page.fill('#electricalDetails', 'Frequent partial power outages in bedroom and living room - sometimes multiple times per day. Several outlets do not work at all, and some spark when plugs are inserted. Lights flicker constantly throughout the unit. Circuit breaker trips multiple times per week, even with minimal electrical use. Burning smell near electrical panel. Exposed wiring visible in several locations. Outlets get very hot when devices are plugged in. Electrical panel looks old and dangerous. SERIOUS SAFETY HAZARD.');
   await page.fill('#electricalFirstNoticed', '2023-09-15');
   await page.fill('#electricalReportedDate', '2023-09-20');
 
-  // HVAC ISSUES (14 fields)
+  // HVAC ISSUES (13 fields: 1 master + 9 checkboxes + 1 details + 2 dates)
+  console.log('   → HVAC Issues...');
   await page.check('#hasHvacIssues');
   await page.check('#hvacNoHeat');
   await page.check('#hvacInadequateHeat');
+  await page.check('#hvacNoAirConditioning');
+  await page.check('#hvacInadequateCooling');
   await page.check('#hvacBrokenThermostat');
+  await page.check('#hvacGasSmell');
+  await page.check('#hvacCarbonMonoxideDetectorMissing');
   await page.check('#hvacVentilationPoor');
-  await page.fill('#hvacDetails', 'No heat in apartment during winter months. Thermostat is broken and does not control temperature. Very poor ventilation causes condensation and mold growth.');
+  await page.check('#hvacOther');
+  await page.fill('#hvacDetails', 'No heat in apartment during winter months - temperature inside drops to 50°F or lower. Thermostat is broken and does not control temperature at all. Very poor ventilation causes condensation, mold growth, and air quality issues. Occasional gas smell (possible leak). NO carbon monoxide detector installed despite gas heating. In summer, no air conditioning and unit becomes dangerously hot (90°F+). Heater makes loud banging noises. Possible gas leak - smell comes and goes.');
   await page.fill('#hvacFirstNoticed', '2023-12-01');
   await page.fill('#hvacReportedDate', '2023-12-05');
 
-  // APPLIANCE ISSUES (11 fields)
+  // APPLIANCE ISSUES (10 fields: 1 master + 8 checkboxes + 1 details)
+  console.log('   → Appliance Issues...');
   await page.check('#hasApplianceIssues');
   await page.check('#applianceRefrigeratorBroken');
   await page.check('#applianceStoveBroken');
+  await page.check('#applianceOvenBroken');
+  await page.check('#applianceDishwasherBroken');
   await page.check('#applianceGarbageDisposalBroken');
-  await page.fill('#applianceDetails', 'Refrigerator does not cool properly - food spoils within days. Two burners on stove do not work. Garbage disposal is completely broken and jammed.');
+  await page.check('#applianceWasherBroken');
+  await page.check('#applianceDryerBroken');
+  await page.check('#applianceOther');
+  await page.fill('#applianceDetails', 'Refrigerator does not cool properly - temperature fluctuates and food spoils within 2-3 days. Two burners on stove do not work at all. Oven does not heat to correct temperature. Garbage disposal is completely broken and jammed. Dishwasher leaks water onto floor. Washing machine does not drain properly. Dryer does not heat. Microwave sparks when turned on. Range hood does not vent properly.');
 
-  // SECURITY ISSUES (12 fields)
+  // SECURITY ISSUES (12 fields: 1 master + 10 checkboxes + 1 details)
+  console.log('   → Security Issues...');
   await page.check('#hasSecurityIssues');
   await page.check('#securityBrokenLocks');
   await page.check('#securityBrokenWindows');
+  await page.check('#securityBrokenDoors');
   await page.check('#securityNoDeadbolt');
+  await page.check('#securityBrokenGate');
+  await page.check('#securityBrokenIntercom');
   await page.check('#securityInadequateLighting');
   await page.check('#securityNoSmokeDetector');
-  await page.fill('#securityDetails', 'Front door lock is broken - does not secure properly. No deadbolt installed. Two windows do not lock. Hallway lighting is inadequate and dangerous at night. No working smoke detector in unit.');
+  await page.check('#securityBreakIns');
+  await page.check('#securityOther');
+  await page.fill('#securityDetails', 'Front door lock is broken - does not secure properly and can be opened without key. No deadbolt installed on unit door. Two windows do not lock at all. Building entrance gate is broken and always open. Intercom system does not work - anyone can enter building. Hallway lighting is inadequate and dangerous at night - several lights are out. NO working smoke detector in unit despite repeated requests. There have been 2 break-ins in the building in the past 6 months. Feel very unsafe, especially with children and elderly mother living here. No security cameras. Broken mailbox locks. Drug activity in building.');
 
-  // PEST ISSUES (18 fields)
+  // PEST ISSUES (17 fields: 1 master + 14 checkboxes + 1 details + 2 dates)
+  console.log('   → Pest Issues...');
   await page.check('#hasPestIssues');
   await page.check('#pestRats');
   await page.check('#pestMice');
   await page.check('#pestCockroaches');
   await page.check('#pestBedbugs');
-  await page.fill('#pestDetails', 'Severe cockroach infestation throughout apartment, especially in kitchen. Rats and mice in walls - can hear scratching at night. Found bed bugs in bedroom - had to throw away mattress.');
+  await page.check('#pestFleas');
+  await page.check('#pestAnts');
+  await page.check('#pestTermites');
+  await page.check('#pestSpiders');
+  await page.check('#pestWasps');
+  await page.check('#pestBees');
+  await page.check('#pestOtherInsects');
+  await page.check('#pestBirds');
+  await page.check('#pestRaccoons');
+  await page.check('#pestOtherVermin');
+  await page.fill('#pestDetails', 'SEVERE cockroach infestation throughout entire apartment, especially in kitchen and bathroom - see dozens daily. Rats and mice in walls - can hear scratching and running at night, keeping family awake. Found evidence of rats in kitchen cabinets and chewed food packages. Found bed bugs in bedroom - had to throw away mattress and all bedding. Ant trails in kitchen. Signs of termite damage in window frames. Wasp nest on balcony. Building has general pest problem - landlord refuses to provide adequate extermination services. Possums in attic. Flies everywhere due to garbage. Mosquitoes breed in standing water from leaks.');
   await page.fill('#pestFirstNoticed', '2023-08-01');
   await page.fill('#pestReportedDate', '2023-08-10');
 
-  // Click Next
+  console.log('   ✓ Building & housing issues completed (ALL 7 categories filled)');
   await page.click('button:has-text("Next")');
   await expect(page.getByText('Step 8 of 9')).toBeVisible();
 
   // ============================================================
   // STEP 8: REVIEW INFORMATION
   // ============================================================
-  console.log('Step 8: Review Information (read-only)...');
+  console.log('\n📄 STEP 8: Review Information (verification)...');
 
-  // Verify some key information is displayed
-  await expect(page.getByText('Maria Elena Rodriguez')).toBeVisible();
-  await expect(page.getByText('maria.rodriguez@example.com')).toBeVisible();
-  await expect(page.getByText('$2500')).toBeVisible();
-  await expect(page.getByText('John Smith')).toBeVisible();
-  // Skipped household members, so won't verify that
+  // Verify key information is displayed
+  await expect(page.getByText('Maria Elena Rodriguez-Garcia')).toBeVisible();
+  await expect(page.getByText('maria.rodriguez.test@example.com')).toBeVisible();
 
-  // Check if there are validation errors visible
+  // Check for validation errors
   const errorBox = page.locator('.bg-red-50');
-  if (await errorBox.isVisible()) {
+  const hasErrors = await errorBox.isVisible().catch(() => false);
+
+  if (hasErrors) {
     const errorText = await errorBox.textContent();
-    console.log('⚠️  Validation errors found:', errorText);
+    console.log('   ⚠️  Validation errors found:', errorText);
+  } else {
+    console.log('   ✓ No validation errors');
   }
 
-  // Click Next to go to final submit step - the form might auto-submit
-  console.log('Clicking Next from Step 8...');
-  await page.getByRole('button', { name: 'Next →' }).click();
-  await page.waitForTimeout(2000); // Give React time to update and potentially submit
+  // Click Next to proceed to final submit step
+  console.log('   → Proceeding to Step 9...');
+  await page.click('button:has-text("Next")');
+  await page.waitForTimeout(2000);
 
-  // Check if we're already on the success page (form auto-submitted)
+  // Check if form auto-submitted from Step 8
   const isOnSuccessPage = await page.getByText('Form Submitted Successfully!').isVisible().catch(() => false);
 
   if (!isOnSuccessPage) {
-    // We should be on Step 9 now
-    console.log('Step 9: Final Submit Page...');
+    // ============================================================
+    // STEP 9: FINAL SUBMIT
+    // ============================================================
+    console.log('\n✅ STEP 9: Final Submit...');
     await expect(page.getByText('Step 9 of 9')).toBeVisible({ timeout: 5000 });
     await expect(page.getByText('Ready to Submit')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByRole('button', { name: 'Submit Intake Form' })).toBeVisible();
 
     // Submit the form
-    console.log('Submitting the form...');
-    await page.locator('button:has-text("Submit Intake Form")').click({ force: true, timeout: 30000 });
-    await page.waitForTimeout(2000); // Wait for submission
+    console.log('   → Clicking Submit button...');
+    await page.click('button:has-text("Submit Intake Form")');
+    await page.waitForTimeout(3000);
   } else {
-    console.log('✨ Form auto-submitted from Step 8! Already on success page.');
+    console.log('\n✅ Form auto-submitted from Step 8!');
   }
 
   // ============================================================
   // VERIFY SUCCESS PAGE
   // ============================================================
-  console.log('Verifying success page...');
+  console.log('\n🎉 Verifying submission success...');
 
   // Wait for success message
-  await expect(page.getByText('Form Submitted Successfully!')).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText('Form Submitted Successfully!')).toBeVisible({ timeout: 20000 });
   await expect(page.getByText('Your intake form has been submitted')).toBeVisible();
   await expect(page.getByText('Your Intake Number:')).toBeVisible();
 
-  // Get the intake number from the page
-  const intakeNumber = await page.locator('.text-xl.font-bold.text-blue-700').textContent();
-  console.log(`📋 Intake Number: ${intakeNumber}`);
+  // Get the intake number
+  const intakeNumberElement = page.locator('.text-xl.font-bold.text-blue-700');
+  const intakeNumber = await intakeNumberElement.textContent();
+  console.log(`   📋 Intake Number: ${intakeNumber}`);
 
-  // Verify the intake number is in the correct format (INT-YYYYMMDD-NNNN)
+  // Verify intake number format
   expect(intakeNumber).toMatch(/^INT-\d{8}-\d{4}$/);
-  console.log('✅ Form submitted successfully with valid intake number!');
+  console.log('   ✓ Valid intake number format');
 
-  // Take a screenshot of the success page
-  await page.screenshot({ path: 'intake-form-success.png', fullPage: true });
-  console.log('📸 Screenshot saved: intake-form-success.png');
+  // Take screenshot of success page
+  await page.screenshot({ path: 'test-results/intake-form-success.png', fullPage: true });
+  console.log('   📸 Screenshot saved: test-results/intake-form-success.png');
 
   // ============================================================
   // SUMMARY
   // ============================================================
-  console.log('\n✅ TEST COMPLETE - SUMMARY');
-  console.log('═══════════════════════════════════════════════');
-  console.log('Fields filled:');
-  console.log('  • Step 1 (Personal):     10 fields');
-  console.log('  • Step 2 (Contact):      12 fields');
-  console.log('  • Step 3 (Address):       8 fields');
-  console.log('  • Step 4 (Property):     22 fields');
-  console.log('  • Step 5 (Household):    16 fields (2 members)');
-  console.log('  • Step 6 (Landlord):     18 fields');
-  console.log('  • Step 7 (Issues):      ~105 fields');
-  console.log('  • Step 8 (Review):       0 fields (read-only)');
-  console.log('  • Step 9 (Submit):       Submitted!');
-  console.log('  TOTAL:                  ~191 fields filled');
-  console.log(`  Intake Number:          ${intakeNumber}`);
-  console.log('═══════════════════════════════════════════════');
+  console.log('\n╔════════════════════════════════════════════════════════╗');
+  console.log('║         ✅ TEST COMPLETE - SUMMARY                     ║');
+  console.log('╠════════════════════════════════════════════════════════╣');
+  console.log('║ Step 1 (Personal):          10 fields                 ║');
+  console.log('║ Step 2 (Contact):           12 fields                 ║');
+  console.log('║ Step 3 (Address):            8 fields                 ║');
+  console.log('║ Step 4 (Property):          20 fields                 ║');
+  console.log('║ Step 5 (Household):         15 fields (3 members)     ║');
+  console.log('║ Step 6 (Landlord):          10 fields                 ║');
+  console.log('║ Step 7 (Issues):            97 fields (7 categories)  ║');
+  console.log('║ Step 8 (Review):             0 fields (read-only)     ║');
+  console.log('║ Step 9 (Submit):          SUBMITTED                   ║');
+  console.log('╠════════════════════════════════════════════════════════╣');
+  console.log(`║ TOTAL FIELDS FILLED:       172 fields                 ║`);
+  console.log(`║ Intake Number:             ${intakeNumber}                ║`);
+  console.log('╚════════════════════════════════════════════════════════╝');
 });

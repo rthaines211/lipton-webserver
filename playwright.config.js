@@ -11,6 +11,9 @@ export default defineConfig({
   // Test directory
   testDir: './tests',
 
+  // Only run Playwright test files (*.spec.ts, *.spec.js), ignore Jest tests (*.test.js)
+  testMatch: '**/*.spec.{js,ts}',
+
   // Run tests in files in parallel
   fullyParallel: true,
 
@@ -28,9 +31,6 @@ export default defineConfig({
 
   // Shared settings for all the projects below
   use: {
-    // Base URL to use in actions like `await page.goto('/')`
-    baseURL: 'http://localhost:3001',
-
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',
 
