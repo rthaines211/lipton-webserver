@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS client_intakes (
     first_name VARCHAR(100) NOT NULL,
     middle_name VARCHAR(100),
     last_name VARCHAR(100) NOT NULL,
+    preferred_name VARCHAR(100), -- How client prefers to be addressed
     date_of_birth DATE,
 
     -- ========================================
