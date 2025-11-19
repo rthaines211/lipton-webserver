@@ -36,13 +36,14 @@ echo "✅ Cloud SQL Proxy ready"
 echo ""
 
 # Run migrations using the migration runner
+# NOTE: Do NOT set INSTANCE_CONNECTION_NAME when using local proxy
+# Setting it forces Unix socket mode instead of TCP
 echo "Running migrations..."
 DB_HOST=localhost \
 DB_PORT=5433 \
 DB_NAME=legal_forms_db_dev \
 DB_USER=app-user-dev \
 DB_PASSWORD="${DB_PASSWORD_DEV}" \
-INSTANCE_CONNECTION_NAME="${PROJECT_ID}:${REGION}:${INSTANCE_NAME}" \
 node db/migrations/run-migrations.js
 
 EXIT_CODE=$?
