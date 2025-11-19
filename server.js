@@ -386,6 +386,14 @@ app.use(requireAuth);
 // Serve static files (HTML, CSS, JS) - only after auth passes
 app.use(express.static(__dirname));
 
+// Serve React client-intake app
+// The built React app is in client-intake/dist and needs to be served with proper routing
+app.use('/intake', express.static(path.join(__dirname, 'client-intake', 'dist')));
+// Fallback route for React Router (SPA) - serve index.html for all /intake/* routes
+app.get('/intake/*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client-intake', 'dist', 'index.html'));
+});
+
 // Mount PDF generation routes
 const pdfRoutes = require('./server/routes/pdf-routes');
 app.use('/api/pdf', pdfRoutes);

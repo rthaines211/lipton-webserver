@@ -19,6 +19,7 @@ export default defineConfig({
       },
     },
   },
+  base: '/intake/',
   build: {
     outDir: 'dist',
     sourcemap: true,
