@@ -23,7 +23,7 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
 
   // Section 1-5: Basic Information
   const [formData, setFormData] = useState({
-    // Section 1: Personal Information (10 fields)
+    // Section 1: Personal Information (12 fields - added filingCounty, isHeadOfHousehold)
     firstName: '',
     middleName: '',
     lastName: '',
@@ -33,6 +33,8 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
     maritalStatus: '',
     languagePreference: 'English',
     requiresInterpreter: false,
+    filingCounty: '',
+    isHeadOfHousehold: true,
 
     // Section 2: Contact Information (12 fields)
     primaryPhone: '',
@@ -232,12 +234,15 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
   // Section 6: Household Members (Dynamic)
   const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | any) => {
     const { name, value, type } = e.target
 
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked
       setFormData(prev => ({ ...prev, [name]: checked }))
+    } else if (type === 'radio' && name === 'isHeadOfHousehold') {
+      // Special handling for isHeadOfHousehold boolean radio button
+      setFormData(prev => ({ ...prev, [name]: value }))
     } else {
       setFormData(prev => ({ ...prev, [name]: value }))
     }
@@ -650,6 +655,112 @@ function PersonalInformation({ formData, handleChange }: any) {
         <label htmlFor="requiresInterpreter" className="ml-2 text-sm text-gray-700">
           I require an interpreter for legal proceedings
         </label>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="filingCounty" className="block text-sm font-medium text-gray-700 mb-1">
+            Filing County <span className="text-red-600">*</span>
+          </label>
+          <select
+            id="filingCounty"
+            name="filingCounty"
+            required
+            value={formData.filingCounty}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select County...</option>
+            <option value="Alameda">Alameda</option>
+            <option value="Alpine">Alpine</option>
+            <option value="Amador">Amador</option>
+            <option value="Butte">Butte</option>
+            <option value="Calaveras">Calaveras</option>
+            <option value="Colusa">Colusa</option>
+            <option value="Contra Costa">Contra Costa</option>
+            <option value="Del Norte">Del Norte</option>
+            <option value="El Dorado">El Dorado</option>
+            <option value="Fresno">Fresno</option>
+            <option value="Glenn">Glenn</option>
+            <option value="Humboldt">Humboldt</option>
+            <option value="Imperial">Imperial</option>
+            <option value="Inyo">Inyo</option>
+            <option value="Kern">Kern</option>
+            <option value="Kings">Kings</option>
+            <option value="Lake">Lake</option>
+            <option value="Lassen">Lassen</option>
+            <option value="Los Angeles">Los Angeles</option>
+            <option value="Madera">Madera</option>
+            <option value="Marin">Marin</option>
+            <option value="Mariposa">Mariposa</option>
+            <option value="Mendocino">Mendocino</option>
+            <option value="Merced">Merced</option>
+            <option value="Modoc">Modoc</option>
+            <option value="Mono">Mono</option>
+            <option value="Monterey">Monterey</option>
+            <option value="Napa">Napa</option>
+            <option value="Nevada">Nevada</option>
+            <option value="Orange">Orange</option>
+            <option value="Placer">Placer</option>
+            <option value="Plumas">Plumas</option>
+            <option value="Riverside">Riverside</option>
+            <option value="Sacramento">Sacramento</option>
+            <option value="San Benito">San Benito</option>
+            <option value="San Bernardino">San Bernardino</option>
+            <option value="San Diego">San Diego</option>
+            <option value="San Francisco">San Francisco</option>
+            <option value="San Joaquin">San Joaquin</option>
+            <option value="San Luis Obispo">San Luis Obispo</option>
+            <option value="San Mateo">San Mateo</option>
+            <option value="Santa Barbara">Santa Barbara</option>
+            <option value="Santa Clara">Santa Clara</option>
+            <option value="Santa Cruz">Santa Cruz</option>
+            <option value="Shasta">Shasta</option>
+            <option value="Sierra">Sierra</option>
+            <option value="Siskiyou">Siskiyou</option>
+            <option value="Solano">Solano</option>
+            <option value="Sonoma">Sonoma</option>
+            <option value="Stanislaus">Stanislaus</option>
+            <option value="Sutter">Sutter</option>
+            <option value="Tehama">Tehama</option>
+            <option value="Trinity">Trinity</option>
+            <option value="Tulare">Tulare</option>
+            <option value="Tuolumne">Tuolumne</option>
+            <option value="Ventura">Ventura</option>
+            <option value="Yolo">Yolo</option>
+            <option value="Yuba">Yuba</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Are you the Head of Household? <span className="text-red-600">*</span>
+          </label>
+          <div className="flex gap-4 mt-2">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="isHeadOfHousehold"
+                value="true"
+                checked={formData.isHeadOfHousehold === true}
+                onChange={() => handleChange({ target: { name: 'isHeadOfHousehold', value: true, type: 'radio' } })}
+                className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+              />
+              <span className="ml-2 text-sm text-gray-700">Yes</span>
+            </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="isHeadOfHousehold"
+                value="false"
+                checked={formData.isHeadOfHousehold === false}
+                onChange={() => handleChange({ target: { name: 'isHeadOfHousehold', value: false, type: 'radio' } })}
+                className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+              />
+              <span className="ml-2 text-sm text-gray-700">No</span>
+            </label>
+          </div>
+        </div>
       </div>
     </div>
   )

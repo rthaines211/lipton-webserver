@@ -21,9 +21,9 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   await expect(page.getByText('Step 1 of 9')).toBeVisible();
 
   // ============================================================
-  // STEP 1: PERSONAL INFORMATION (10 fields)
+  // STEP 1: PERSONAL INFORMATION (12 fields - added filingCounty, isHeadOfHousehold)
   // ============================================================
-  console.log('\n📋 STEP 1: Filling Personal Information (10 fields)...');
+  console.log('\n📋 STEP 1: Filling Personal Information (12 fields)...');
 
   await page.fill('#firstName', 'Maria');
   await page.fill('#middleName', 'Elena');
@@ -34,6 +34,9 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   await page.selectOption('#maritalStatus', 'married');
   await page.selectOption('#languagePreference', 'Spanish');
   await page.check('#requiresInterpreter');
+  await page.selectOption('#filingCounty', 'Los Angeles');
+  // Select "Yes" for Head of Household
+  await page.click('input[name="isHeadOfHousehold"][value="true"]');
 
   console.log('   ✓ Personal information completed');
   await page.click('button:has-text("Next")');
@@ -397,7 +400,7 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   console.log('\n╔════════════════════════════════════════════════════════╗');
   console.log('║         ✅ TEST COMPLETE - SUMMARY                     ║');
   console.log('╠════════════════════════════════════════════════════════╣');
-  console.log('║ Step 1 (Personal):          10 fields                 ║');
+  console.log('║ Step 1 (Personal):          12 fields                 ║');
   console.log('║ Step 2 (Contact):           12 fields                 ║');
   console.log('║ Step 3 (Address):            8 fields                 ║');
   console.log('║ Step 4 (Property):          20 fields                 ║');
@@ -407,7 +410,7 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   console.log('║ Step 8 (Review):             0 fields (read-only)     ║');
   console.log('║ Step 9 (Submit):          SUBMITTED                   ║');
   console.log('╠════════════════════════════════════════════════════════╣');
-  console.log(`║ TOTAL FIELDS FILLED:       172 fields                 ║`);
+  console.log(`║ TOTAL FIELDS FILLED:       174 fields                 ║`);
   console.log(`║ Intake Number:             ${intakeNumber}                ║`);
   console.log('╚════════════════════════════════════════════════════════╝');
 });

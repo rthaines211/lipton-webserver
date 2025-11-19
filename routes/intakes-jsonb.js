@@ -259,6 +259,8 @@ router.post('/', async (req, res) => {
         primary_phone,
         secondary_phone,
         preferred_contact_method,
+        filing_county,
+        is_head_of_household,
         current_address,
         property_address,
         tenancy_info,
@@ -270,7 +272,7 @@ router.post('/', async (req, res) => {
         raw_form_data
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-        $11, $12, $13, $14, $15, $16, $17, $18, $19
+        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
       )
       RETURNING id, intake_number, created_at, intake_status
     `;
@@ -286,6 +288,8 @@ router.post('/', async (req, res) => {
       formData.primaryPhone,
       formData.secondaryPhone || null,
       formData.preferredContactMethod || 'email',
+      formData.filingCounty || null,
+      formData.isHeadOfHousehold !== undefined ? formData.isHeadOfHousehold : true,
       JSON.stringify(currentAddress),
       JSON.stringify(propertyAddress),
       JSON.stringify(tenancyInfo),
@@ -484,6 +488,25 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       isAdult = age >= 21;
     }
 
+    // Implement Head of Household logic for Plaintiff #1
+    // If client is head of household, use their info
+    // If not, look for the head of household in household members array
+    const isClientHeadOfHousehold = intake.is_head_of_household !== false; // Default to true if not specified
+    let plaintiff1FirstName = intake.first_name || '';
+    let plaintiff1LastName = intake.last_name || '';
+
+    if (!isClientHeadOfHousehold && intake.household_members && Array.isArray(intake.household_members)) {
+      // Find the head of household from household members
+      const headOfHousehold = intake.household_members.find(member =>
+        member.memberType === 'head_of_household' || member.relationshipToClient === 'head_of_household'
+      );
+
+      if (headOfHousehold) {
+        plaintiff1FirstName = headOfHousehold.firstName || plaintiff1FirstName;
+        plaintiff1LastName = headOfHousehold.lastName || plaintiff1LastName;
+      }
+    }
+
     // Transform JSONB data into doc-gen format (flat hyphenated keys)
     const docGenData = {
       // Property Information (from property_address JSONB)
@@ -492,11 +515,12 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'city': intake.property_address?.city || '',
       'state': intake.property_address?.state || '',
       'zip-code': intake.property_address?.zipCode || '',
-      'filing-county': intake.property_address?.county || '',
+      'filing-city': intake.property_address?.city || '', // Same as city per mapping spec
+      'filing-county': intake.filing_county || '', // Use actual filing_county column
 
-      // Plaintiff 1 (Primary Client) - from individual fields + current_address JSONB
-      'plaintiff-1-first-name': intake.first_name || '',
-      'plaintiff-1-last-name': intake.last_name || '',
+      // Plaintiff 1 - Uses Head of Household logic
+      'plaintiff-1-first-name': plaintiff1FirstName,
+      'plaintiff-1-last-name': plaintiff1LastName,
       'plaintiff-1-phone': intake.primary_phone || '',
       'plaintiff-1-email': intake.email_address || '',
       'plaintiff-1-address': intake.current_address?.street || '',
@@ -507,7 +531,7 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'plaintiff-1-date-of-birth': intake.date_of_birth || '',
       'plaintiff-1-age': age !== null ? age.toString() : '',
       'plaintiff-1-is-adult': isAdult,
-      'plaintiff-1-head-of-household': true, // Intake submitter is assumed to be head of household
+      'plaintiff-1-head-of-household': isClientHeadOfHousehold,
 
       // Defendant 1 (Landlord) - from landlord_info JSONB
       'defendant-1-name': intake.landlord_info?.name || '',
