@@ -320,24 +320,32 @@ function populateDocGenForm(data) {
         // Doc-gen form uses: {category}-{Item}-{plaintiffNumber}
         // API returns: issue-{category}-{item}
         //
-        // Comprehensive mapping covering all issue categories
+        // Comprehensive mapping covering all issue categories from the client intake form
         const issueMapping = {
-            // ===== PEST/VERMIN ISSUES =====
+            // ===== VERMIN ISSUES =====
             'issue-pest-rodents': 'vermin-RatsMice-1',
 
             // ===== INSECT ISSUES =====
             'issue-pest-cockroaches': 'insect-Roaches-1',
             'issue-pest-bed-bugs': 'insect-Bedbugs-1',
+            'issue-pest-ants': 'insect-Ants-1',
+            'issue-pest-termites': 'insect-Termites-1',
 
             // ===== HVAC ISSUES =====
             'issue-hvac-no-heat': 'hvac-Heater-1',
             'issue-hvac-no-ac': 'hvac-AirConditioner-1',
             'issue-hvac-poor-ventilation': 'hvac-Ventilation-1',
+            'issue-hvac-thermostat': 'hvac-Heater-1', // Thermostat issues affect heating
+            'issue-hvac-gas-smell': 'hvac-Heater-1', // Gas smell is heating-related
 
             // ===== ELECTRICAL ISSUES =====
             'issue-electrical-outages': 'electrical-Panel-1',
             'issue-electrical-sparks': 'electrical-Outlets-1',
             'issue-electrical-overloaded': 'electrical-Panel-1',
+            'issue-electrical-outlets': 'electrical-Outlets-1',
+            'issue-electrical-switches': 'electrical-WallSwitches-1',
+            'issue-electrical-flickering': 'electrical-InteriorLighting-1',
+            'issue-electrical-burning': 'electrical-Panel-1',
 
             // ===== PLUMBING ISSUES =====
             'issue-plumbing-leaks': 'plumbing-Leaks-1',
@@ -345,28 +353,46 @@ function populateDocGenForm(data) {
             'issue-plumbing-no-hot-water': 'plumbing-Nohotwater-1',
             'issue-plumbing-sewer-backup': 'plumbing-Sewagecomingout-1',
             'issue-plumbing-clogged-drains': 'plumbing-Cloggedsinks-1',
+            'issue-plumbing-toilet': 'plumbing-Toilet-1',
+            'issue-plumbing-shower': 'plumbing-Shower-1',
+            'issue-plumbing-sink': 'plumbing-Cloggedsinks-1',
+            'issue-plumbing-water-damage': 'structure-Waterstainsonwall-1',
+            'issue-plumbing-discolored-water': 'plumbing-Unsanitarywater-1',
 
-            // ===== MOLD/HEALTH HAZARD ISSUES =====
+            // ===== MOLD & HEALTH HAZARD ISSUES =====
             'issue-mold-visible': 'health-hazard-Mold-1',
             'issue-mold-smell': 'health-hazard-Mold-1',
             'issue-mold-extensive': 'health-hazard-Mold-1',
+            'issue-health-noxious-fumes': 'health-hazard-Noxiousfumes-1',
+            'issue-health-toxic-water': 'health-hazard-Toxicwaterpollution-1',
 
-            // ===== WATER/STRUCTURE ISSUES =====
-            'issue-water-leak': 'structure-Leaksingarage-1',
-            'issue-water-damage': 'structure-Waterstainsonwall-1',
-            'issue-water-standing': 'structure-Basementflood-1',
+            // ===== STRUCTURAL ISSUES =====
+            'issue-structural-cracks': 'structure-Holeinwall-1',
+            'issue-structural-leaning': 'structure-Holeinceiling-1',
+            'issue-structural-collapse': 'structure-Bumpsinceiling-1',
+            'issue-structural-roof': 'structure-Leaksingarage-1', // Roof leaks can be mapped to general leaks
+            'issue-structural-windows': 'windows-Broken-1',
+            'issue-structural-doors': 'door-Broken-1',
+            'issue-structural-railings': 'structure-Staircase-1',
 
             // ===== FIRE SAFETY ISSUES =====
             'issue-safety-no-smoke': 'fire-hazard-SmokeAlarms-1',
             'issue-safety-no-co': 'fire-hazard-Carbonmonoxidedetectors-1',
 
             // ===== SAFETY/SECURITY ISSUES =====
-            'issue-safety-broken-locks': 'safety-Inoperablelocks-1',
+            'issue-safety-broken-locks': 'door-Locks-1',
+            'issue-safety-inadequate-lighting': 'electrical-ExteriorLighting-1',
+            'issue-safety-no-deadbolt': 'door-Locks-1',
+            'issue-safety-broken-windows': 'windows-Broken-1',
 
-            // ===== STRUCTURAL ISSUES =====
-            'issue-structural-cracks': 'structure-Holeinwall-1',
-            'issue-structural-leaning': 'structure-Holeinceiling-1',
-            'issue-structural-collapse': 'structure-Bumpsinceiling-1',
+            // ===== APPLIANCE ISSUES =====
+            'issue-appliance-stove': 'appliances-Stove-1',
+            'issue-appliance-refrigerator': 'appliances-Refrigerator-1',
+            'issue-appliance-dishwasher': 'appliances-Dishwasher-1',
+            'issue-appliance-washer': 'appliances-Washerdryer-1',
+            'issue-appliance-dryer': 'appliances-Washerdryer-1',
+            'issue-appliance-garbage-disposal': 'appliances-Garbagedisposal-1',
+            'issue-appliance-microwave': 'appliances-Microwave-1',
         };
 
         // Populate issue checkboxes using mapping
