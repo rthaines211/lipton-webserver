@@ -319,53 +319,69 @@ function populateDocGenForm(data) {
         // Issue Checkboxes - Map from intake API field names to doc-gen form field names
         // Doc-gen form uses: {category}-{Item}-{plaintiffNumber}
         // API returns: issue-{category}-{item}
+        //
+        // Comprehensive mapping covering all issue categories
         const issueMapping = {
-            // Pest/Vermin issues
+            // ===== PEST/VERMIN ISSUES =====
             'issue-pest-rodents': 'vermin-RatsMice-1',
 
-            // Insect issues
+            // ===== INSECT ISSUES =====
             'issue-pest-cockroaches': 'insect-Roaches-1',
             'issue-pest-bed-bugs': 'insect-Bedbugs-1',
 
-            // HVAC issues
+            // ===== HVAC ISSUES =====
             'issue-hvac-no-heat': 'hvac-Heater-1',
             'issue-hvac-no-ac': 'hvac-AirConditioner-1',
             'issue-hvac-poor-ventilation': 'hvac-Ventilation-1',
 
-            // Electrical issues
+            // ===== ELECTRICAL ISSUES =====
             'issue-electrical-outages': 'electrical-Panel-1',
             'issue-electrical-sparks': 'electrical-Outlets-1',
             'issue-electrical-overloaded': 'electrical-Panel-1',
 
-            // Plumbing issues
+            // ===== PLUMBING ISSUES =====
             'issue-plumbing-leaks': 'plumbing-Leaks-1',
             'issue-plumbing-no-pressure': 'plumbing-Insufficientwaterpressure-1',
             'issue-plumbing-no-hot-water': 'plumbing-Nohotwater-1',
             'issue-plumbing-sewer-backup': 'plumbing-Sewagecomingout-1',
             'issue-plumbing-clogged-drains': 'plumbing-Cloggedsinks-1',
 
-            // Mold/Health Hazard issues
+            // ===== MOLD/HEALTH HAZARD ISSUES =====
             'issue-mold-visible': 'health-hazard-Mold-1',
             'issue-mold-smell': 'health-hazard-Mold-1',
             'issue-mold-extensive': 'health-hazard-Mold-1',
 
-            // Water/Structure issues
+            // ===== WATER/STRUCTURE ISSUES =====
             'issue-water-leak': 'structure-Leaksingarage-1',
             'issue-water-damage': 'structure-Waterstainsonwall-1',
             'issue-water-standing': 'structure-Basementflood-1',
 
-            // Safety issues
+            // ===== FIRE SAFETY ISSUES =====
             'issue-safety-no-smoke': 'fire-hazard-SmokeAlarms-1',
             'issue-safety-no-co': 'fire-hazard-Carbonmonoxidedetectors-1',
+
+            // ===== SAFETY/SECURITY ISSUES =====
             'issue-safety-broken-locks': 'safety-Inoperablelocks-1',
+
+            // ===== STRUCTURAL ISSUES =====
+            'issue-structural-cracks': 'structure-Holeinwall-1',
+            'issue-structural-leaning': 'structure-Holeinceiling-1',
+            'issue-structural-collapse': 'structure-Bumpsinceiling-1',
         };
 
         // Populate issue checkboxes using mapping
+        console.log('Mapping issues from intake data:', data);
+        let issuesPopulated = 0;
         for (const [apiFieldName, docGenFieldName] of Object.entries(issueMapping)) {
             if (data[apiFieldName] === true) {
-                setCheckboxValue(docGenFieldName, true);
+                const success = setCheckboxValue(docGenFieldName, true);
+                if (success) {
+                    issuesPopulated++;
+                    console.log(`✓ Mapped ${apiFieldName} → ${docGenFieldName}`);
+                }
             }
         }
+        console.log(`Successfully populated ${issuesPopulated} issue checkboxes`);
 
         console.log('Form population complete');
     }, 100); // Wait 100ms for DOM to update
@@ -398,6 +414,7 @@ function setFieldValue(fieldName, value) {
  * Set a checkbox value by name or id
  * @param {string} fieldName - Name or ID of the checkbox
  * @param {boolean} checked - Whether to check the box
+ * @returns {boolean} True if checkbox was found and set, false otherwise
  */
 function setCheckboxValue(fieldName, checked) {
     // Try by name first, then by ID
@@ -410,8 +427,10 @@ function setCheckboxValue(fieldName, checked) {
         field.checked = checked;
         // Trigger change event for any listeners
         field.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
     } else {
         console.warn(`Checkbox not found: ${fieldName}`);
+        return false;
     }
 }
 
