@@ -398,16 +398,42 @@ function populateDocGenForm(data) {
         // Populate issue checkboxes using mapping
         console.log('Mapping issues from intake data:', data);
         let issuesPopulated = 0;
+        const categoriesToExpand = new Set(); // Track which categories have issues
+
         for (const [apiFieldName, docGenFieldName] of Object.entries(issueMapping)) {
             if (data[apiFieldName] === true) {
                 const success = setCheckboxValue(docGenFieldName, true);
                 if (success) {
                     issuesPopulated++;
                     console.log(`✓ Mapped ${apiFieldName} → ${docGenFieldName}`);
+
+                    // Extract category from checkbox name (e.g., "vermin-RatsMice-1" → "vermin")
+                    const category = docGenFieldName.split('-')[0];
+                    categoriesToExpand.add(category);
                 }
             }
         }
         console.log(`Successfully populated ${issuesPopulated} issue checkboxes`);
+
+        // Expand categories that have populated checkboxes so they're visible
+        if (categoriesToExpand.size > 0) {
+            console.log(`Expanding ${categoriesToExpand.size} categories:`, Array.from(categoriesToExpand));
+            categoriesToExpand.forEach(category => {
+                // Expand the category for plaintiff 1
+                if (typeof setCategoryExpansion === 'function') {
+                    setCategoryExpansion(1, category, true);
+                } else {
+                    // Fallback: directly manipulate DOM if function not available
+                    const content = document.getElementById(`${category}-content-1`);
+                    const button = document.getElementById(`${category}-button-1`);
+                    if (content && button) {
+                        content.removeAttribute('hidden');
+                        content.classList.add('show');
+                        button.setAttribute('aria-expanded', 'true');
+                    }
+                }
+            });
+        }
 
         console.log('Form population complete');
     }, 100); // Wait 100ms for DOM to update
