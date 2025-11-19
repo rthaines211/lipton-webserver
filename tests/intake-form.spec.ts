@@ -39,13 +39,13 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   await page.click('input[name="isHeadOfHousehold"][value="true"]');
 
   // Legal History Section
-  await page.selectOption('#hasRentDeductions', 'yes');
+  await page.selectOption('#hasRentDeductions', 'Yes');
   await page.fill('#rentDeductionsDetails', 'Received $500/month rent reduction for 6 months due to lack of heat and mold issues.');
 
-  await page.selectOption('#hasBeenRelocated', 'yes');
+  await page.selectOption('#hasBeenRelocated', 'Yes');
   await page.fill('#relocationDetails', 'Temporarily relocated to hotel for 2 weeks when apartment was deemed uninhabitable by health department.');
 
-  await page.selectOption('#hasLawsuitInvolvement', 'yes');
+  await page.selectOption('#hasLawsuitInvolvement', 'Yes');
   await page.fill('#lawsuitDetails', 'Filed small claims case against landlord in 2023 for security deposit withholding. Case settled.');
 
   await page.fill('#hasPoliceReports', 'Filed police report for break-in due to broken door lock that landlord refused to fix.');
@@ -136,7 +136,7 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
 
   await page.fill('#hasUnlawfulDetainerFiled', 'No unlawful detainer has been filed against me at this time.');
   await page.fill('#moveInDate', '2021-01-01');
-  await page.selectOption('#hasRetainerWithAnotherAttorney', 'no');
+  await page.selectOption('#hasRetainerWithAnotherAttorney', 'No');
 
   console.log('   ✓ Property & tenancy completed');
   await page.click('button:has-text("Next")');
@@ -150,14 +150,14 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   // Household Demographics
   console.log('   → Filling household demographics...');
   await page.fill('#clientOccupation', 'Restaurant Server');
-  await page.selectOption('#clientHasDisability', 'yes');
+  await page.selectOption('#clientHasDisability', 'Yes');
   await page.fill('#clientDisabilityDetails', 'Chronic back pain from work injury, limiting mobility and ability to stand for long periods.');
-  await page.selectOption('#isSpanishSpeaking', 'yes');
-  await page.selectOption('#isVeteran', 'no');
+  await page.selectOption('#isSpanishSpeaking', 'Yes');
+  await page.selectOption('#isVeteran', 'No');
   await page.fill('#numberOfChildren', '2');
   await page.fill('#numberOfElderly', '1');
   await page.fill('#totalHouseholdSize', '5');
-  await page.selectOption('#householdIncomeUnder45k', 'yes');
+  await page.selectOption('#householdIncomeUnder45k', 'Yes');
 
   // Member 1 - Spouse
   await page.click('button:has-text("Add Household Member")');
