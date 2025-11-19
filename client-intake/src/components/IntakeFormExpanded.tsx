@@ -23,7 +23,7 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
 
   // Section 1-5: Basic Information
   const [formData, setFormData] = useState({
-    // Section 1: Personal Information (12 fields - added filingCounty, isHeadOfHousehold)
+    // Section 1: Personal Information (12 fields + 8 Phase 3A legal history fields = 20 fields)
     firstName: '',
     middleName: '',
     lastName: '',
@@ -35,8 +35,17 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
     requiresInterpreter: false,
     filingCounty: '',
     isHeadOfHousehold: true,
+    // Phase 3A: Legal History Fields
+    hasRentDeductions: '',
+    rentDeductionsDetails: '',
+    hasBeenRelocated: '',
+    relocationDetails: '',
+    hasLawsuitInvolvement: '',
+    lawsuitDetails: '',
+    hasPoliceReports: '',
+    hasPropertyDamage: '',
 
-    // Section 2: Contact Information (12 fields)
+    // Section 2: Contact Information (12 fields + 1 Phase 3B field = 13 fields)
     primaryPhone: '',
     secondaryPhone: '',
     workPhone: '',
@@ -49,6 +58,8 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
     canTextPrimary: true,
     canLeaveVoicemail: true,
     communicationRestrictions: '',
+    // Phase 3B: How did you find us
+    howDidYouFindUs: '',
 
     // Section 3: Current Address (8 fields)
     currentStreetAddress: '',
@@ -60,7 +71,7 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
     yearsAtCurrentAddress: '',
     monthsAtCurrentAddress: '',
 
-    // Section 4: Property Information (12 fields)
+    // Section 4: Property Information (12 fields + 3 Phase 3B fields = 15 fields)
     propertyStreetAddress: '',
     propertyUnitNumber: '',
     propertyCity: '',
@@ -73,6 +84,10 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
     totalFloorsInBuilding: '',
     propertyAgeYears: '',
     isRentControlled: false,
+    // Phase 3B: Property/Tenancy Additional
+    hasUnlawfulDetainerFiled: '',
+    moveInDate: '',
+    hasRetainerWithAnotherAttorney: '',
 
     // Section 5: Tenancy Details (10 fields)
     leaseStartDate: '',
@@ -382,10 +397,43 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
     safetyDetails: '',
     safetyFirstNoticed: '',
     safetyReportedDate: '',
+
+    // Section 29: Harassment Issues (15 checkboxes + 1 date) - Phase 3A
+    hasHarassmentIssues: false,
+    harassmentUnlawfulDetainer: false,
+    harassmentEvictionThreats: false,
+    harassmentByDefendant: false,
+    harassmentByMaintenance: false,
+    harassmentByManager: false,
+    harassmentByOwner: false,
+    harassmentByOtherTenants: false,
+    harassmentIllegitimateNotices: false,
+    harassmentRefusalToRepair: false,
+    harassmentWrittenThreats: false,
+    harassmentAggressiveLanguage: false,
+    harassmentPhysicalThreats: false,
+    harassmentSinglingOut: false,
+    harassmentDuplicativeNotices: false,
+    harassmentUntimelyResponse: false,
+    harassmentDetails: '',
+    harassmentStartDate: '',
   })
 
-  // Section 6: Household Members (Dynamic)
+  // Section 6: Household Members (Dynamic) + Phase 3B household demographics (9 fields)
   const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([])
+
+  // Phase 3B: Household Demographics - separate state for these fields
+  const [householdDemographics, setHouseholdDemographics] = useState({
+    clientOccupation: '',
+    clientHasDisability: '',
+    clientDisabilityDetails: '',
+    isSpanishSpeaking: '',
+    isVeteran: '',
+    numberOfChildren: '',
+    numberOfElderly: '',
+    totalHouseholdSize: '',
+    householdIncomeUnder45k: '',
+  })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | any) => {
     const { name, value, type } = e.target
@@ -399,6 +447,11 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
     } else {
       setFormData(prev => ({ ...prev, [name]: value }))
     }
+  }
+
+  const handleDemographicsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setHouseholdDemographics(prev => ({ ...prev, [name]: value }))
   }
 
   const addHouseholdMember = () => {
@@ -520,6 +573,7 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
     // Combine all data
     const completeData = {
       ...formData,
+      ...householdDemographics,
       householdMembers
     }
 
@@ -571,7 +625,7 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
       case 4:
         return <PropertyTenancyDetails formData={formData} handleChange={handleChange} />
       case 5:
-        return <HouseholdComposition members={householdMembers} addMember={addHouseholdMember} removeMember={removeHouseholdMember} updateMember={updateHouseholdMember} />
+        return <HouseholdComposition members={householdMembers} demographics={householdDemographics} handleDemographicsChange={handleDemographicsChange} addMember={addHouseholdMember} removeMember={removeHouseholdMember} updateMember={updateHouseholdMember} />
       case 6:
         return <LandlordInformation formData={formData} handleChange={handleChange} />
       case 7:
@@ -915,6 +969,149 @@ function PersonalInformation({ formData, handleChange }: any) {
           </div>
         </div>
       </div>
+
+      {/* Phase 3A: Legal History Section */}
+      <div className="border-t pt-6 mt-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Legal History</h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="hasRentDeductions" className="block text-sm font-medium text-gray-700 mb-1">
+              Have you had rent deductions?
+            </label>
+            <select
+              id="hasRentDeductions"
+              name="hasRentDeductions"
+              value={formData.hasRentDeductions}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+              <option value="Unknown">Unknown</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="hasBeenRelocated" className="block text-sm font-medium text-gray-700 mb-1">
+              Have you been relocated?
+            </label>
+            <select
+              id="hasBeenRelocated"
+              name="hasBeenRelocated"
+              value={formData.hasBeenRelocated}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+              <option value="Unknown">Unknown</option>
+            </select>
+          </div>
+        </div>
+
+        {formData.hasRentDeductions === 'Yes' && (
+          <div className="mt-4">
+            <label htmlFor="rentDeductionsDetails" className="block text-sm font-medium text-gray-700 mb-1">
+              Rent Deductions Details
+            </label>
+            <textarea
+              id="rentDeductionsDetails"
+              name="rentDeductionsDetails"
+              value={formData.rentDeductionsDetails}
+              onChange={handleChange}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+
+        {formData.hasBeenRelocated === 'Yes' && (
+          <div className="mt-4">
+            <label htmlFor="relocationDetails" className="block text-sm font-medium text-gray-700 mb-1">
+              Relocation Details
+            </label>
+            <textarea
+              id="relocationDetails"
+              name="relocationDetails"
+              value={formData.relocationDetails}
+              onChange={handleChange}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mt-4">
+          <div>
+            <label htmlFor="hasLawsuitInvolvement" className="block text-sm font-medium text-gray-700 mb-1">
+              Are you involved in any lawsuits?
+            </label>
+            <select
+              id="hasLawsuitInvolvement"
+              name="hasLawsuitInvolvement"
+              value={formData.hasLawsuitInvolvement}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+              <option value="Unknown">Unknown</option>
+            </select>
+          </div>
+        </div>
+
+        {formData.hasLawsuitInvolvement === 'Yes' && (
+          <div className="mt-4">
+            <label htmlFor="lawsuitDetails" className="block text-sm font-medium text-gray-700 mb-1">
+              Lawsuit Details
+            </label>
+            <textarea
+              id="lawsuitDetails"
+              name="lawsuitDetails"
+              value={formData.lawsuitDetails}
+              onChange={handleChange}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label htmlFor="hasPoliceReports" className="block text-sm font-medium text-gray-700 mb-1">
+              Have you filed police reports?
+            </label>
+            <textarea
+              id="hasPoliceReports"
+              name="hasPoliceReports"
+              value={formData.hasPoliceReports}
+              onChange={handleChange}
+              rows={2}
+              placeholder="If yes, please describe..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="hasPropertyDamage" className="block text-sm font-medium text-gray-700 mb-1">
+              Have you experienced property damage?
+            </label>
+            <textarea
+              id="hasPropertyDamage"
+              name="hasPropertyDamage"
+              value={formData.hasPropertyDamage}
+              onChange={handleChange}
+              rows={2}
+              placeholder="If yes, please describe..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1115,6 +1312,22 @@ function ContactInformation({ formData, handleChange }: any) {
           onChange={handleChange}
           rows={3}
           placeholder="Any restrictions on how or when we can contact you?"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {/* Phase 3B: How did you find us */}
+      <div>
+        <label htmlFor="howDidYouFindUs" className="block text-sm font-medium text-gray-700 mb-1">
+          How did you find us?
+        </label>
+        <input
+          type="text"
+          id="howDidYouFindUs"
+          name="howDidYouFindUs"
+          value={formData.howDidYouFindUs}
+          onChange={handleChange}
+          placeholder="Referral, Google search, etc."
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
@@ -1430,6 +1643,55 @@ function PropertyTenancyDetails({ formData, handleChange }: any) {
         </label>
       </div>
 
+      {/* Phase 3B: Property/Tenancy Additional Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <label htmlFor="hasUnlawfulDetainerFiled" className="block text-sm font-medium text-gray-700 mb-1">
+            Has an Unlawful Detainer been filed against you?
+          </label>
+          <textarea
+            id="hasUnlawfulDetainerFiled"
+            name="hasUnlawfulDetainerFiled"
+            value={formData.hasUnlawfulDetainerFiled}
+            onChange={handleChange}
+            rows={2}
+            placeholder="If yes, please provide details..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="moveInDate" className="block text-sm font-medium text-gray-700 mb-1">
+            Move-In Date
+          </label>
+          <input
+            type="date"
+            id="moveInDate"
+            name="moveInDate"
+            value={formData.moveInDate}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <label htmlFor="hasRetainerWithAnotherAttorney" className="block text-sm font-medium text-gray-700 mb-1">
+          Do you have a retainer with another attorney?
+        </label>
+        <select
+          id="hasRetainerWithAnotherAttorney"
+          name="hasRetainerWithAnotherAttorney"
+          value={formData.hasRetainerWithAnotherAttorney}
+          onChange={handleChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Select...</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+        </select>
+      </div>
+
       <div className="border-t pt-6 mt-6">
         <h2 className="text-2xl font-bold text-gray-900 border-b-2 pb-3 mb-4">Section 5: Tenancy Details</h2>
 
@@ -1598,11 +1860,170 @@ function PropertyTenancyDetails({ formData, handleChange }: any) {
   )
 }
 
-function HouseholdComposition({ members, addMember, removeMember, updateMember }: any) {
+function HouseholdComposition({ members, demographics, handleDemographicsChange, addMember, removeMember, updateMember }: any) {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900 border-b-2 pb-3">Section 6: Household Composition</h2>
       <p className="text-sm text-gray-600">Who else lives in the unit with you?</p>
+
+      {/* Phase 3B: Household Demographics */}
+      <div className="bg-blue-50 p-4 rounded-lg space-y-4 mb-6">
+        <h3 className="text-md font-semibold text-gray-800">Household Demographics</h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="clientOccupation" className="block text-sm font-medium text-gray-700 mb-1">
+              What do you do for work?
+            </label>
+            <input
+              type="text"
+              id="clientOccupation"
+              name="clientOccupation"
+              value={demographics.clientOccupation}
+              onChange={handleDemographicsChange}
+              placeholder="Your occupation"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="clientHasDisability" className="block text-sm font-medium text-gray-700 mb-1">
+              Do you have a disability?
+            </label>
+            <select
+              id="clientHasDisability"
+              name="clientHasDisability"
+              value={demographics.clientHasDisability}
+              onChange={handleDemographicsChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+        </div>
+
+        {demographics.clientHasDisability === 'Yes' && (
+          <div>
+            <label htmlFor="clientDisabilityDetails" className="block text-sm font-medium text-gray-700 mb-1">
+              Disability Details
+            </label>
+            <textarea
+              id="clientDisabilityDetails"
+              name="clientDisabilityDetails"
+              value={demographics.clientDisabilityDetails}
+              onChange={handleDemographicsChange}
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="isSpanishSpeaking" className="block text-sm font-medium text-gray-700 mb-1">
+              Spanish Speaking?
+            </label>
+            <select
+              id="isSpanishSpeaking"
+              name="isSpanishSpeaking"
+              value={demographics.isSpanishSpeaking}
+              onChange={handleDemographicsChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="isVeteran" className="block text-sm font-medium text-gray-700 mb-1">
+              Are you a veteran?
+            </label>
+            <select
+              id="isVeteran"
+              name="isVeteran"
+              value={demographics.isVeteran}
+              onChange={handleDemographicsChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="householdIncomeUnder45k" className="block text-sm font-medium text-gray-700 mb-1">
+              Household Income Under $45k?
+            </label>
+            <select
+              id="householdIncomeUnder45k"
+              name="householdIncomeUnder45k"
+              value={demographics.householdIncomeUnder45k}
+              onChange={handleDemographicsChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="numberOfChildren" className="block text-sm font-medium text-gray-700 mb-1">
+              Number of Children
+            </label>
+            <input
+              type="number"
+              id="numberOfChildren"
+              name="numberOfChildren"
+              value={demographics.numberOfChildren}
+              onChange={handleDemographicsChange}
+              min="0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="numberOfElderly" className="block text-sm font-medium text-gray-700 mb-1">
+              Number of Elderly (65+)
+            </label>
+            <input
+              type="number"
+              id="numberOfElderly"
+              name="numberOfElderly"
+              value={demographics.numberOfElderly}
+              onChange={handleDemographicsChange}
+              min="0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="totalHouseholdSize" className="block text-sm font-medium text-gray-700 mb-1">
+              Total Household Size
+            </label>
+            <input
+              type="number"
+              id="totalHouseholdSize"
+              name="totalHouseholdSize"
+              value={demographics.totalHouseholdSize}
+              onChange={handleDemographicsChange}
+              min="1"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Household Members Section */}
+      <h3 className="text-lg font-semibold text-gray-800 mt-6 mb-3">Household Members</h3>
 
       {members.map((member: HouseholdMember, index: number) => (
         <div key={index} className="p-4 border-2 border-gray-200 rounded-lg relative">

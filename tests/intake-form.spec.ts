@@ -21,9 +21,9 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   await expect(page.getByText('Step 1 of 9')).toBeVisible();
 
   // ============================================================
-  // STEP 1: PERSONAL INFORMATION (12 fields - added filingCounty, isHeadOfHousehold)
+  // STEP 1: PERSONAL INFORMATION (20 fields - added filingCounty, isHeadOfHousehold + 8 legal history fields)
   // ============================================================
-  console.log('\n📋 STEP 1: Filling Personal Information (12 fields)...');
+  console.log('\n📋 STEP 1: Filling Personal Information (20 fields)...');
 
   await page.fill('#firstName', 'Maria');
   await page.fill('#middleName', 'Elena');
@@ -38,14 +38,27 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   // Select "Yes" for Head of Household
   await page.click('input[name="isHeadOfHousehold"][value="true"]');
 
+  // Legal History Section
+  await page.selectOption('#hasRentDeductions', 'yes');
+  await page.fill('#rentDeductionsDetails', 'Received $500/month rent reduction for 6 months due to lack of heat and mold issues.');
+
+  await page.selectOption('#hasBeenRelocated', 'yes');
+  await page.fill('#relocationDetails', 'Temporarily relocated to hotel for 2 weeks when apartment was deemed uninhabitable by health department.');
+
+  await page.selectOption('#hasLawsuitInvolvement', 'yes');
+  await page.fill('#lawsuitDetails', 'Filed small claims case against landlord in 2023 for security deposit withholding. Case settled.');
+
+  await page.fill('#hasPoliceReports', 'Filed police report for break-in due to broken door lock that landlord refused to fix.');
+  await page.fill('#hasPropertyDamage', 'Lost furniture, electronics, and personal belongings to mold and water damage from persistent leaks.');
+
   console.log('   ✓ Personal information completed');
   await page.click('button:has-text("Next")');
   await expect(page.getByText('Step 2 of 9')).toBeVisible();
 
   // ============================================================
-  // STEP 2: CONTACT INFORMATION (12 fields)
+  // STEP 2: CONTACT INFORMATION (13 fields)
   // ============================================================
-  console.log('\n📞 STEP 2: Filling Contact Information (12 fields)...');
+  console.log('\n📞 STEP 2: Filling Contact Information (13 fields)...');
 
   await page.fill('#primaryPhone', '(415) 555-1234');
   await page.fill('#secondaryPhone', '(415) 555-5678');
@@ -59,6 +72,8 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   await page.check('#canTextPrimary');
   await page.check('#canLeaveVoicemail');
   await page.fill('#communicationRestrictions', 'Please do not call before 9am or after 8pm. Prefer text messages during work hours (9am-5pm). Spanish language preferred.');
+
+  await page.fill('#howDidYouFindUs', 'Referred by friend who used your services');
 
   console.log('   ✓ Contact information completed');
   await page.click('button:has-text("Next")');
@@ -83,9 +98,9 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   await expect(page.getByText('Step 4 of 9')).toBeVisible();
 
   // ============================================================
-  // STEP 4: PROPERTY & TENANCY (20 fields total)
+  // STEP 4: PROPERTY & TENANCY (23 fields total)
   // ============================================================
-  console.log('\n🏢 STEP 4: Filling Property & Tenancy Details (20 fields)...');
+  console.log('\n🏢 STEP 4: Filling Property & Tenancy Details (23 fields)...');
 
   // Property Information (10 fields)
   await page.fill('#propertyStreetAddress', '1234 Mission Street');
@@ -119,14 +134,30 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   await page.check('#rentCurrent');
   await page.uncheck('#receivedEvictionNotice');
 
+  await page.fill('#hasUnlawfulDetainerFiled', 'No unlawful detainer has been filed against me at this time.');
+  await page.fill('#moveInDate', '2021-01-01');
+  await page.selectOption('#hasRetainerWithAnotherAttorney', 'no');
+
   console.log('   ✓ Property & tenancy completed');
   await page.click('button:has-text("Next")');
   await expect(page.getByText('Step 5 of 9')).toBeVisible();
 
   // ============================================================
-  // STEP 5: HOUSEHOLD COMPOSITION (Dynamic - Add 3 members)
+  // STEP 5: HOUSEHOLD COMPOSITION (Dynamic - Add 3 members + 9 demographics)
   // ============================================================
-  console.log('\n👨‍👩‍👧‍👦 STEP 5: Filling Household Composition (15 fields - 3 members)...');
+  console.log('\n👨‍👩‍👧‍👦 STEP 5: Filling Household Composition (24 fields - 9 demographics + 3 members)...');
+
+  // Household Demographics
+  console.log('   → Filling household demographics...');
+  await page.fill('#clientOccupation', 'Restaurant Server');
+  await page.selectOption('#clientHasDisability', 'yes');
+  await page.fill('#clientDisabilityDetails', 'Chronic back pain from work injury, limiting mobility and ability to stand for long periods.');
+  await page.selectOption('#isSpanishSpeaking', 'yes');
+  await page.selectOption('#isVeteran', 'no');
+  await page.fill('#numberOfChildren', '2');
+  await page.fill('#numberOfElderly', '1');
+  await page.fill('#totalHouseholdSize', '5');
+  await page.selectOption('#householdIncomeUnder45k', 'yes');
 
   // Member 1 - Spouse
   await page.click('button:has-text("Add Household Member")');
@@ -445,7 +476,18 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   await page.fill('#safetyFirstNoticed', '2023-10-01');
   await page.fill('#safetyReportedDate', '2023-10-15');
 
-  console.log('   ✓ Building & housing issues completed (ALL 20 categories filled)');
+  // HARASSMENT ISSUES (18 fields: 1 master + 15 checkboxes + 1 details + 1 date)
+  console.log('   → Harassment Issues...');
+  await page.check('#hasHarassmentIssues');
+  await page.check('#harassmentEvictionThreats');
+  await page.check('#harassmentByOwner');
+  await page.check('#harassmentRefusalToRepair');
+  await page.check('#harassmentWrittenThreats');
+  await page.check('#harassmentAggressiveLanguage');
+  await page.fill('#harassmentDetails', 'Landlord threatened eviction multiple times after I complained about repairs. Sent intimidating letters. Refused to make timely repairs despite repeated requests. Uses aggressive and inappropriate language when contacted. Building manager also participates in harassment.');
+  await page.fill('#harassmentStartDate', '2023-01-15');
+
+  console.log('   ✓ Building & housing issues completed (ALL 21 categories filled)');
   await page.click('button:has-text("Next")');
   await expect(page.getByText('Step 8 of 9')).toBeVisible();
 
@@ -522,17 +564,17 @@ test('Complete Client Intake Form - Fill EVERY Field', async ({ page }) => {
   console.log('\n╔════════════════════════════════════════════════════════╗');
   console.log('║         ✅ TEST COMPLETE - SUMMARY                     ║');
   console.log('╠════════════════════════════════════════════════════════╣');
-  console.log('║ Step 1 (Personal):          12 fields                 ║');
-  console.log('║ Step 2 (Contact):           12 fields                 ║');
+  console.log('║ Step 1 (Personal):          20 fields                 ║');
+  console.log('║ Step 2 (Contact):           13 fields                 ║');
   console.log('║ Step 3 (Address):            8 fields                 ║');
-  console.log('║ Step 4 (Property):          20 fields                 ║');
-  console.log('║ Step 5 (Household):         15 fields (3 members)     ║');
+  console.log('║ Step 4 (Property):          23 fields                 ║');
+  console.log('║ Step 5 (Household):         24 fields (9 + 3 members) ║');
   console.log('║ Step 6 (Landlord):          10 fields                 ║');
-  console.log('║ Step 7 (Issues):           213 fields (20 categories) ║');
+  console.log('║ Step 7 (Issues):           231 fields (21 categories) ║');
   console.log('║ Step 8 (Review):             0 fields (read-only)     ║');
   console.log('║ Step 9 (Submit):          SUBMITTED                   ║');
   console.log('╠════════════════════════════════════════════════════════╣');
-  console.log(`║ TOTAL FIELDS FILLED:       290 fields                 ║`);
+  console.log(`║ TOTAL FIELDS FILLED:       329 fields                 ║`);
   console.log(`║ Intake Number:             ${intakeNumber}                ║`);
   console.log('╚════════════════════════════════════════════════════════╝');
 });

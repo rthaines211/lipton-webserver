@@ -397,6 +397,32 @@ export function BuildingIssuesCompact({ formData, handleChange }: BuildingIssues
         reported: 'safetyReportedDate',
       },
     },
+    {
+      id: 'harassment',
+      title: 'Harassment Issues',
+      masterCheckbox: 'hasHarassmentIssues',
+      checkboxes: [
+        { id: 'harassmentUnlawfulDetainer', label: 'Unlawful Detainer' },
+        { id: 'harassmentEvictionThreats', label: 'Eviction threats' },
+        { id: 'harassmentByDefendant', label: 'By defendant' },
+        { id: 'harassmentByMaintenance', label: 'By maintenance/workers' },
+        { id: 'harassmentByManager', label: 'By manager/building staff' },
+        { id: 'harassmentByOwner', label: 'By owner' },
+        { id: 'harassmentByOtherTenants', label: 'By other tenants' },
+        { id: 'harassmentIllegitimateNotices', label: 'Illegitimate notices' },
+        { id: 'harassmentRefusalToRepair', label: 'Refusal to make timely repairs' },
+        { id: 'harassmentWrittenThreats', label: 'Written threats' },
+        { id: 'harassmentAggressiveLanguage', label: 'Aggressive/inappropriate language' },
+        { id: 'harassmentPhysicalThreats', label: 'Physical threats or touching' },
+        { id: 'harassmentSinglingOut', label: 'Notices singling out one tenant' },
+        { id: 'harassmentDuplicativeNotices', label: 'Duplicative notices' },
+        { id: 'harassmentUntimelyResponse', label: 'Untimely response from landlord' },
+      ],
+      detailsField: 'harassmentDetails',
+      dateFields: {
+        firstNoticed: 'harassmentStartDate',
+      },
+    },
   ]
 
   return (
@@ -485,7 +511,7 @@ export function BuildingIssuesCompact({ formData, handleChange }: BuildingIssues
                         htmlFor={category.dateFields.firstNoticed}
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
-                        When did you first notice?
+                        {category.id === 'harassment' ? 'When did harassment start?' : 'When did you first notice?'}
                       </label>
                       <input
                         type="date"
@@ -497,22 +523,24 @@ export function BuildingIssuesCompact({ formData, handleChange }: BuildingIssues
                       />
                     </div>
 
-                    <div>
-                      <label
-                        htmlFor={category.dateFields.reported}
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        When did you report it?
-                      </label>
-                      <input
-                        type="date"
-                        id={category.dateFields.reported}
-                        name={category.dateFields.reported}
-                        value={formData[category.dateFields.reported] || ''}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+                    {category.dateFields.reported && (
+                      <div>
+                        <label
+                          htmlFor={category.dateFields.reported}
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          When did you report it?
+                        </label>
+                        <input
+                          type="date"
+                          id={category.dateFields.reported}
+                          name={category.dateFields.reported}
+                          value={formData[category.dateFields.reported] || ''}
+                          onChange={handleChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

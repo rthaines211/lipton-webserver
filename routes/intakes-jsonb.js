@@ -392,12 +392,65 @@ router.post('/', async (req, res) => {
       safetyFirstNoticed: formData.safetyFirstNoticed || null,
       safetyReportedDate: formData.safetyReportedDate || null,
 
+      // Harassment Issues - Phase 3A (15 checkboxes + 1 date field)
+      hasHarassmentIssues: formData.hasHarassmentIssues || false,
+      harassmentUnlawfulDetainer: formData.harassmentUnlawfulDetainer || false,
+      harassmentEvictionThreats: formData.harassmentEvictionThreats || false,
+      harassmentByDefendant: formData.harassmentByDefendant || false,
+      harassmentByMaintenance: formData.harassmentByMaintenance || false,
+      harassmentByManager: formData.harassmentByManager || false,
+      harassmentByOwner: formData.harassmentByOwner || false,
+      harassmentByOtherTenants: formData.harassmentByOtherTenants || false,
+      harassmentIllegitimateNotices: formData.harassmentIllegitimateNotices || false,
+      harassmentRefusalToRepair: formData.harassmentRefusalToRepair || false,
+      harassmentWrittenThreats: formData.harassmentWrittenThreats || false,
+      harassmentAggressiveLanguage: formData.harassmentAggressiveLanguage || false,
+      harassmentPhysicalThreats: formData.harassmentPhysicalThreats || false,
+      harassmentSinglingOut: formData.harassmentSinglingOut || false,
+      harassmentDuplicativeNotices: formData.harassmentDuplicativeNotices || false,
+      harassmentUntimelyResponse: formData.harassmentUntimelyResponse || false,
+      harassmentDetails: formData.harassmentDetails || null,
+      harassmentStartDate: formData.harassmentStartDate || null,
+
       // Legacy fields for backwards compatibility (can be removed later)
       hasOtherIssues: formData.hasOtherIssues || false,
       otherDescription: formData.otherIssuesDescription || null,
     };
 
     const householdMembers = formData.householdMembers || [];
+
+    // Phase 3A: Legal History Fields
+    const legalHistory = {
+      hasRentDeductions: formData.hasRentDeductions || null,
+      rentDeductionsDetails: formData.rentDeductionsDetails || null,
+      hasBeenRelocated: formData.hasBeenRelocated || null,
+      relocationDetails: formData.relocationDetails || null,
+      hasLawsuitInvolvement: formData.hasLawsuitInvolvement || null,
+      lawsuitDetails: formData.lawsuitDetails || null,
+      hasPoliceReports: formData.hasPoliceReports || null,
+      hasPropertyDamage: formData.hasPropertyDamage || null,
+    };
+
+    // Phase 3B: Household Demographics
+    const householdDemographics = {
+      clientOccupation: formData.clientOccupation || null,
+      clientHasDisability: formData.clientHasDisability || null,
+      clientDisabilityDetails: formData.clientDisabilityDetails || null,
+      isSpanishSpeaking: formData.isSpanishSpeaking || null,
+      isVeteran: formData.isVeteran || null,
+      numberOfChildren: formData.numberOfChildren ? parseInt(formData.numberOfChildren) : null,
+      numberOfElderly: formData.numberOfElderly ? parseInt(formData.numberOfElderly) : null,
+      totalHouseholdSize: formData.totalHouseholdSize ? parseInt(formData.totalHouseholdSize) : null,
+      householdIncomeUnder45k: formData.householdIncomeUnder45k || null,
+    };
+
+    // Phase 3B: Additional Property/Tenancy fields
+    const additionalTenancyInfo = {
+      hasUnlawfulDetainerFiled: formData.hasUnlawfulDetainerFiled || null,
+      moveInDate: formData.moveInDate || null,
+      hasRetainerWithAnotherAttorney: formData.hasRetainerWithAnotherAttorney || null,
+      howDidYouFindUs: formData.howDidYouFindUs || null,
+    };
 
     // Insert into database
     const query = `
@@ -430,6 +483,22 @@ router.post('/', async (req, res) => {
       RETURNING id, intake_number, created_at, intake_status
     `;
 
+    // Merge all the new Phase 3 fields into the appropriate JSONB columns
+    const extendedTenancyInfo = {
+      ...tenancyInfo,
+      ...additionalTenancyInfo,
+    };
+
+    const extendedBuildingIssues = {
+      ...buildingIssues,
+      ...legalHistory,
+    };
+
+    const extendedHouseholdMembers = {
+      members: householdMembers,
+      demographics: householdDemographics,
+    };
+
     const values = [
       intakeNumber,
       formData.firstName,
@@ -445,11 +514,11 @@ router.post('/', async (req, res) => {
       formData.isHeadOfHousehold !== undefined ? formData.isHeadOfHousehold : true,
       JSON.stringify(currentAddress),
       JSON.stringify(propertyAddress),
-      JSON.stringify(tenancyInfo),
-      JSON.stringify(householdMembers),
+      JSON.stringify(extendedTenancyInfo),
+      JSON.stringify(extendedHouseholdMembers),
       landlordInfo ? JSON.stringify(landlordInfo) : null,
       propertyManagerInfo ? JSON.stringify(propertyManagerInfo) : null,
-      JSON.stringify(buildingIssues),
+      JSON.stringify(extendedBuildingIssues),
       'pending',
       JSON.stringify(formData),
     ];
