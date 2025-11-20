@@ -692,6 +692,14 @@ router.get('/:id/doc-gen-format', async (req, res) => {
 
     const intake = result.rows[0];
 
+    // ===== DEBUGGING: Log intake building_issues =====
+    logger.info('DOC-GEN FORMAT DEBUG - Intake building_issues data:', {
+      intakeId: id,
+      hasBuildingIssues: !!intake.building_issues,
+      buildingIssuesKeys: intake.building_issues ? Object.keys(intake.building_issues) : [],
+      buildingIssuesData: intake.building_issues || {},
+    });
+
     // Calculate age and adult status from date of birth
     let age = null;
     let isAdult = false;
@@ -910,6 +918,23 @@ router.get('/:id/doc-gen-format', async (req, res) => {
         intake.building_issues?.harassmentRetaliation ||
         intake.building_issues?.harassmentSexual || false,
     };
+
+    // ===== DEBUGGING: Log building issues mapping results =====
+    const buildingIssuesFields = Object.entries(docGenData)
+      .filter(([key]) => key.startsWith('hab-'))
+      .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+
+    const trueBuildingIssues = Object.entries(buildingIssuesFields)
+      .filter(([, value]) => value === true)
+      .map(([key]) => key);
+
+    logger.info('DOC-GEN FORMAT DEBUG - Building issues mapping output:', {
+      intakeId: id,
+      totalHabFields: Object.keys(buildingIssuesFields).length,
+      trueHabFields: trueBuildingIssues.length,
+      trueHabFieldsList: trueBuildingIssues,
+      allHabFields: buildingIssuesFields,
+    });
 
     res.status(200).json(docGenData);
   } catch (error) {
