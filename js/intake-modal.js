@@ -340,8 +340,8 @@ function populateDocGenForm(data) {
 
         // Iterate through ALL fields in the API response
         for (const [fieldName, fieldValue] of Object.entries(data)) {
-            // Only process hab-* fields that are true
-            if (fieldName.startsWith('hab-') && fieldValue === true) {
+            // Process both hab-* fields (habitability form) AND edit-issue-* fields (doc-gen form)
+            if ((fieldName.startsWith('hab-') || fieldName.startsWith('edit-issue-')) && fieldValue === true) {
                 // Try checkbox first
                 let success = setCheckboxValue(fieldName, true);
 
