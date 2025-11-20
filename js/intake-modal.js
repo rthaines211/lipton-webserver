@@ -340,8 +340,11 @@ function populateDocGenForm(data) {
 
         // Iterate through ALL fields in the API response
         for (const [fieldName, fieldValue] of Object.entries(data)) {
-            // Process hab-* fields (habitability form), edit-issue-* fields, AND *-toggle-* fields (doc-gen form)
-            if ((fieldName.startsWith('hab-') || fieldName.startsWith('edit-issue-') || fieldName.includes('-toggle-')) && fieldValue === true) {
+            // Process hab-* fields (habitability form), edit-issue-* fields, *-toggle-* fields, AND individual checkbox fields (doc-gen form)
+            // Individual checkboxes follow pattern: {category}-{ItemName}-{plaintiffId} like "vermin-RatsMice-1", "plumbing-Toilet-1"
+            const isIndividualCheckbox = fieldName.match(/^(vermin|insect|plumbing|electrical|hvac|appliances|health-hazard|structure|flooring|cabinets|door|windows|fire-hazard|nuisance|trash|common-areas|notices|utility|safety|harassment)-[A-Za-z]+-\d+$/);
+
+            if ((fieldName.startsWith('hab-') || fieldName.startsWith('edit-issue-') || fieldName.includes('-toggle-') || isIndividualCheckbox) && fieldValue === true) {
                 // Try checkbox first
                 let success = setCheckboxValue(fieldName, true);
 
