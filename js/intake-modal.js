@@ -375,6 +375,15 @@ function populateDocGenForm(data) {
         }
         console.log(`Successfully populated ${issuesPopulated} building issue checkboxes`);
 
+        // ===== VERIFICATION: Check what's actually checked in the DOM =====
+        console.log('\n=== VERIFICATION: Checking DOM state after population ===');
+        const checkedCheckboxes = document.querySelectorAll('input[type="checkbox"][name^="hab-"]:checked');
+        const checkedRadios = document.querySelectorAll('input[type="radio"][name^="hab-"][value="yes"]:checked');
+        console.log(`Found ${checkedCheckboxes.length} checked hab-* checkboxes:`,
+            Array.from(checkedCheckboxes).map(cb => cb.name));
+        console.log(`Found ${checkedRadios.length} checked hab-* radio buttons (yes):`,
+            Array.from(checkedRadios).map(r => r.name));
+
         // Expand categories that have populated checkboxes so they're visible
         if (categoriesToExpand.size > 0) {
             console.log(`Expanding ${categoriesToExpand.size} categories:`, Array.from(categoriesToExpand));
@@ -436,9 +445,12 @@ function setCheckboxValue(fieldName, checked) {
     }
 
     if (field && field.type === 'checkbox') {
+        const wasBefore = field.checked;
         field.checked = checked;
         // Trigger change event for any listeners
         field.dispatchEvent(new Event('change', { bubbles: true }));
+        const isAfter = field.checked;
+        console.log(`    🔲 Checkbox ${fieldName}: ${wasBefore} → ${isAfter} ${isAfter === checked ? '✓' : '✗ FAILED'}`);
         return true;
     }
     return false;
@@ -458,11 +470,14 @@ function setRadioValue(radioName, value) {
     // Select the one with matching value
     let found = false;
     radios.forEach(radio => {
-        console.log(`  - Radio value: ${radio.value}, ID: ${radio.id}`);
+        console.log(`  - Radio value: ${radio.value}, ID: ${radio.id}, currently checked: ${radio.checked}`);
         if (radio.value === value) {
+            const wasBefore = radio.checked;
             radio.checked = true;
             // Trigger change event for any listeners
             radio.dispatchEvent(new Event('change', { bubbles: true }));
+            const isAfter = radio.checked;
+            console.log(`    📻 Radio ${radio.id}: ${wasBefore} → ${isAfter} ${isAfter ? '✓' : '✗ FAILED'}`);
             found = true;
         }
     });
