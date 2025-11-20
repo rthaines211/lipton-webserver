@@ -771,85 +771,75 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'security-deposit': intake.tenancy_info?.securityDeposit ? intake.tenancy_info.securityDeposit.toString() : '',
 
       // =======================================================================
-      // BUILDING ISSUES MAPPING - Phase 3 Complete (21 Categories)
+      // BUILDING ISSUES MAPPING - Complete Doc-Gen Format
       // =======================================================================
-      // Maps client intake form building_issues JSONB fields to doc-gen format
-      // Based on BuildingIssuesCompact.tsx structure and intake-modal.js mapping
+      // Maps client intake form building_issues JSONB to doc-gen checkbox names
+      // Based on intake-modal.js lines 324-396 (EXACT field names required)
       //
-      // Note: Only non-null/true values from intake should map to doc-gen checkboxes
+      // Format: {category}-{Item}-{plaintiffNumber}
+      // Example: 'vermin-RatsMice-1', 'insect-Roaches-1', 'hvac-Heater-1'
       // =======================================================================
 
-      // ===== VERMIN ISSUES (Doc-Gen Category) =====
-      'issue-pest-rodents': intake.building_issues?.pestRats || intake.building_issues?.pestMice || false,
+      // ===== VERMIN ISSUES =====
+      'vermin-RatsMice-1': intake.building_issues?.pestRats || intake.building_issues?.pestMice || false,
 
-      // ===== INSECT ISSUES (Doc-Gen Category) =====
-      'issue-pest-cockroaches': intake.building_issues?.pestCockroaches || false,
-      'issue-pest-bed-bugs': intake.building_issues?.pestBedbugs || false,
-      'issue-pest-ants': intake.building_issues?.pestAnts || false,
-      'issue-pest-termites': intake.building_issues?.pestTermites || false,
+      // ===== INSECT ISSUES =====
+      'insect-Roaches-1': intake.building_issues?.pestCockroaches || false,
+      'insect-Bedbugs-1': intake.building_issues?.pestBedbugs || false,
+      'insect-Ants-1': intake.building_issues?.pestAnts || false,
+      'insect-Termites-1': intake.building_issues?.pestTermites || false,
 
       // ===== HVAC ISSUES =====
-      'issue-hvac-no-heat': intake.building_issues?.hvacNoHeat || intake.building_issues?.hvacInadequateHeat || false,
-      'issue-hvac-no-ac': intake.building_issues?.hvacNoAirConditioning || intake.building_issues?.hvacInadequateCooling || false,
-      'issue-hvac-poor-ventilation': intake.building_issues?.hvacVentilationPoor || false,
-      'issue-hvac-thermostat': intake.building_issues?.hvacBrokenThermostat || false,
-      'issue-hvac-gas-smell': intake.building_issues?.hvacGasSmell || false,
+      'hvac-Heater-1': intake.building_issues?.hvacNoHeat || intake.building_issues?.hvacInadequateHeat || intake.building_issues?.hvacBrokenThermostat || intake.building_issues?.hvacGasSmell || false,
+      'hvac-AirConditioner-1': intake.building_issues?.hvacNoAirConditioning || intake.building_issues?.hvacInadequateCooling || false,
+      'hvac-Ventilation-1': intake.building_issues?.hvacVentilationPoor || false,
 
       // ===== ELECTRICAL ISSUES =====
-      'issue-electrical-outages': intake.building_issues?.electricalPartialOutages || intake.building_issues?.electricalNoPower || false,
-      'issue-electrical-sparks': intake.building_issues?.electricalSparkingOutlets || intake.building_issues?.electricalExposedWiring || false,
-      'issue-electrical-overloaded': intake.building_issues?.electricalCircuitBreakerIssues || false,
-      'issue-electrical-outlets': intake.building_issues?.electricalBrokenOutlets || false,
-      'issue-electrical-switches': intake.building_issues?.electricalBrokenSwitches || false,
-      'issue-electrical-flickering': intake.building_issues?.electricalFlickeringLights || false,
-      'issue-electrical-burning': intake.building_issues?.electricalBurningSmell || false,
+      'electrical-Panel-1': intake.building_issues?.electricalPartialOutages || intake.building_issues?.electricalNoPower || intake.building_issues?.electricalCircuitBreakerIssues || intake.building_issues?.electricalBurningSmell || false,
+      'electrical-Outlets-1': intake.building_issues?.electricalSparkingOutlets || intake.building_issues?.electricalBrokenOutlets || false,
+      'electrical-WallSwitches-1': intake.building_issues?.electricalBrokenSwitches || false,
+      'electrical-InteriorLighting-1': intake.building_issues?.electricalFlickeringLights || false,
+      'electrical-ExteriorLighting-1': intake.building_issues?.securityInadequateLighting || false,
 
       // ===== PLUMBING ISSUES =====
-      'issue-plumbing-leaks': intake.building_issues?.plumbingLeaks || intake.building_issues?.plumbingBurstPipes || false,
-      'issue-plumbing-no-pressure': intake.building_issues?.plumbingLowPressure || false,
-      'issue-plumbing-no-hot-water': intake.building_issues?.plumbingNoHotWater || intake.building_issues?.plumbingNoWater || false,
-      'issue-plumbing-sewer-backup': intake.building_issues?.plumbingSewerBackup || false,
-      'issue-plumbing-clogged-drains': intake.building_issues?.plumbingCloggedDrains || false,
-      'issue-plumbing-toilet': intake.building_issues?.plumbingToiletNotWorking || false,
-      'issue-plumbing-shower': intake.building_issues?.plumbingShowerNotWorking || false,
-      'issue-plumbing-sink': intake.building_issues?.plumbingSinkNotWorking || false,
-      'issue-plumbing-water-damage': intake.building_issues?.plumbingWaterDamage || intake.building_issues?.plumbingFlooding || false,
-      'issue-plumbing-discolored-water': intake.building_issues?.plumbingWaterDiscoloration || false,
+      'plumbing-Leaks-1': intake.building_issues?.plumbingLeaks || intake.building_issues?.plumbingBurstPipes || false,
+      'plumbing-Insufficientwaterpressure-1': intake.building_issues?.plumbingLowPressure || false,
+      'plumbing-Nohotwater-1': intake.building_issues?.plumbingNoHotWater || intake.building_issues?.plumbingNoWater || false,
+      'plumbing-Sewagecomingout-1': intake.building_issues?.plumbingSewerBackup || false,
+      'plumbing-Cloggedsinks-1': intake.building_issues?.plumbingCloggedDrains || intake.building_issues?.plumbingSinkNotWorking || false,
+      'plumbing-Toilet-1': intake.building_issues?.plumbingToiletNotWorking || false,
+      'plumbing-Shower-1': intake.building_issues?.plumbingShowerNotWorking || false,
+      'plumbing-Unsanitarywater-1': intake.building_issues?.plumbingWaterDiscoloration || false,
 
-      // ===== HEALTH HAZARD ISSUES (MOLD) =====
-      'issue-mold-visible': intake.building_issues?.healthHazardMold || false,
-      'issue-mold-smell': intake.building_issues?.healthHazardMold || false, // Same source
-      'issue-mold-extensive': intake.building_issues?.healthHazardMold || false, // Same source
-      'issue-health-noxious-fumes': intake.building_issues?.healthHazardChemicalSmell || false,
-      'issue-health-toxic-water': intake.building_issues?.healthHazardContaminatedWater || false,
+      // ===== HEALTH HAZARD ISSUES =====
+      'health-hazard-Mold-1': intake.building_issues?.healthHazardMold || false,
+      'health-hazard-Noxiousfumes-1': intake.building_issues?.healthHazardChemicalSmell || false,
+      'health-hazard-Toxicwaterpollution-1': intake.building_issues?.healthHazardContaminatedWater || false,
 
       // ===== STRUCTURAL ISSUES =====
-      'issue-structural-cracks': intake.building_issues?.structuralWallCracks || intake.building_issues?.structuralCeilingDamage || false,
-      'issue-structural-leaning': intake.building_issues?.structuralFloorDamage || intake.building_issues?.structuralFoundationIssues || false,
-      'issue-structural-collapse': intake.building_issues?.structuralBalconyUnsafe || intake.building_issues?.structuralStairsUnsafe || false,
-      'issue-structural-roof': intake.building_issues?.structuralRoofLeaks || false,
-      'issue-structural-windows': intake.building_issues?.structuralWindowDamage || intake.building_issues?.windowBroken || false,
-      'issue-structural-doors': intake.building_issues?.structuralDoorDamage || intake.building_issues?.doorBroken || false,
-      'issue-structural-railings': intake.building_issues?.structuralRailingMissing || false,
+      'structure-Holeinwall-1': intake.building_issues?.structuralWallCracks || false,
+      'structure-Holeinceiling-1': intake.building_issues?.structuralCeilingDamage || false,
+      'structure-Bumpsinceiling-1': intake.building_issues?.structuralBalconyUnsafe || intake.building_issues?.structuralStairsUnsafe || false,
+      'structure-Leaksingarage-1': intake.building_issues?.structuralRoofLeaks || false,
+      'structure-Waterstainsonwall-1': intake.building_issues?.plumbingWaterDamage || intake.building_issues?.plumbingFlooding || false,
+      'structure-Staircase-1': intake.building_issues?.structuralRailingMissing || intake.building_issues?.structuralStairsUnsafe || false,
 
-      // ===== FIRE SAFETY ISSUES =====
-      'issue-safety-no-smoke': intake.building_issues?.fireHazardNoSmokeDetectors || intake.building_issues?.fireHazardBrokenSmokeDetectors || intake.building_issues?.securityNoSmokeDetector || false,
-      'issue-safety-no-co': intake.building_issues?.hvacCarbonMonoxideDetectorMissing || false,
+      // ===== WINDOW/DOOR ISSUES =====
+      'windows-Broken-1': intake.building_issues?.windowBroken || intake.building_issues?.structuralWindowDamage || intake.building_issues?.securityBrokenWindows || false,
+      'door-Broken-1': intake.building_issues?.doorBroken || intake.building_issues?.doorDamaged || intake.building_issues?.structuralDoorDamage || intake.building_issues?.securityBrokenDoors || false,
+      'door-Locks-1': intake.building_issues?.doorNoLock || intake.building_issues?.securityBrokenLocks || intake.building_issues?.securityNoDeadbolt || false,
 
-      // ===== SECURITY/SAFETY ISSUES =====
-      'issue-safety-broken-locks': intake.building_issues?.securityBrokenLocks || intake.building_issues?.doorNoLock || false,
-      'issue-safety-inadequate-lighting': intake.building_issues?.securityInadequateLighting || intake.building_issues?.commonAreaLightingBroken || false,
-      'issue-safety-no-deadbolt': intake.building_issues?.securityNoDeadbolt || false,
-      'issue-safety-broken-windows': intake.building_issues?.securityBrokenWindows || intake.building_issues?.windowBroken || false,
+      // ===== FIRE SAFETY =====
+      'fire-hazard-SmokeAlarms-1': intake.building_issues?.fireHazardNoSmokeDetectors || intake.building_issues?.fireHazardBrokenSmokeDetectors || intake.building_issues?.securityNoSmokeDetector || false,
+      'fire-hazard-Carbonmonoxidedetectors-1': intake.building_issues?.hvacCarbonMonoxideDetectorMissing || false,
 
       // ===== APPLIANCE ISSUES =====
-      'issue-appliance-stove': intake.building_issues?.applianceStoveBroken || false,
-      'issue-appliance-refrigerator': intake.building_issues?.applianceRefrigeratorBroken || false,
-      'issue-appliance-dishwasher': intake.building_issues?.applianceDishwasherBroken || false,
-      'issue-appliance-washer': intake.building_issues?.applianceWasherBroken || false,
-      'issue-appliance-dryer': intake.building_issues?.applianceDryerBroken || false,
-      'issue-appliance-garbage-disposal': intake.building_issues?.applianceGarbageDisposalBroken || false,
-      'issue-appliance-microwave': intake.building_issues?.applianceOtherBroken || false, // Mapped to "other" as microwave not in intake
+      'appliances-Stove-1': intake.building_issues?.applianceStoveBroken || intake.building_issues?.applianceOvenBroken || false,
+      'appliances-Refrigerator-1': intake.building_issues?.applianceRefrigeratorBroken || false,
+      'appliances-Dishwasher-1': intake.building_issues?.applianceDishwasherBroken || false,
+      'appliances-Washerdryer-1': intake.building_issues?.applianceWasherBroken || intake.building_issues?.applianceDryerBroken || false,
+      'appliances-Garbagedisposal-1': intake.building_issues?.applianceGarbageDisposalBroken || false,
+      'appliances-Microwave-1': intake.building_issues?.applianceOther || false,
     };
 
     res.status(200).json(docGenData);
