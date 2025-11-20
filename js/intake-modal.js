@@ -342,15 +342,24 @@ function populateDocGenForm(data) {
         for (const [fieldName, fieldValue] of Object.entries(data)) {
             // Only process hab-* fields that are true
             if (fieldName.startsWith('hab-') && fieldValue === true) {
-                const success = setCheckboxValue(fieldName, true);
+                // Try checkbox first
+                let success = setCheckboxValue(fieldName, true);
+
+                // If checkbox not found, try radio button
+                if (!success) {
+                    success = setRadioValue(fieldName, 'yes');
+                    if (success) {
+                        console.log(`✓ Populated radio button: ${fieldName} = yes`);
+                    }
+                }
+
                 if (success) {
                     issuesPopulated++;
-                    console.log(`✓ Populated checkbox: ${fieldName}`);
-
-                    // Extract category from checkbox name (e.g., "hab-pest-mice-rats" → "hab")
-                    // Note: hab fields don't expand by category, they just check the checkbox
+                    if (!fieldName.includes('-problems') && !fieldName.includes('-issues')) {
+                        console.log(`✓ Populated checkbox: ${fieldName}`);
+                    }
                 } else {
-                    console.warn(`✗ Failed to populate checkbox: ${fieldName}`);
+                    console.warn(`✗ Failed to populate field: ${fieldName} (not found as checkbox or radio)`);
                 }
             }
         }
@@ -411,9 +420,9 @@ function setFieldValue(fieldName, value) {
  */
 function setCheckboxValue(fieldName, checked) {
     // Try by name first, then by ID
-    let field = document.querySelector(`[name="${fieldName}"]`);
+    let field = document.querySelector(`[name="${fieldName}"][type="checkbox"]`);
     if (!field) {
-        field = document.getElementById(fieldName);
+        field = document.querySelector(`#${fieldName}[type="checkbox"]`);
     }
 
     if (field && field.type === 'checkbox') {
@@ -421,10 +430,8 @@ function setCheckboxValue(fieldName, checked) {
         // Trigger change event for any listeners
         field.dispatchEvent(new Event('change', { bubbles: true }));
         return true;
-    } else {
-        console.warn(`Checkbox not found: ${fieldName}`);
-        return false;
     }
+    return false;
 }
 
 /**
