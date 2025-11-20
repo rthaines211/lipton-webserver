@@ -340,8 +340,8 @@ function populateDocGenForm(data) {
 
         // Iterate through ALL fields in the API response
         for (const [fieldName, fieldValue] of Object.entries(data)) {
-            // Process both hab-* fields (habitability form) AND edit-issue-* fields (doc-gen form)
-            if ((fieldName.startsWith('hab-') || fieldName.startsWith('edit-issue-')) && fieldValue === true) {
+            // Process hab-* fields (habitability form), edit-issue-* fields, AND *-toggle-* fields (doc-gen form)
+            if ((fieldName.startsWith('hab-') || fieldName.startsWith('edit-issue-') || fieldName.includes('-toggle-')) && fieldValue === true) {
                 // Try checkbox first
                 let success = setCheckboxValue(fieldName, true);
 
@@ -379,10 +379,13 @@ function populateDocGenForm(data) {
         console.log('\n=== VERIFICATION: Checking DOM state after population ===');
         const checkedCheckboxes = document.querySelectorAll('input[type="checkbox"][name^="hab-"]:checked');
         const checkedRadios = document.querySelectorAll('input[type="radio"][name^="hab-"][value="yes"]:checked');
+        const checkedToggles = document.querySelectorAll('input[type="checkbox"][id*="-toggle-"]:checked');
         console.log(`Found ${checkedCheckboxes.length} checked hab-* checkboxes:`,
             Array.from(checkedCheckboxes).map(cb => cb.name));
         console.log(`Found ${checkedRadios.length} checked hab-* radio buttons (yes):`,
             Array.from(checkedRadios).map(r => r.name));
+        console.log(`Found ${checkedToggles.length} checked *-toggle-* checkboxes (doc-gen form):`,
+            Array.from(checkedToggles).map(cb => cb.id));
 
         // Expand categories that have populated checkboxes so they're visible
         if (categoriesToExpand.size > 0) {
