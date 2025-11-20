@@ -380,12 +380,18 @@ function populateDocGenForm(data) {
         const checkedCheckboxes = document.querySelectorAll('input[type="checkbox"][name^="hab-"]:checked');
         const checkedRadios = document.querySelectorAll('input[type="radio"][name^="hab-"][value="yes"]:checked');
         const checkedToggles = document.querySelectorAll('input[type="checkbox"][id*="-toggle-"]:checked');
+        // Individual items: checkboxes with IDs containing '-' but NOT '-toggle-' and ending with '-1'
+        const checkedIndividualItems = document.querySelectorAll('input[type="checkbox"][id$="-1"]:not([id*="-toggle-"]):checked');
+
         console.log(`Found ${checkedCheckboxes.length} checked hab-* checkboxes:`,
             Array.from(checkedCheckboxes).map(cb => cb.name));
         console.log(`Found ${checkedRadios.length} checked hab-* radio buttons (yes):`,
             Array.from(checkedRadios).map(r => r.name));
         console.log(`Found ${checkedToggles.length} checked *-toggle-* checkboxes (doc-gen form):`,
             Array.from(checkedToggles).map(cb => cb.id));
+        console.log(`Found ${checkedIndividualItems.length} checked individual building issue items (doc-gen form):`,
+            Array.from(checkedIndividualItems).slice(0, 10).map(cb => cb.id),
+            checkedIndividualItems.length > 10 ? `... and ${checkedIndividualItems.length - 10} more` : '');
 
         // Expand categories that have populated checkboxes so they're visible
         if (categoriesToExpand.size > 0) {

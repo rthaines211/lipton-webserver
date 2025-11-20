@@ -812,6 +812,199 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'safety-toggle-1': intake.building_issues?.hasSafetyIssues || false,
 
       // =======================================================================
+      // INDIVIDUAL BUILDING ISSUES CHECKBOXES (148 items across 20 categories)
+      // =======================================================================
+      // Format: {category}-{ItemNoSpaces}-{plaintiffId}
+      // Maps individual issue checkboxes from client intake to doc-gen form
+      // Reference: /docs/client-intake/INTAKE_TO_DOCGEN_MAPPING.MD sections 5-24
+      // =======================================================================
+
+      // ===== SECTION 5: PLUMBING ISSUES (12 items) =====
+      'plumbing-Toilet-1': intake.building_issues?.plumbingToilet || false,
+      'plumbing-Sink-1': intake.building_issues?.plumbingSink || false,
+      'plumbing-Bathtub-1': intake.building_issues?.plumbingBathtub || false,
+      'plumbing-Shower-1': intake.building_issues?.plumbingShower || false,
+      'plumbing-WaterHeater-1': intake.building_issues?.plumbingWaterHeater || false,
+      'plumbing-Faucets-1': intake.building_issues?.plumbingFaucets || false,
+      'plumbing-Pipes-1': intake.building_issues?.plumbingPipes || false,
+      'plumbing-Drainage-1': intake.building_issues?.plumbingDrainage || false,
+      'plumbing-Leaks-1': intake.building_issues?.plumbingLeaks || false,
+      'plumbing-Clogs-1': intake.building_issues?.plumbingClogs || false,
+      'plumbing-Pressure-1': intake.building_issues?.plumbingPressure || false,
+      'plumbing-SewerSmell-1': intake.building_issues?.plumbingSewerSmell || false,
+
+      // ===== SECTION 6: VERMIN ISSUES (6 items) =====
+      // Note: RatsMice combines pestRats OR pestMice
+      'vermin-RatsMice-1': intake.building_issues?.pestRats || intake.building_issues?.pestMice || false,
+      'vermin-Bats-1': intake.building_issues?.pestBats || false,
+      'vermin-Pigeons-1': intake.building_issues?.pestPigeons || false,
+      'vermin-Skunks-1': intake.building_issues?.pestSkunks || false,
+      'vermin-Raccoons-1': intake.building_issues?.pestRaccoons || false,
+      'vermin-Opossums-1': intake.building_issues?.pestOpossums || false,
+
+      // ===== SECTION 7: INSECT ISSUES (10 items) =====
+      'insect-Ants-1': intake.building_issues?.pestAnts || false,
+      'insect-Bedbugs-1': intake.building_issues?.pestBedbugs || false,
+      'insect-Spiders-1': intake.building_issues?.pestSpiders || false,
+      'insect-Mosquitos-1': intake.building_issues?.pestMosquitos || false,
+      'insect-Roaches-1': intake.building_issues?.pestCockroaches || false,
+      'insect-Wasps-1': intake.building_issues?.pestWasps || false,
+      'insect-Termites-1': intake.building_issues?.pestTermites || false,
+      'insect-Bees-1': intake.building_issues?.pestBees || false,
+      'insect-Flies-1': intake.building_issues?.pestFlies || false,
+      'insect-Hornets-1': intake.building_issues?.pestHornets || false,
+
+      // ===== SECTION 8: ELECTRICAL ISSUES (7 items) =====
+      'electrical-Outlets-1': intake.building_issues?.electricalOutlets || false,
+      'electrical-Switches-1': intake.building_issues?.electricalSwitches || false,
+      'electrical-Wiring-1': intake.building_issues?.electricalWiring || false,
+      'electrical-Breakers-1': intake.building_issues?.electricalBreakers || false,
+      'electrical-Lighting-1': intake.building_issues?.electricalLighting || false,
+      'electrical-Panel-1': intake.building_issues?.electricalPanel || false,
+      'electrical-Fixtures-1': intake.building_issues?.electricalFixtures || false,
+
+      // ===== SECTION 9: HVAC ISSUES (3 items) =====
+      'hvac-AirConditioner-1': intake.building_issues?.hvacAirConditioner || false,
+      'hvac-Heater-1': intake.building_issues?.hvacHeater || false,
+      'hvac-Ventilation-1': intake.building_issues?.hvacVentilation || false,
+
+      // ===== SECTION 11: HEALTH HAZARD ISSUES (10 items) =====
+      'health-hazard-Mold-1': intake.building_issues?.healthMold || false,
+      'health-hazard-Mildew-1': intake.building_issues?.healthMildew || false,
+      'health-hazard-LeadPaint-1': intake.building_issues?.healthLeadPaint || false,
+      'health-hazard-Asbestos-1': intake.building_issues?.healthAsbestos || false,
+      'health-hazard-SewageBackup-1': intake.building_issues?.healthSewageBackup || false,
+      'health-hazard-WaterDamage-1': intake.building_issues?.healthWaterDamage || false,
+      'health-hazard-Flooding-1': intake.building_issues?.healthFlooding || false,
+      'health-hazard-GasLeak-1': intake.building_issues?.healthGasLeak || false,
+      'health-hazard-CarbonMonoxide-1': intake.building_issues?.healthCarbonMonoxide || false,
+      'health-hazard-AirQuality-1': intake.building_issues?.healthAirQuality || false,
+
+      // ===== SECTION 12: STRUCTURAL ISSUES (10 items) =====
+      'structure-Foundation-1': intake.building_issues?.structureFoundation || false,
+      'structure-Walls-1': intake.building_issues?.structureWalls || false,
+      'structure-Ceiling-1': intake.building_issues?.structureCeiling || false,
+      'structure-Roof-1': intake.building_issues?.structureRoof || false,
+      'structure-Stairs-1': intake.building_issues?.structureStairs || false,
+      'structure-Railings-1': intake.building_issues?.structureRailings || false,
+      'structure-Balcony-1': intake.building_issues?.structureBalcony || false,
+      'structure-Porch-1': intake.building_issues?.structurePorch || false,
+      'structure-Cracks-1': intake.building_issues?.structureCracks || false,
+      'structure-Sagging-1': intake.building_issues?.structureSagging || false,
+
+      // ===== SECTION 10: APPLIANCE ISSUES (6 items) =====
+      'appliances-Refrigerator-1': intake.building_issues?.appliancesRefrigerator || false,
+      'appliances-Stove-1': intake.building_issues?.appliancesStove || false,
+      'appliances-Oven-1': intake.building_issues?.appliancesOven || false,
+      'appliances-Dishwasher-1': intake.building_issues?.appliancesDishwasher || false,
+      'appliances-GarbageDisposal-1': intake.building_issues?.appliancesGarbageDisposal || false,
+      'appliances-Microwave-1': intake.building_issues?.appliancesMicrowave || false,
+
+      // ===== SECTION 13: FLOORING ISSUES (7 items) =====
+      'flooring-Carpet-1': intake.building_issues?.flooringCarpet || false,
+      'flooring-Tile-1': intake.building_issues?.flooringTile || false,
+      'flooring-Hardwood-1': intake.building_issues?.flooringHardwood || false,
+      'flooring-Linoleum-1': intake.building_issues?.flooringLinoleum || false,
+      'flooring-Uneven-1': intake.building_issues?.flooringUneven || false,
+      'flooring-Damage-1': intake.building_issues?.flooringDamage || false,
+      'flooring-Subfloor-1': intake.building_issues?.flooringSubfloor || false,
+
+      // ===== SECTION 14: CABINET ISSUES (4 items) =====
+      'cabinets-Kitchen-1': intake.building_issues?.cabinetsKitchen || false,
+      'cabinets-Bathroom-1': intake.building_issues?.cabinetsBathroom || false,
+      'cabinets-Counters-1': intake.building_issues?.cabinetsCounters || false,
+      'cabinets-Hardware-1': intake.building_issues?.cabinetsHardware || false,
+
+      // ===== SECTION 15: DOOR ISSUES (5 items) =====
+      'door-Entry-1': intake.building_issues?.doorEntry || false,
+      'door-Interior-1': intake.building_issues?.doorInterior || false,
+      'door-Locks-1': intake.building_issues?.doorLocks || false,
+      'door-Frames-1': intake.building_issues?.doorFrames || false,
+      'door-Threshold-1': intake.building_issues?.doorThreshold || false,
+
+      // ===== SECTION 16: WINDOW ISSUES (6 items) =====
+      'windows-Broken-1': intake.building_issues?.windowsBroken || false,
+      'windows-Cracked-1': intake.building_issues?.windowsCracked || false,
+      'windows-Seals-1': intake.building_issues?.windowsSeals || false,
+      'windows-Locks-1': intake.building_issues?.windowsLocks || false,
+      'windows-Screens-1': intake.building_issues?.windowsScreens || false,
+      'windows-Frames-1': intake.building_issues?.windowsFrames || false,
+
+      // ===== SECTION 17: FIRE HAZARD ISSUES (5 items) =====
+      'fire-hazard-SmokeDetectors-1': intake.building_issues?.fireHazardSmokeDetectors || false,
+      'fire-hazard-CarbonMonoxideDetector-1': intake.building_issues?.fireHazardCarbonMonoxideDetector || false,
+      // Note: FireExtinguisher comes from safety category in intake
+      'fire-hazard-FireExtinguisher-1': intake.building_issues?.safetyFireExtinguisher || false,
+      'fire-hazard-EmergencyExits-1': intake.building_issues?.fireHazardEmergencyExits || false,
+      // Note: "Uneffective" is a typo in doc-gen form but must be preserved for compatibility
+      'fire-hazard-Uneffective-1': intake.building_issues?.fireHazardIneffective || false,
+
+      // ===== SECTION 20: COMMON AREA ISSUES (9 items) =====
+      'common-areas-Hallways-1': intake.building_issues?.commonAreasHallways || false,
+      'common-areas-Stairwells-1': intake.building_issues?.commonAreasStairwells || false,
+      'common-areas-Elevators-1': intake.building_issues?.commonAreasElevators || false,
+      'common-areas-Laundry-1': intake.building_issues?.commonAreasLaundry || false,
+      'common-areas-Parking-1': intake.building_issues?.commonAreasParking || false,
+      'common-areas-Mailboxes-1': intake.building_issues?.commonAreasMailboxes || false,
+      'common-areas-Lighting-1': intake.building_issues?.commonAreasLighting || false,
+      'common-areas-Cleanliness-1': intake.building_issues?.commonAreasCleanliness || false,
+      'common-areas-Security-1': intake.building_issues?.commonAreasSecurity || false,
+
+      // ===== SECTION 23: SAFETY ISSUES (8 items) =====
+      'safety-Railings-1': intake.building_issues?.safetyRailings || false,
+      'safety-Lighting-1': intake.building_issues?.safetyLighting || false,
+      'safety-Locks-1': intake.building_issues?.safetyLocks || false,
+      'safety-Security-1': intake.building_issues?.safetySecurity || false,
+      'safety-Cameras-1': intake.building_issues?.safetyCameras || false,
+      'safety-Gates-1': intake.building_issues?.safetyGates || false,
+      'safety-Fencing-1': intake.building_issues?.safetyFencing || false,
+      'safety-Pool-1': intake.building_issues?.safetyPool || false,
+
+      // ===== SECTION 18: NUISANCE ISSUES (8 items) =====
+      'nuisance-Noise-1': intake.building_issues?.nuisanceNoise || false,
+      'nuisance-Odors-1': intake.building_issues?.nuisanceOdors || false,
+      'nuisance-Pests-1': intake.building_issues?.nuisancePests || false,
+      'nuisance-Vibrations-1': intake.building_issues?.nuisanceVibrations || false,
+      'nuisance-Smoke-1': intake.building_issues?.nuisanceSmoke || false,
+      'nuisance-Light-1': intake.building_issues?.nuisanceLight || false,
+      'nuisance-Privacy-1': intake.building_issues?.nuisancePrivacy || false,
+      'nuisance-Access-1': intake.building_issues?.nuisanceAccess || false,
+
+      // ===== SECTION 19: TRASH ISSUES (5 items) =====
+      'trash-Collection-1': intake.building_issues?.trashCollection || false,
+      'trash-Bins-1': intake.building_issues?.trashBins || false,
+      'trash-Disposal-1': intake.building_issues?.trashDisposal || false,
+      'trash-Overflowing-1': intake.building_issues?.trashOverflowing || false,
+      'trash-Pests-1': intake.building_issues?.trashPests || false,
+
+      // ===== SECTION 21: NOTICE ISSUES (7 items) =====
+      'notices-Eviction-1': intake.building_issues?.noticesEviction || false,
+      'notices-Rent-1': intake.building_issues?.noticesRent || false,
+      'notices-Inspection-1': intake.building_issues?.noticesInspection || false,
+      'notices-Entry-1': intake.building_issues?.noticesEntry || false,
+      'notices-Violation-1': intake.building_issues?.noticesViolation || false,
+      'notices-Lease-1': intake.building_issues?.noticesLease || false,
+      'notices-Legal-1': intake.building_issues?.noticesLegal || false,
+
+      // ===== SECTION 22: UTILITY ISSUES (7 items) =====
+      'utility-Water-1': intake.building_issues?.utilityWater || false,
+      'utility-Gas-1': intake.building_issues?.utilityGas || false,
+      'utility-Electric-1': intake.building_issues?.utilityElectric || false,
+      'utility-Trash-1': intake.building_issues?.utilityTrash || false,
+      'utility-Sewer-1': intake.building_issues?.utilitySewer || false,
+      'utility-Internet-1': intake.building_issues?.utilityInternet || false,
+      'utility-Billing-1': intake.building_issues?.utilityBilling || false,
+
+      // ===== SECTION 24: HARASSMENT ISSUES (7 items) =====
+      'harassment-Verbal-1': intake.building_issues?.harassmentVerbal || false,
+      'harassment-Physical-1': intake.building_issues?.harassmentPhysical || false,
+      'harassment-Sexual-1': intake.building_issues?.harassmentSexual || false,
+      'harassment-Discrimination-1': intake.building_issues?.harassmentDiscrimination || false,
+      'harassment-Retaliation-1': intake.building_issues?.harassmentRetaliation || false,
+      'harassment-Intimidation-1': intake.building_issues?.harassmentIntimidation || false,
+      'harassment-Threats-1': intake.building_issues?.harassmentThreats || false,
+
+      // =======================================================================
       // HABITABILITY INTAKE FORM FIELDS (hab-* format)
       // =======================================================================
       // These are for the habitability intake form, NOT the doc-gen form
