@@ -834,34 +834,36 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'plumbing-Pressure-1': intake.building_issues?.plumbingLowPressure || false,
       'plumbing-SewerSmell-1': intake.building_issues?.plumbingSewerBackup || false,
 
-      // ===== PEST/VERMIN ISSUES (6 items) =====
+      // ===== PEST/VERMIN ISSUES =====
+      // ONLY map fields that exist in intake database (pestRats, pestMice, pestRaccoons, pestBirds)
+      // DO NOT map fields that don't exist (Bats, Skunks, Opossums have no intake field)
       'vermin-RatsMice-1': intake.building_issues?.pestRats || intake.building_issues?.pestMice || false,
-      'vermin-Bats-1': intake.building_issues?.pestBats || false,
-      'vermin-Pigeons-1': intake.building_issues?.pestPigeons || false,
-      'vermin-Skunks-1': intake.building_issues?.pestSkunks || false,
+      'vermin-Pigeons-1': intake.building_issues?.pestBirds || false,
       'vermin-Raccoons-1': intake.building_issues?.pestRaccoons || false,
-      'vermin-Opossums-1': intake.building_issues?.pestOpossums || false,
+      // NOTE: vermin-Bats-1, vermin-Skunks-1, vermin-Opossums-1 are NOT mapped because
+      // intake form doesn't collect this data (no pestBats, pestSkunks, pestOpossums fields)
 
-      // ===== INSECT ISSUES (10 items) =====
+      // ===== INSECT ISSUES =====
+      // ONLY map fields that exist in intake database
+      // Available: pestAnts, pestBedbugs, pestSpiders, pestCockroaches, pestWasps, pestTermites, pestBees, pestFleas
       'insect-Ants-1': intake.building_issues?.pestAnts || false,
       'insect-Bedbugs-1': intake.building_issues?.pestBedbugs || false,
       'insect-Spiders-1': intake.building_issues?.pestSpiders || false,
-      'insect-Mosquitos-1': intake.building_issues?.pestMosquitos || false,
       'insect-Roaches-1': intake.building_issues?.pestCockroaches || false,
       'insect-Wasps-1': intake.building_issues?.pestWasps || false,
       'insect-Termites-1': intake.building_issues?.pestTermites || false,
       'insect-Bees-1': intake.building_issues?.pestBees || false,
-      'insect-Flies-1': intake.building_issues?.pestFlies || false,
-      'insect-Hornets-1': intake.building_issues?.pestHornets || false,
+      // NOTE: insect-Mosquitos-1, insect-Flies-1, insect-Hornets-1 are NOT mapped because
+      // intake form doesn't collect this data (no pestMosquitos, pestFlies, pestHornets fields)
 
-      // ===== ELECTRICAL ISSUES (7 items) =====
-      'electrical-Outlets-1': intake.building_issues?.electricalBrokenOutlets || intake.building_issues?.electricalSparkingOutlets || false,
-      'electrical-Switches-1': intake.building_issues?.electricalBrokenSwitches || false,
-      'electrical-Wiring-1': intake.building_issues?.electricalExposedWiring || false,
-      'electrical-Breakers-1': intake.building_issues?.electricalCircuitBreakerIssues || false,
-      'electrical-Lighting-1': intake.building_issues?.electricalFlickeringLights || false,
-      'electrical-Panel-1': intake.building_issues?.electricalPanelIssue || false,
-      'electrical-Fixtures-1': intake.building_issues?.electricalFixturesBroken || false,
+      // ===== ELECTRICAL ISSUES =====
+      // Doc-gen items: Outlets, Wall Switches, Interior Lighting, Fans, Panel, Exterior Lighting, Light Fixtures
+      // Map general doc-gen categories to specific intake issues
+      'electrical-Outlets-1': intake.building_issues?.electricalBrokenOutlets || intake.building_issues?.electricalSparkingOutlets || intake.building_issues?.electricalInsufficientOutlets || false,
+      'electrical-WallSwitches-1': intake.building_issues?.electricalBrokenSwitches || false,
+      'electrical-InteriorLighting-1': intake.building_issues?.electricalFlickeringLights || intake.building_issues?.electricalNoPower || false,
+      // NOTE: electrical-Fans-1, electrical-ExteriorLighting-1, electrical-LightFixtures-1 have no matching intake fields
+      'electrical-Panel-1': intake.building_issues?.electricalCircuitBreakerIssues || intake.building_issues?.electricalPartialOutages || intake.building_issues?.electricalExposedWiring || false,
 
       // ===== HVAC ISSUES =====
       'hvac-AirConditioner-1': intake.building_issues?.hvacNoAirConditioning || intake.building_issues?.hvacInadequateCooling || false,
