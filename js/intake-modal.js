@@ -353,13 +353,23 @@ function populateDocGenForm(data) {
                     }
                 }
 
+                // If still not found, check if it's a textarea and mark it with a note
+                if (!success) {
+                    const textarea = document.querySelector(`textarea[name="${fieldName}"]`);
+                    if (textarea) {
+                        textarea.value = '(Issues reported in client intake form)';
+                        success = true;
+                        console.log(`✓ Populated textarea: ${fieldName}`);
+                    }
+                }
+
                 if (success) {
                     issuesPopulated++;
                     if (!fieldName.includes('-problems') && !fieldName.includes('-issues')) {
                         console.log(`✓ Populated checkbox: ${fieldName}`);
                     }
                 } else {
-                    console.warn(`✗ Failed to populate field: ${fieldName} (not found as checkbox or radio)`);
+                    console.warn(`✗ Failed to populate field: ${fieldName} (not found as checkbox, radio, or textarea)`);
                 }
             }
         }
