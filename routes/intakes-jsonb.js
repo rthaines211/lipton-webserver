@@ -781,34 +781,35 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       // =======================================================================
       // BUILDING ISSUES MAPPING - Doc-Gen Plaintiff Issues Format
       // =======================================================================
-      // Doc-gen form uses edit-issue-{plaintiffId}-{CategoryName} format for plaintiff issues
+      // Doc-gen form uses edit-issue-{plaintiffId}-{category-name} format for plaintiff issues
       // Example: edit-issue-1-VerminIssue, edit-issue-1-ElectricalIssues
       // These are the actual checkboxes in the doc-gen form for plaintiff #1
       // =======================================================================
 
       // Plaintiff #1 Issue Toggle Checkboxes (ACTUAL IDs from dynamically generated HTML)
-      // Format: {CategoryName}-toggle-{plaintiffId}
+      // Format: {category-name}-toggle-{plaintiffId}
       // These are the actual checkbox IDs created by the doc-gen form JavaScript
-      'VerminIssue-toggle-1': intake.building_issues?.pestRats || intake.building_issues?.pestMice || false,
-      'InsectIssues-toggle-1': intake.building_issues?.pestCockroaches || intake.building_issues?.pestBedbugs || intake.building_issues?.pestAnts || intake.building_issues?.pestTermites || false,
-      'HVACIssues-toggle-1': intake.building_issues?.hasHvacIssues || false,
-      'ElectricalIssues-toggle-1': intake.building_issues?.hasElectricalIssues || false,
-      'FireHazardIssues-toggle-1': intake.building_issues?.hasFireHazardIssues || false,
-      'AppliancesIssues-toggle-1': intake.building_issues?.hasApplianceIssues || false,
-      'PlumbingIssues-toggle-1': intake.building_issues?.hasPlumbingIssues || false,
-      'CabinetsIssues-toggle-1': intake.building_issues?.hasCabinetIssues || false,
-      'FlooringIssues-toggle-1': intake.building_issues?.hasFlooringIssues || false,
-      'WindowsIssues-toggle-1': intake.building_issues?.hasWindowIssues || false,
-      'DoorIssues-toggle-1': intake.building_issues?.hasDoorIssues || false,
-      'StructureIssues-toggle-1': intake.building_issues?.hasStructuralIssues || false,
-      'CommonAreasIssues-toggle-1': intake.building_issues?.hasCommonAreaIssues || false,
-      'TrashIssues-toggle-1': intake.building_issues?.hasTrashProblems || false,
-      'NuisanceIssues-toggle-1': intake.building_issues?.hasNuisanceIssues || false,
-      'HealthHazardIssues-toggle-1': intake.building_issues?.hasHealthHazardIssues || false,
-      'HarassmentIssues-toggle-1': intake.building_issues?.hasHarassmentIssues || false,
-      'NoticesIssues-toggle-1': intake.building_issues?.hasNoticeIssues || false,
-      'UtilityIssues-toggle-1': intake.building_issues?.hasUtilityIssues || false,
-      'SafetyIssues-toggle-1': intake.building_issues?.hasSafetyIssues || false,
+      'vermin-toggle-1': intake.building_issues?.pestRats || intake.building_issues?.pestMice || false,
+      'insect-toggle-1': intake.building_issues?.pestCockroaches || intake.building_issues?.pestBedbugs || intake.building_issues?.pestAnts || intake.building_issues?.pestTermites || false,
+      'hvac-toggle-1': intake.building_issues?.hasHvacIssues || false,
+      'electrical-toggle-1': intake.building_issues?.hasElectricalIssues || false,
+      'fire-hazard-toggle-1': intake.building_issues?.hasFireHazardIssues || false,
+      'government-toggle-1': intake.building_issues?.hasGovernmentEntitiesContacted || false,
+      'appliances-toggle-1': intake.building_issues?.hasApplianceIssues || false,
+      'plumbing-toggle-1': intake.building_issues?.hasPlumbingIssues || false,
+      'cabinets-toggle-1': intake.building_issues?.hasCabinetIssues || false,
+      'flooring-toggle-1': intake.building_issues?.hasFlooringIssues || false,
+      'windows-toggle-1': intake.building_issues?.hasWindowIssues || false,
+      'door-toggle-1': intake.building_issues?.hasDoorIssues || false,
+      'structure-toggle-1': intake.building_issues?.hasStructuralIssues || false,
+      'common-areas-toggle-1': intake.building_issues?.hasCommonAreaIssues || false,
+      'trash-toggle-1': intake.building_issues?.hasTrashProblems || false,
+      'nuisance-toggle-1': intake.building_issues?.hasNuisanceIssues || false,
+      'health-hazard-toggle-1': intake.building_issues?.hasHealthHazardIssues || false,
+      'harassment-toggle-1': intake.building_issues?.hasHarassmentIssues || false,
+      'notices-toggle-1': intake.building_issues?.hasNoticeIssues || false,
+      'utility-toggle-1': intake.building_issues?.hasUtilityIssues || false,
+      'safety-toggle-1': intake.building_issues?.hasSafetyIssues || false,
 
       // =======================================================================
       // HABITABILITY INTAKE FORM FIELDS (hab-* format)
