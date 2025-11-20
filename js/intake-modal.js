@@ -443,18 +443,28 @@ function setRadioValue(radioName, value) {
     // Find all radio buttons with this name
     const radios = document.querySelectorAll(`input[type="radio"][name="${radioName}"]`);
 
+    console.log(`Looking for radio: ${radioName}, found ${radios.length} radios`);
+
     // Select the one with matching value
+    let found = false;
     radios.forEach(radio => {
+        console.log(`  - Radio value: ${radio.value}, ID: ${radio.id}`);
         if (radio.value === value) {
             radio.checked = true;
             // Trigger change event for any listeners
             radio.dispatchEvent(new Event('change', { bubbles: true }));
+            found = true;
         }
     });
 
     if (radios.length === 0) {
         console.warn(`Radio group not found: ${radioName}`);
+        // Try to find ANY element with this name
+        const anyElement = document.querySelector(`[name="${radioName}"]`);
+        console.warn(`  Any element with name="${radioName}":`, anyElement);
     }
+
+    return found;
 }
 
 /**
