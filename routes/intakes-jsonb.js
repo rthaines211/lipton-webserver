@@ -9,6 +9,12 @@ const express = require('express');
 const router = express.Router();
 const logger = require('../monitoring/logger');
 const { getPool } = require('../server/services/database-service');
+const {
+  extractIssueSelections,
+  extractIssueMetadata,
+  writeIssueSelections,
+  writeIssueMetadata
+} = require('./intake-helpers');
 
 /**
  * Generates a unique intake number in format: INT-YYYYMMDD-NNNN
@@ -37,24 +43,46 @@ router.post('/', async (req, res) => {
       email: formData.emailAddress,
     });
 
-    // Validate required fields
+    // Map new field names to old names for backward compatibility
+    const fieldMappings = {
+      phone: 'primaryPhone',
+      currentRent: 'monthlyRent',
+      hasSignedRetainer: 'hasRetainerWithAnotherAttorney',
+    };
+
+    // Apply field mappings (support both old and new field names)
+    Object.keys(fieldMappings).forEach(newField => {
+      const oldField = fieldMappings[newField];
+      if (formData[newField] && !formData[oldField]) {
+        formData[oldField] = formData[newField];
+      }
+    });
+
+    // Validate required fields (updated for Phase 3.5 simplification)
     const requiredFields = [
       'firstName',
       'lastName',
-      'primaryPhone',
+      'phone', // NEW: renamed from primaryPhone
       'emailAddress',
-      'currentStreetAddress',
-      'currentCity',
-      'currentState',
-      'currentZipCode',
       'propertyStreetAddress',
       'propertyCity',
       'propertyState',
       'propertyZipCode',
-      'monthlyRent',
+      'currentRent', // NEW: renamed from monthlyRent
     ];
 
-    const missingFields = requiredFields.filter(field => !formData[field]);
+    // Support old field names for backward compatibility
+    const requiredFieldsWithFallback = requiredFields.map(field => {
+      const oldField = Object.keys(fieldMappings).find(k => k === field);
+      return oldField ? [field, fieldMappings[field]] : [field];
+    }).flat();
+
+    // Check for missing fields, supporting both old and new field names
+    const missingFields = requiredFields.filter(field => {
+      const oldFieldName = fieldMappings[field];
+      return !formData[field] && !formData[oldFieldName];
+    });
+
     if (missingFields.length > 0) {
       logger.warn('Missing required fields in intake submission', {
         missingFields,
@@ -69,7 +97,8 @@ router.post('/', async (req, res) => {
     const intakeNumber = generateIntakeNumber();
 
     // Build JSONB objects from form data
-    const currentAddress = {
+    // Phase 3.5: Current address removed - use property address as fallback for compatibility
+    const currentAddress = formData.currentStreetAddress ? {
       street: formData.currentStreetAddress,
       unit: formData.currentUnitNumber || null,
       city: formData.currentCity,
@@ -78,6 +107,15 @@ router.post('/', async (req, res) => {
       county: formData.currentCounty || null,
       yearsAtAddress: formData.yearsAtCurrentAddress ? parseInt(formData.yearsAtCurrentAddress) : null,
       monthsAtAddress: formData.monthsAtCurrentAddress ? parseInt(formData.monthsAtCurrentAddress) : null,
+    } : {
+      street: formData.propertyStreetAddress,
+      unit: formData.propertyUnitNumber || null,
+      city: formData.propertyCity,
+      state: formData.propertyState,
+      zipCode: formData.propertyZipCode,
+      county: formData.propertyCounty || null,
+      yearsAtAddress: null,
+      monthsAtAddress: null,
     };
 
     const propertyAddress = {
@@ -89,21 +127,24 @@ router.post('/', async (req, res) => {
       county: formData.propertyCounty || null,
       propertyType: formData.propertyType || null,
       numberOfUnits: formData.numberOfUnitsInBuilding ? parseInt(formData.numberOfUnitsInBuilding) : null,
-      floorNumber: formData.floorNumber ? parseInt(formData.floorNumber) : null,
+      floorNumber: null, // Phase 3.5: Removed from form
     };
 
+    // Phase 3.5: Simplified tenancy info - many fields removed
     const tenancyInfo = {
-      leaseStartDate: formData.leaseStartDate || null,
-      leaseEndDate: formData.leaseEndDate || null,
-      leaseType: formData.leaseType || null,
-      monthlyRent: formData.monthlyRent ? parseFloat(formData.monthlyRent) : null,
-      securityDeposit: formData.securityDeposit ? parseFloat(formData.securityDeposit) : null,
-      lastRentIncreaseDate: formData.lastRentIncreaseDate || null,
-      lastRentIncreaseAmount: formData.lastRentIncreaseAmount ? parseFloat(formData.lastRentIncreaseAmount) : null,
-      rentCurrent: formData.rentCurrent !== undefined ? formData.rentCurrent : true,
-      monthsBehindRent: formData.monthsBehindRent ? parseInt(formData.monthsBehindRent) : 0,
-      receivedEvictionNotice: formData.receivedEvictionNotice || false,
-      isRentControlled: formData.isRentControlled || false,
+      leaseStartDate: null, // Phase 3.5: Removed from form
+      leaseEndDate: null, // Phase 3.5: Removed from form
+      leaseType: null, // Phase 3.5: Removed from form
+      // Support both old and new field names
+      monthlyRent: formData.currentRent ? parseFloat(formData.currentRent) :
+                   (formData.monthlyRent ? parseFloat(formData.monthlyRent) : null),
+      securityDeposit: null, // Phase 3.5: Removed from form
+      lastRentIncreaseDate: null, // Phase 3.5: Removed from form
+      lastRentIncreaseAmount: null, // Phase 3.5: Removed from form
+      rentCurrent: true, // Phase 3.5: Removed from form, default to true
+      monthsBehindRent: 0, // Phase 3.5: Removed from form
+      receivedEvictionNotice: false, // Phase 3.5: Removed from form
+      isRentControlled: false, // Phase 3.5: Removed from form
     };
 
     const landlordInfo = formData.landlordName ? {
@@ -173,6 +214,9 @@ router.post('/', async (req, res) => {
       electricalCircuitBreakerIssues: formData.electricalCircuitBreakerIssues || false,
       electricalInsufficientOutlets: formData.electricalInsufficientOutlets || false,
       electricalBurningSmell: formData.electricalBurningSmell || false,
+      electricalBrokenFans: formData.electricalBrokenFans || false,
+      electricalExteriorLighting: formData.electricalExteriorLighting || false,
+      electricalBrokenLightFixtures: formData.electricalBrokenLightFixtures || false,
       electricalOther: formData.electricalOther || false,
       electricalDetails: formData.electricalDetails || null,
       electricalFirstNoticed: formData.electricalFirstNoticed || null,
@@ -219,25 +263,41 @@ router.post('/', async (req, res) => {
       securityOther: formData.securityOther || false,
       securityDetails: formData.securityDetails || null,
 
-      // Pest Issues - ALL fields from intake form
+      // Pest Issues - ALL fields from intake form (21 checkboxes total)
       hasPestIssues: formData.hasPestIssues || false,
+      // Vermin (8 fields)
       pestRats: formData.pestRats || false,
       pestMice: formData.pestMice || false,
-      pestCockroaches: formData.pestCockroaches || false,
-      pestBedbugs: formData.pestBedbugs || false,
-      pestFleas: formData.pestFleas || false,
-      pestAnts: formData.pestAnts || false,
-      pestTermites: formData.pestTermites || false,
-      pestSpiders: formData.pestSpiders || false,
-      pestWasps: formData.pestWasps || false,
-      pestBees: formData.pestBees || false,
-      pestOtherInsects: formData.pestOtherInsects || false,
+      pestBats: formData.pestBats || false,
       pestBirds: formData.pestBirds || false,
+      pestSkunks: formData.pestSkunks || false,
       pestRaccoons: formData.pestRaccoons || false,
+      pestOpossums: formData.pestOpossums || false,
       pestOtherVermin: formData.pestOtherVermin || false,
+      // Insects (13 fields)
+      pestAnts: formData.pestAnts || false,
+      pestBedbugs: formData.pestBedbugs || false,
+      pestSpiders: formData.pestSpiders || false,
+      pestMosquitos: formData.pestMosquitos || false,
+      pestCockroaches: formData.pestCockroaches || false,
+      pestWasps: formData.pestWasps || false,
+      pestTermites: formData.pestTermites || false,
+      pestBees: formData.pestBees || false,
+      pestFlies: formData.pestFlies || false,
+      pestHornets: formData.pestHornets || false,
+      pestFleas: formData.pestFleas || false,
+      pestOtherInsects: formData.pestOtherInsects || false,
+      // Details and dates (OLD shared fields - kept for backward compatibility)
       pestDetails: formData.pestDetails || null,
       pestFirstNoticed: formData.pestFirstNoticed || null,
       pestReportedDate: formData.pestReportedDate || null,
+      // NEW separated metadata fields (vermin and insects are independent)
+      verminDetails: formData.verminDetails || null,
+      verminFirstNoticed: formData.verminFirstNoticed || null,
+      verminRepairHistory: formData.verminRepairHistory || null,
+      insectsDetails: formData.insectsDetails || null,
+      insectsFirstNoticed: formData.insectsFirstNoticed || null,
+      insectsRepairHistory: formData.insectsRepairHistory || null,
 
       // Fire Hazard Issues - ALL fields from intake form
       hasFireHazardIssues: formData.hasFireHazardIssues || false,
@@ -245,6 +305,8 @@ router.post('/', async (req, res) => {
       fireHazardBlockedExits: formData.fireHazardBlockedExits || false,
       fireHazardNoSmokeDetectors: formData.fireHazardNoSmokeDetectors || false,
       fireHazardBrokenSmokeDetectors: formData.fireHazardBrokenSmokeDetectors || false,
+      fireHazardNoFireExtinguisher: formData.fireHazardNoFireExtinguisher || false,
+      fireHazardIneffective: formData.fireHazardIneffective || false,
       fireHazardOther: formData.fireHazardOther || false,
       fireHazardDetails: formData.fireHazardDetails || null,
       fireHazardFirstNoticed: formData.fireHazardFirstNoticed || null,
@@ -412,11 +474,58 @@ router.post('/', async (req, res) => {
       harassmentDetails: formData.harassmentDetails || null,
       harassmentStartDate: formData.harassmentStartDate || null,
 
+      // Master checkbox only categories (no individual options) - NEW in Phase 3
+      hasInjuryIssues: formData.hasInjuryIssues || false,
+      injuryDetails: formData.injuryDetails || null,
+      injuryFirstNoticed: formData.injuryFirstNoticed || null,
+      injuryRepairHistory: formData.injuryRepairHistory || null,
+
+      hasNonresponsiveIssues: formData.hasNonresponsiveIssues || false,
+      nonresponsiveDetails: formData.nonresponsiveDetails || null,
+      nonresponsiveFirstNoticed: formData.nonresponsiveFirstNoticed || null,
+      nonresponsiveRepairHistory: formData.nonresponsiveRepairHistory || null,
+
+      hasUnauthorizedIssues: formData.hasUnauthorizedIssues || false,
+      unauthorizedDetails: formData.unauthorizedDetails || null,
+      unauthorizedFirstNoticed: formData.unauthorizedFirstNoticed || null,
+      unauthorizedRepairHistory: formData.unauthorizedRepairHistory || null,
+
+      hasStolenIssues: formData.hasStolenIssues || false,
+      stolenDetails: formData.stolenDetails || null,
+      stolenFirstNoticed: formData.stolenFirstNoticed || null,
+      stolenRepairHistory: formData.stolenRepairHistory || null,
+
+      hasDamagedIssues: formData.hasDamagedIssues || false,
+      damagedDetails: formData.damagedDetails || null,
+      damagedFirstNoticed: formData.damagedFirstNoticed || null,
+      damagedRepairHistory: formData.damagedRepairHistory || null,
+
+      hasAgeDiscrimination: formData.hasAgeDiscrimination || false,
+      ageDiscrimDetails: formData.ageDiscrimDetails || null,
+      ageDiscrimFirstNoticed: formData.ageDiscrimFirstNoticed || null,
+      ageDiscrimRepairHistory: formData.ageDiscrimRepairHistory || null,
+
+      hasRacialDiscrimination: formData.hasRacialDiscrimination || false,
+      racialDiscrimDetails: formData.racialDiscrimDetails || null,
+      racialDiscrimFirstNoticed: formData.racialDiscrimFirstNoticed || null,
+      racialDiscrimRepairHistory: formData.racialDiscrimRepairHistory || null,
+
+      hasDisabilityDiscrimination: formData.hasDisabilityDiscrimination || false,
+      disabilityDiscrimDetails: formData.disabilityDiscrimDetails || null,
+      disabilityDiscrimFirstNoticed: formData.disabilityDiscrimFirstNoticed || null,
+      disabilityDiscrimRepairHistory: formData.disabilityDiscrimRepairHistory || null,
+
+      hasSecurityDepositIssues: formData.hasSecurityDepositIssues || false,
+      securityDepositDetails: formData.securityDepositDetails || null,
+      securityDepositFirstNoticed: formData.securityDepositFirstNoticed || null,
+      securityDepositRepairHistory: formData.securityDepositRepairHistory || null,
+
       // Legacy fields for backwards compatibility (can be removed later)
       hasOtherIssues: formData.hasOtherIssues || false,
       otherDescription: formData.otherIssuesDescription || null,
     };
 
+    // Phase 3.5: Household members removed from form
     const householdMembers = formData.householdMembers || [];
 
     // Phase 3A: Legal History Fields
@@ -444,12 +553,13 @@ router.post('/', async (req, res) => {
       householdIncomeUnder45k: formData.householdIncomeUnder45k || null,
     };
 
-    // Phase 3B: Additional Property/Tenancy fields
+    // Phase 3.5: Additional Property/Tenancy fields (simplified)
     const additionalTenancyInfo = {
-      hasUnlawfulDetainerFiled: formData.hasUnlawfulDetainerFiled || null,
+      hasUnlawfulDetainerFiled: null, // Phase 3.5: Removed from form
       moveInDate: formData.moveInDate || null,
-      hasRetainerWithAnotherAttorney: formData.hasRetainerWithAnotherAttorney || null,
-      howDidYouFindUs: formData.howDidYouFindUs || null,
+      // Support both old and new field names
+      hasRetainerWithAnotherAttorney: formData.hasSignedRetainer || formData.hasRetainerWithAnotherAttorney || null,
+      howDidYouFindUs: null, // Phase 3.5: Removed from form
     };
 
     // Insert into database
@@ -465,8 +575,6 @@ router.post('/', async (req, res) => {
         primary_phone,
         secondary_phone,
         preferred_contact_method,
-        filing_county,
-        is_head_of_household,
         current_address,
         property_address,
         tenancy_info,
@@ -478,7 +586,7 @@ router.post('/', async (req, res) => {
         raw_form_data
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+        $11, $12, $13, $14, $15, $16, $17, $18, $19
       )
       RETURNING id, intake_number, created_at, intake_status
     `;
@@ -499,6 +607,7 @@ router.post('/', async (req, res) => {
       demographics: householdDemographics,
     };
 
+    // Phase 3.5: Updated values array with new field names
     const values = [
       intakeNumber,
       formData.firstName,
@@ -507,11 +616,10 @@ router.post('/', async (req, res) => {
       formData.preferredName || null,
       formData.dateOfBirth || null,
       formData.emailAddress,
-      formData.primaryPhone,
-      formData.secondaryPhone || null,
+      // Support both old and new field names
+      formData.phone || formData.primaryPhone,
+      null, // secondaryPhone removed in Phase 3.5
       formData.preferredContactMethod || 'email',
-      formData.filingCounty || null,
-      formData.isHeadOfHousehold !== undefined ? formData.isHeadOfHousehold : true,
       JSON.stringify(currentAddress),
       JSON.stringify(propertyAddress),
       JSON.stringify(extendedTenancyInfo),
@@ -526,11 +634,46 @@ router.post('/', async (req, res) => {
     const result = await db.query(query, values);
     const intake = result.rows[0];
 
+    // Phase 3C: Write to new normalized tables if feature flag is enabled
+    const USE_NEW_INTAKE_SCHEMA = process.env.USE_NEW_INTAKE_SCHEMA === 'true';
+
+    if (USE_NEW_INTAKE_SCHEMA) {
+      try {
+        logger.info('Writing to new normalized intake tables', {
+          intakeId: intake.id,
+          intakeNumber: intake.intake_number
+        });
+
+        // Extract issue selections and metadata from formData
+        const selections = extractIssueSelections(formData);
+        const metadata = extractIssueMetadata(formData);
+
+        // Write to normalized tables
+        await writeIssueSelections(db, intake.id, selections);
+        await writeIssueMetadata(db, intake.id, metadata);
+
+        logger.info('Successfully wrote to new normalized tables', {
+          intakeId: intake.id,
+          selectionsCount: selections.length,
+          metadataCategoriesCount: Object.keys(metadata).length
+        });
+      } catch (normalizedWriteError) {
+        // Log error but don't fail the request - JSONB write already succeeded
+        logger.error('Error writing to normalized tables (JSONB write succeeded)', {
+          intakeId: intake.id,
+          intakeNumber: intake.intake_number,
+          error: normalizedWriteError.message,
+          stack: normalizedWriteError.stack
+        });
+      }
+    }
+
     const duration = Date.now() - startTime;
     logger.info('Intake form saved successfully', {
       intakeId: intake.id,
       intakeNumber: intake.intake_number,
       duration: `${duration}ms`,
+      wroteToNormalizedTables: USE_NEW_INTAKE_SCHEMA
     });
 
     res.status(201).json({
@@ -789,8 +932,31 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       // Plaintiff #1 Issue Toggle Checkboxes (ACTUAL IDs from dynamically generated HTML)
       // Format: {category-name}-toggle-{plaintiffId}
       // These are the actual checkbox IDs created by the doc-gen form JavaScript
-      'vermin-toggle-1': intake.building_issues?.pestRats || intake.building_issues?.pestMice || false,
-      'insect-toggle-1': intake.building_issues?.pestCockroaches || intake.building_issues?.pestBedbugs || intake.building_issues?.pestAnts || intake.building_issues?.pestTermites || false,
+      // UPDATED: Now handles BOTH old schema (pestRodents, pestBedBugs) AND new schema (pestRats, pestMice, pestBedbugs)
+      'vermin-toggle-1':
+        intake.building_issues?.pestRats ||
+        intake.building_issues?.pestMice ||
+        intake.building_issues?.pestBats ||
+        intake.building_issues?.pestBirds ||
+        intake.building_issues?.pestSkunks ||
+        intake.building_issues?.pestRaccoons ||
+        intake.building_issues?.pestOpossums ||
+        intake.building_issues?.pestRodents ||  // OLD SCHEMA FALLBACK
+        false,
+      'insect-toggle-1':
+        intake.building_issues?.pestAnts ||
+        intake.building_issues?.pestBedbugs ||    // NEW SCHEMA
+        intake.building_issues?.pestBedBugs ||    // OLD SCHEMA FALLBACK
+        intake.building_issues?.pestSpiders ||
+        intake.building_issues?.pestMosquitos ||
+        intake.building_issues?.pestCockroaches ||
+        intake.building_issues?.pestWasps ||
+        intake.building_issues?.pestTermites ||
+        intake.building_issues?.pestBees ||
+        intake.building_issues?.pestFlies ||
+        intake.building_issues?.pestHornets ||
+        intake.building_issues?.pestFleas ||
+        false,
       'hvac-toggle-1': intake.building_issues?.hasHvacIssues || false,
       'electrical-toggle-1': intake.building_issues?.hasElectricalIssues || false,
       'fire-hazard-toggle-1': intake.building_issues?.hasFireHazardIssues || false,
@@ -820,41 +986,49 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       // We map the closest semantic matches from the intake form
       // =======================================================================
 
-      // ===== PLUMBING ISSUES (12 items) =====
-      'plumbing-Toilet-1': intake.building_issues?.plumbingToiletNotWorking || false,
-      'plumbing-Sink-1': intake.building_issues?.plumbingSinkNotWorking || false,
-      'plumbing-Bathtub-1': intake.building_issues?.plumbingBathtubIssue || false,
-      'plumbing-Shower-1': intake.building_issues?.plumbingShowerNotWorking || false,
-      'plumbing-WaterHeater-1': intake.building_issues?.plumbingWaterHeaterBroken || false,
-      'plumbing-Faucets-1': intake.building_issues?.plumbingFaucetsBroken || false,
-      'plumbing-Pipes-1': intake.building_issues?.plumbingBurstPipes || false,
-      'plumbing-Drainage-1': intake.building_issues?.plumbingCloggedDrains || false,
+      // ===== PLUMBING ISSUES (15 items) =====
+      // Updated to use actual intake form field names from database
+      'plumbing-Toilet-1': intake.building_issues?.plumbingToilet || intake.building_issues?.plumbingCloggedtoilets || false,
+      'plumbing-Sink-1': intake.building_issues?.plumbingCloggedsinks || false,
+      'plumbing-Bathtub-1': intake.building_issues?.plumbingBath || intake.building_issues?.plumbingCloggedbath || false,
+      'plumbing-Shower-1': intake.building_issues?.plumbingShower || intake.building_issues?.plumbingCloggedshower || false,
+      'plumbing-WaterPressure-1': intake.building_issues?.plumbingInsufficientwaterpressure || false,
+      'plumbing-Fixtures-1': intake.building_issues?.plumbingFixtures || false,
       'plumbing-Leaks-1': intake.building_issues?.plumbingLeaks || false,
-      'plumbing-Clogs-1': intake.building_issues?.plumbingCloggedDrains || false,
-      'plumbing-Pressure-1': intake.building_issues?.plumbingLowPressure || false,
-      'plumbing-SewerSmell-1': intake.building_issues?.plumbingSewerBackup || false,
+      'plumbing-Sewage-1': intake.building_issues?.plumbingSewagecomingout || false,
+      'plumbing-HotWater-1': intake.building_issues?.plumbingNohotwater || false,
+      'plumbing-ColdWater-1': intake.building_issues?.plumbingNocoldwater || false,
+      'plumbing-WaterSupply-1': intake.building_issues?.plumbingNoCleanWaterSupply || false,
+      'plumbing-UnsanitaryWater-1': intake.building_issues?.plumbingUnsanitarywater || false,
 
       // ===== PEST/VERMIN ISSUES =====
-      // ONLY map fields that exist in intake database (pestRats, pestMice, pestRaccoons, pestBirds)
-      // DO NOT map fields that don't exist (Bats, Skunks, Opossums have no intake field)
-      'vermin-RatsMice-1': intake.building_issues?.pestRats || intake.building_issues?.pestMice || false,
+      // NOW COMPLETE - All 6 vermin checkboxes mapped with OLD/NEW schema support
+      'vermin-RatsMice-1':
+        intake.building_issues?.pestRats ||
+        intake.building_issues?.pestMice ||
+        intake.building_issues?.pestRodents ||  // OLD SCHEMA FALLBACK
+        false,
+      'vermin-Bats-1': intake.building_issues?.pestBats || false,
       'vermin-Pigeons-1': intake.building_issues?.pestBirds || false,
+      'vermin-Skunks-1': intake.building_issues?.pestSkunks || false,
       'vermin-Raccoons-1': intake.building_issues?.pestRaccoons || false,
-      // NOTE: vermin-Bats-1, vermin-Skunks-1, vermin-Opossums-1 are NOT mapped because
-      // intake form doesn't collect this data (no pestBats, pestSkunks, pestOpossums fields)
+      'vermin-Opossums-1': intake.building_issues?.pestOpossums || false,
 
       // ===== INSECT ISSUES =====
-      // ONLY map fields that exist in intake database
-      // Available: pestAnts, pestBedbugs, pestSpiders, pestCockroaches, pestWasps, pestTermites, pestBees, pestFleas
+      // NOW COMPLETE - All 10 insect checkboxes mapped with OLD/NEW schema support
       'insect-Ants-1': intake.building_issues?.pestAnts || false,
-      'insect-Bedbugs-1': intake.building_issues?.pestBedbugs || false,
+      'insect-Bedbugs-1':
+        intake.building_issues?.pestBedbugs ||   // NEW SCHEMA
+        intake.building_issues?.pestBedBugs ||   // OLD SCHEMA FALLBACK
+        false,
       'insect-Spiders-1': intake.building_issues?.pestSpiders || false,
+      'insect-Mosquitos-1': intake.building_issues?.pestMosquitos || false,
       'insect-Roaches-1': intake.building_issues?.pestCockroaches || false,
       'insect-Wasps-1': intake.building_issues?.pestWasps || false,
       'insect-Termites-1': intake.building_issues?.pestTermites || false,
       'insect-Bees-1': intake.building_issues?.pestBees || false,
-      // NOTE: insect-Mosquitos-1, insect-Flies-1, insect-Hornets-1 are NOT mapped because
-      // intake form doesn't collect this data (no pestMosquitos, pestFlies, pestHornets fields)
+      'insect-Flies-1': intake.building_issues?.pestFlies || false,
+      'insect-Hornets-1': intake.building_issues?.pestHornets || false,
 
       // ===== ELECTRICAL ISSUES =====
       // Doc-gen items: Outlets, Wall Switches, Interior Lighting, Fans, Panel, Exterior Lighting, Light Fixtures
@@ -862,7 +1036,9 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'electrical-Outlets-1': intake.building_issues?.electricalBrokenOutlets || intake.building_issues?.electricalSparkingOutlets || intake.building_issues?.electricalInsufficientOutlets || false,
       'electrical-WallSwitches-1': intake.building_issues?.electricalBrokenSwitches || false,
       'electrical-InteriorLighting-1': intake.building_issues?.electricalFlickeringLights || intake.building_issues?.electricalNoPower || false,
-      // NOTE: electrical-Fans-1, electrical-ExteriorLighting-1, electrical-LightFixtures-1 have no matching intake fields
+      'electrical-Fans-1': intake.building_issues?.electricalBrokenFans || false,
+      'electrical-ExteriorLighting-1': intake.building_issues?.electricalExteriorLighting || false,
+      'electrical-LightFixtures-1': intake.building_issues?.electricalBrokenLightFixtures || false,
       'electrical-Panel-1': intake.building_issues?.electricalCircuitBreakerIssues || intake.building_issues?.electricalPartialOutages || intake.building_issues?.electricalExposedWiring || false,
 
       // ===== HVAC ISSUES =====
@@ -882,25 +1058,40 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'health-hazard-CarbonMonoxide-1': intake.building_issues?.healthHazardCarbonMonoxide || false,
       'health-hazard-AirQuality-1': intake.building_issues?.healthHazardAirQuality || false,
 
-      // ===== STRUCTURAL ISSUES (10 items) =====
-      'structure-Foundation-1': intake.building_issues?.structuralFoundationIssues || false,
-      'structure-Walls-1': intake.building_issues?.structuralWallCracks || false,
-      'structure-Ceiling-1': intake.building_issues?.structuralCeilingDamage || false,
-      'structure-Roof-1': intake.building_issues?.structuralRoofLeaks || false,
-      'structure-Stairs-1': intake.building_issues?.structuralStairsUnsafe || false,
-      'structure-Railings-1': intake.building_issues?.structuralRailingMissing || false,
-      'structure-Balcony-1': intake.building_issues?.structuralBalconyUnsafe || false,
-      'structure-Porch-1': intake.building_issues?.structuralPorchDamaged || false,
-      'structure-Cracks-1': intake.building_issues?.structuralWallCracks || intake.building_issues?.structuralFloorDamage || false,
-      'structure-Sagging-1': intake.building_issues?.structuralSagging || false,
+      // ===== STRUCTURAL ISSUES (15 items) =====
+      // Field names must match index.html generateIssueCategories() exactly (line 5286)
+      // HTML items: ['Bumps in ceiling', 'Hole in ceiling', 'Water stains on ceiling', 'Water stains on wall',
+      //              'Hole in wall', 'Paint', 'Exterior deck/porch', 'Waterproof toilet', 'Waterproof tub',
+      //              'Staircase', 'Basement flood', 'Leaks in garage', 'Soft Spots due to Leaks',
+      //              'Uneffective Waterproofing of the tubs or toilet', 'Ineffective Weatherproofing of any windows']
+      // After .replace(/[^a-zA-Z0-9]/g, ''): Bumpsinceiling, Holeinceiling, Waterstainsonceiling, etc.
+      'structure-Bumpsinceiling-1': intake.building_issues?.structuralBumpsinceiling || false,
+      'structure-Holeinceiling-1': intake.building_issues?.structuralHoleinceiling || false,
+      'structure-Waterstainsonceiling-1': intake.building_issues?.structuralWaterstainsonceiling || false,
+      'structure-Waterstainsonwall-1': intake.building_issues?.structuralWaterstainsonwall || false,
+      'structure-Holeinwall-1': intake.building_issues?.structuralHoleinwall || false,
+      'structure-Paint-1': intake.building_issues?.structuralPaint || false,
+      'structure-Exteriordeckporch-1': intake.building_issues?.structuralExteriordeckporch || false,
+      'structure-Waterprooftoilet-1': intake.building_issues?.structuralWaterprooftoilet || false,
+      'structure-Waterprooftub-1': intake.building_issues?.structuralWaterprooftub || false,
+      'structure-Staircase-1': intake.building_issues?.structuralStaircase || false,
+      'structure-Basementflood-1': intake.building_issues?.structuralBasementflood || false,
+      'structure-Leaksingarage-1': intake.building_issues?.structuralLeaksingarage || false,
+      'structure-SoftSpotsduetoLeaks-1': intake.building_issues?.structuralSoftSpotsduetoLeaks || false,
+      'structure-UneffectiveWaterproofingofthetubsortoilet-1': intake.building_issues?.structuralUneffectiveWaterproofingofthetubsortoilet || false,
+      'structure-IneffectiveWeatherproofingofanywindows-1': intake.building_issues?.structuralIneffectiveWeatherproofingofanywindows || false,
 
-      // ===== APPLIANCE ISSUES (6 items) =====
-      'appliances-Refrigerator-1': intake.building_issues?.applianceRefrigeratorBroken || false,
-      'appliances-Stove-1': intake.building_issues?.applianceStoveBroken || false,
-      'appliances-Oven-1': intake.building_issues?.applianceOvenBroken || false,
-      'appliances-Dishwasher-1': intake.building_issues?.applianceDishwasherBroken || false,
-      'appliances-GarbageDisposal-1': intake.building_issues?.applianceGarbageDisposalBroken || false,
-      'appliances-Microwave-1': intake.building_issues?.applianceMicrowaveBroken || false,
+      // ===== APPLIANCE ISSUES (7 items) =====
+      // Field names must match index.html generateIssueCategories() exactly (line 5336)
+      // HTML items: ['Stove', 'Dishwasher', 'Washer/dryer', 'Oven', 'Microwave', 'Garbage disposal', 'Refrigerator']
+      // After .replace(/[^a-zA-Z0-9]/g, ''): Stove, Dishwasher, Washerdryer, Oven, Microwave, Garbagedisposal, Refrigerator
+      'appliances-Refrigerator-1': intake.building_issues?.applianceRefrigerator || false,
+      'appliances-Stove-1': intake.building_issues?.applianceStove || false,
+      'appliances-Oven-1': intake.building_issues?.applianceOven || false,
+      'appliances-Dishwasher-1': intake.building_issues?.applianceDishwasher || false,
+      'appliances-Garbagedisposal-1': intake.building_issues?.applianceGarbagedisposal || false,  // lowercase 'd'
+      'appliances-Microwave-1': intake.building_issues?.applianceMicrowave || false,
+      'appliances-Washerdryer-1': intake.building_issues?.applianceWasherdryer || false,  // lowercase 'd'
 
       // ===== FLOORING ISSUES (7 items) =====
       'flooring-Carpet-1': intake.building_issues?.flooringCarpetDamaged || false,
@@ -911,11 +1102,11 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'flooring-Damage-1': intake.building_issues?.flooringDamaged || false,
       'flooring-Subfloor-1': intake.building_issues?.flooringSubfloorDamaged || false,
 
-      // ===== CABINET ISSUES (4 items) =====
-      'cabinets-Kitchen-1': intake.building_issues?.cabinetKitchenBroken || intake.building_issues?.cabinetBroken || false,
-      'cabinets-Bathroom-1': intake.building_issues?.cabinetBathroomBroken || false,
-      'cabinets-Counters-1': intake.building_issues?.cabinetCountersDamaged || false,
-      'cabinets-Hardware-1': intake.building_issues?.cabinetHardwareMissing || intake.building_issues?.cabinetMissing || false,
+      // ===== CABINET ISSUES (3 items) =====
+      // Updated to use actual intake form field names from database
+      'cabinets-Broken-1': intake.building_issues?.cabinetBroken || false,
+      'cabinets-Hinges-1': intake.building_issues?.cabinetHinges || false,
+      'cabinets-Alignment-1': intake.building_issues?.cabinetAlignment || false,
 
       // ===== DOOR ISSUES (5 items) =====
       'door-Entry-1': intake.building_issues?.doorEntryDamaged || intake.building_issues?.doorBroken || false,
@@ -925,12 +1116,15 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'door-Threshold-1': intake.building_issues?.doorThresholdDamaged || false,
 
       // ===== WINDOW ISSUES (6 items) =====
-      'windows-Broken-1': intake.building_issues?.windowBroken || intake.building_issues?.securityBrokenWindows || false,
-      'windows-Cracked-1': intake.building_issues?.windowCracked || false,
-      'windows-Seals-1': intake.building_issues?.windowSealsBroken || false,
-      'windows-Locks-1': intake.building_issues?.windowLocksbroken || false,
-      'windows-Screens-1': intake.building_issues?.windowNoScreens || false,
-      'windows-Frames-1': intake.building_issues?.windowFramesDamaged || false,
+      // Field names must match index.html generateIssueCategories() exactly (line 5308)
+      // HTML items: ['Broken', 'Leaks', 'Missing windows', 'Screens', 'Do not lock', 'Broken or missing screens']
+      // After .replace(/[^a-zA-Z0-9]/g, ''): Broken, Leaks, Missingwindows, Screens, Donotlock, Brokenormissingscreens
+      'windows-Broken-1': intake.building_issues?.windowBroken || false,
+      'windows-Leaks-1': intake.building_issues?.windowLeaks || false,
+      'windows-Missingwindows-1': intake.building_issues?.windowMissingwindows || false,
+      'windows-Screens-1': intake.building_issues?.windowScreens || false,
+      'windows-Donotlock-1': intake.building_issues?.windowDonotlock || false,
+      'windows-Brokenormissingscreens-1': intake.building_issues?.windowBrokenormissingscreens || false,
 
       // ===== FIRE HAZARD ISSUES (5 items) =====
       'fire-hazard-SmokeDetectors-1': intake.building_issues?.fireHazardNoSmokeDetectors || intake.building_issues?.fireHazardBrokenSmokeDetectors || intake.building_issues?.securityNoSmokeDetector || false,
@@ -938,6 +1132,22 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'fire-hazard-FireExtinguisher-1': intake.building_issues?.fireHazardNoFireExtinguisher || false,
       'fire-hazard-EmergencyExits-1': intake.building_issues?.fireHazardBlockedExits || false,
       'fire-hazard-Uneffective-1': intake.building_issues?.fireHazardIneffective || false,
+
+      // ===== GOVERNMENT ENTITIES CONTACTED (7 items) =====
+      // Field names must match index.html generateIssueCategories() exactly (line 5275)
+      // HTML items: ['Health Department', 'Police Department', 'Housing Authority',
+      //              'Department of Environmental Health', 'Code Enforcement',
+      //              'Department of Health Services', 'Fire Department']
+      // After .replace(/[^a-zA-Z0-9]/g, ''): HealthDepartment, PoliceDepartment, HousingAuthority,
+      //                                      DepartmentofEnvironmentalHealth, CodeEnforcement,
+      //                                      DepartmentofHealthServices, FireDepartment
+      'government-HealthDepartment-1': intake.building_issues?.govEntityHealthDepartment || false,
+      'government-PoliceDepartment-1': intake.building_issues?.govEntityPoliceDepartment || false,
+      'government-HousingAuthority-1': intake.building_issues?.govEntityHousingAuthority || false,
+      'government-DepartmentofEnvironmentalHealth-1': intake.building_issues?.govEntityDepartmentofEnvironmentalHealth || false,
+      'government-CodeEnforcement-1': intake.building_issues?.govEntityCodeEnforcement || false,
+      'government-DepartmentofHealthServices-1': intake.building_issues?.govEntityDepartmentofHealthServices || false,
+      'government-FireDepartment-1': intake.building_issues?.govEntityFireDepartment || false,
 
       // ===== NUISANCE ISSUES (8 items) =====
       'nuisance-Noise-1': intake.building_issues?.nuisanceNoise || false,
@@ -967,14 +1177,16 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'common-areas-Cleanliness-1': intake.building_issues?.commonAreaDirty || false,
       'common-areas-Security-1': intake.building_issues?.commonAreaNoSecurity || intake.building_issues?.commonAreaDoorsUnlocked || false,
 
-      // ===== NOTICE ISSUES (7 items) =====
-      'notices-Eviction-1': intake.building_issues?.noticeEviction || false,
-      'notices-Rent-1': intake.building_issues?.noticeRentIncrease || false,
-      'notices-Inspection-1': intake.building_issues?.noticeInspection || false,
-      'notices-Entry-1': intake.building_issues?.noticeEntry || false,
-      'notices-Violation-1': intake.building_issues?.noticeViolation || false,
-      'notices-Lease-1': intake.building_issues?.noticeLease || false,
-      'notices-Legal-1': intake.building_issues?.noticeLegal || false,
+      // ===== NOTICE ISSUES (6 items) =====
+      // Field names must match index.html generateIssueCategories() exactly (line 5341)
+      // HTML items: ['3-day', '24-hour', '30-day', '60-day', 'To quit', 'Perform or quit']
+      // After .replace(/[^a-zA-Z0-9]/g, ''): 3day, 24hour, 30day, 60day, Toquit, Performorquit
+      'notices-3day-1': intake.building_issues?.notice3day || false,
+      'notices-24hour-1': intake.building_issues?.notice24hour || false,
+      'notices-30day-1': intake.building_issues?.notice30day || false,
+      'notices-60day-1': intake.building_issues?.notice60day || false,
+      'notices-Toquit-1': intake.building_issues?.noticeToquit || false,
+      'notices-Performorquit-1': intake.building_issues?.noticePerformorquit || false,
 
       // ===== UTILITY ISSUES (7 items) =====
       'utility-Water-1': intake.building_issues?.utilityNoHotWater || intake.building_issues?.plumbingNoWater || false,
@@ -1003,6 +1215,20 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'harassment-Retaliation-1': intake.building_issues?.harassmentRetaliation || false,
       'harassment-Intimidation-1': intake.building_issues?.harassmentIntimidation || false,
       'harassment-Threats-1': intake.building_issues?.harassmentEvictionThreats || intake.building_issues?.harassmentPhysicalThreats || intake.building_issues?.harassmentWrittenThreats || false,
+
+      // ===== MASTER CHECKBOX ONLY CATEGORIES (9 items) =====
+      // These categories only have a yes/no toggle, no individual checkboxes
+      // Field names match index.html line 5414: direct-{categoryname}-{plaintiffId}
+      // Category names are converted by .replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+      'direct-injuryissues-1': intake.building_issues?.hasInjuryIssues || false,
+      'direct-nonresponsivelandlordissues-1': intake.building_issues?.hasNonresponsiveIssues || false,
+      'direct-unauthorizedentries-1': intake.building_issues?.hasUnauthorizedIssues || false,
+      'direct-stolenitems-1': intake.building_issues?.hasStolenIssues || false,
+      'direct-disabilitydiscrimination-1': intake.building_issues?.hasDisabilityDiscrimination || false,
+      'direct-damageditems-1': intake.building_issues?.hasDamagedIssues || false,
+      'direct-agediscrimination-1': intake.building_issues?.hasAgeDiscrimination || false,
+      'direct-racialdiscrimination-1': intake.building_issues?.hasRacialDiscrimination || false,
+      'direct-securitydepositissues-1': intake.building_issues?.hasSecurityDepositIssues || false,
 
       // =======================================================================
       // HABITABILITY INTAKE FORM FIELDS (hab-* format)
@@ -1160,6 +1386,86 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       trueHabFieldsList: trueBuildingIssues,
       allHabFields: buildingIssuesFields,
     });
+
+    // =======================================================================
+    // READ FROM NORMALIZED TABLES (Phase 3)
+    // =======================================================================
+    // If USE_NEW_INTAKE_SCHEMA is true, also read from normalized tables
+    // to populate individual checkbox fields
+    // =======================================================================
+    if (process.env.USE_NEW_INTAKE_SCHEMA === 'true') {
+      try {
+        // Query normalized tables for selected options
+        const normalizedQuery = `
+          SELECT
+            ic.category_code AS category_code,
+            io.option_code AS option_code
+          FROM intake_issue_selections iis
+          JOIN issue_options io ON iis.issue_option_id = io.id
+          JOIN issue_categories ic ON io.category_id = ic.id
+          WHERE iis.intake_id = $1
+          ORDER BY ic.display_order, io.display_order
+        `;
+
+        const normalizedResult = await db.query(normalizedQuery, [id]);
+
+        logger.info('DOC-GEN FORMAT DEBUG - Normalized table data:', {
+          intakeId: id,
+          optionsFound: normalizedResult.rows.length,
+          options: normalizedResult.rows,
+        });
+
+        // Map category codes to doc-gen prefixes
+        const categoryToPrefix = {
+          'vermin': 'vermin',
+          'insects': 'insect', // Note: 'insect' not 'insects' for doc-gen
+          'hvac': 'hvac',
+          'electrical': 'electrical',
+          'fireHazard': 'fire-hazard',
+          'government': 'government',
+          'appliances': 'appliances',
+          'plumbing': 'plumbing',
+          'cabinets': 'cabinets',
+          'flooring': 'flooring',
+          'windows': 'windows',
+          'doors': 'door', // Note: 'door' not 'doors' for doc-gen
+          'structure': 'structure',
+          'commonAreas': 'common-areas',
+          'trash': 'trash',
+          'nuisance': 'nuisance',
+          'healthHazard': 'health-hazard',
+          'harassment': 'harassment',
+          'notices': 'notices',
+          'utility': 'utility',
+          'safety': 'safety',
+        };
+
+        // Build individual checkbox fields
+        // Format: {category-prefix}-{OptionCode}-1
+        normalizedResult.rows.forEach(row => {
+          const prefix = categoryToPrefix[row.category_code];
+          if (prefix) {
+            const fieldName = `${prefix}-${row.option_code}-1`;
+            docGenData[fieldName] = true;
+            logger.info(`Added doc-gen checkbox field: ${fieldName}`);
+          } else {
+            logger.warn(`No doc-gen prefix mapping for category: ${row.category_code}`);
+          }
+        });
+
+        logger.info('DOC-GEN FORMAT DEBUG - Added normalized fields:', {
+          intakeId: id,
+          fieldsAdded: normalizedResult.rows.length,
+        });
+
+      } catch (normalizedError) {
+        // Log error but don't fail the request - fall back to JSONB only
+        logger.warn('Failed to read from normalized tables, falling back to JSONB only:', {
+          error: normalizedError.message,
+          intakeId: id,
+        });
+      }
+    }
 
     res.status(200).json(docGenData);
   } catch (error) {

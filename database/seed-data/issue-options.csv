@@ -1,0 +1,159 @@
+category_code,option_code,option_name,display_order,is_active
+vermin,RatsMice,Rats/Mice,1,true
+vermin,Skunks,Skunks,2,true
+vermin,Bats,Bats,3,true
+vermin,Raccoons,Raccoons,4,true
+vermin,Pigeons,Pigeons,5,true
+vermin,Opossums,Opossums,6,true
+insects,Ants,Ants,1,true
+insects,Roaches,Roaches,2,true
+insects,Flies,Flies,3,true
+insects,Bedbugs,Bedbugs,4,true
+insects,Wasps,Wasps,5,true
+insects,Hornets,Hornets,6,true
+insects,Spiders,Spiders,7,true
+insects,Termites,Termites,8,true
+insects,Mosquitos,Mosquitos,9,true
+insects,Bees,Bees,10,true
+hvac,AirConditioner,Air conditioner,1,true
+hvac,Heater,Heater,2,true
+hvac,Ventilation,Ventilation,3,true
+electrical,Outlets,Outlets,1,true
+electrical,Panel,Panel,2,true
+electrical,WallSwitches,Wall switches,3,true
+electrical,ExteriorLighting,Exterior lighting,4,true
+electrical,InteriorLighting,Interior lighting,5,true
+electrical,LightFixtures,Light fixtures,6,true
+electrical,Fans,Fans,7,true
+fireHazard,SmokeAlarms,Smoke alarms,1,true
+fireHazard,FireExtinguisher,Fire extinguisher,2,true
+fireHazard,Noncompliantelectricity,Non-compliant electricity,3,true
+fireHazard,NonGFIoutletsnearwater,Non-GFI outlets near water,4,true
+fireHazard,Carbonmonoxidedetectors,Carbon monoxide detectors,5,true
+government,HealthDepartment,Health department,1,true
+government,HousingAuthority,Housing authority,2,true
+government,CodeEnforcement,Code enforcement,3,true
+government,FireDepartment,Fire department,4,true
+government,PoliceDepartment,Police department,5,true
+government,DepartmentofEnvironmentalHealth,Department of environmental health,6,true
+government,DepartmentofHealthServices,Department of health services,7,true
+appliances,Stove,Stove,1,true
+appliances,Dishwasher,Dishwasher,2,true
+appliances,Washerdryer,Washer/dryer,3,true
+appliances,Oven,Oven,4,true
+appliances,Microwave,Microwave,5,true
+appliances,Garbagedisposal,Garbage disposal,6,true
+appliances,Refrigerator,Refrigerator,7,true
+plumbing,Toilet,Toilet,1,true
+plumbing,Insufficientwaterpressure,Insufficient water pressure,2,true
+plumbing,Cloggedbath,Clogged bath,3,true
+plumbing,Shower,Shower,4,true
+plumbing,Nohotwater,No hot water,5,true
+plumbing,Cloggedsinks,Clogged sinks,6,true
+plumbing,Bath,Bath,7,true
+plumbing,Nocoldwater,No cold water,8,true
+plumbing,Cloggedshower,Clogged shower,9,true
+plumbing,Fixtures,Fixtures,10,true
+plumbing,Sewagecomingout,Sewage coming out,11,true
+plumbing,NoCleanWaterSupply,No Clean Water Supply,12,true
+plumbing,Leaks,Leaks,13,true
+plumbing,Cloggedtoilets,Clogged toilets,14,true
+plumbing,Unsanitarywater,Unsanitary water,15,true
+cabinets,Broken,Broken,1,true
+cabinets,Hinges,Hinges,2,true
+cabinets,Alignment,Alignment,3,true
+flooring,Uneven,Uneven,1,true
+flooring,Carpet,Carpet,2,true
+flooring,Nailsstickingout,Nails sticking out,3,true
+flooring,Tiles,Tiles,4,true
+windows,Broken,Broken,1,true
+windows,Screens,Screens,2,true
+windows,Leaks,Leaks,3,true
+windows,Donotlock,Do not lock,4,true
+windows,Missingwindows,Missing windows,5,true
+windows,Brokenormissingscreens,Broken or missing screens,6,true
+doors,Broken,Broken,1,true
+doors,Knobs,Knobs,2,true
+doors,Locks,Locks,3,true
+doors,Brokenhinges,Broken hinges,4,true
+doors,Slidingglassdoors,Sliding glass doors,5,true
+doors,Ineffectivewaterproofing,Ineffective waterproofing,6,true
+doors,Waterintrusionandorinsects,Water intrusion and/or insects,7,true
+doors,Donotcloseproperly,Do not close properly,8,true
+structure,Bumpsinceiling,Bumps in ceiling,1,true
+structure,Holeinceiling,Hole in ceiling,2,true
+structure,Waterstainsonceiling,Water stains on ceiling,3,true
+structure,Waterstainsonwall,Water stains on wall,4,true
+structure,Holeinwall,Hole in wall,5,true
+structure,Paint,Paint,6,true
+structure,Exteriordeckporch,Exterior deck/porch,7,true
+structure,Waterprooftoilet,Waterproof toilet,8,true
+structure,Waterprooftub,Waterproof tub,9,true
+structure,Staircase,Staircase,10,true
+structure,Basementflood,Basement flood,11,true
+structure,Leaksingarage,Leaks in garage,12,true
+structure,SoftSpotsduetoLeaks,Soft spots due to leaks,13,true
+structure,UneffectiveWaterproofingofthetubsortoilet,Ineffective waterproofing of the tubs or toilet,14,true
+structure,IneffectiveWeatherproofingofanywindows,Ineffective Weatherproofing of any windows doors,15,true
+commonAreas,Mailboxbroken,Mailbox broken,1,true
+commonAreas,Parkingareaissues,Parking area issues,2,true
+commonAreas,Damagetocars,Damage to cars,3,true
+commonAreas,Flooding,Flooding,4,true
+commonAreas,Entrancesblocked,Entrances blocked,5,true
+commonAreas,Swimmingpool,Swimming pool,6,true
+commonAreas,Jacuzzi,Jacuzzi,7,true
+commonAreas,Laundryroom,Laundry room,8,true
+commonAreas,Recreationroom,Recreation room,9,true
+commonAreas,Gym,Gym,10,true
+commonAreas,Elevator,Elevator,11,true
+commonAreas,FilthRubbishGarbage,Filth/Rubbish/Garbage,12,true
+commonAreas,Vermin,Vermin,13,true
+commonAreas,Insects,Insects,14,true
+commonAreas,BrokenGate,Broken gate,15,true
+commonAreas,Blockedareasdoors,Blocked areas/doors,16,true
+trash,Inadequatenumberofreceptacles,Inadequate number of receptacles,1,true
+trash,Improperservicingemptying,Improper servicing/emptying,2,true
+nuisance,Drugs,Drugs,1,true
+nuisance,Smoking,Smoking,2,true
+nuisance,Noisyneighbors,Noisy neighbors,3,true
+nuisance,Gangs,Gangs,4,true
+healthHazard,Mold,Mold,1,true
+healthHazard,Mildew,Mildew,2,true
+healthHazard,Mushrooms,Mushrooms,3,true
+healthHazard,Rawsewageonexterior,Raw sewage on exterior,4,true
+healthHazard,Noxiousfumes,Noxious fumes,5,true
+healthHazard,Chemicalpaintcontamination,Chemical/paint contamination,6,true
+healthHazard,Toxicwaterpollution,Toxic water pollution,7,true
+healthHazard,Offensiveodors,Offensive odors,8,true
+harassment,UnlawfulDetainer,Unlawful detainer,1,true
+harassment,Evictionthreats,Eviction threats,2,true
+harassment,Bydefendant,By defendant,3,true
+harassment,Bymaintenancemanworkers,By maintenance man/workers,4,true
+harassment,Bymanagerbuildingstaff,By manager/building staff,5,true
+harassment,Byowner,By owner,6,true
+harassment,Othertenants,Other tenants,7,true
+harassment,Illegitimatenotices,Illegitimate notices,8,true
+harassment,Refusaltomaketimelyrepairs,Refusal to make timely repairs,9,true
+harassment,Writtenthreats,Written threats,10,true
+harassment,Aggressiveinappropriatelanguage,Aggressive/inappropriate language,11,true
+harassment,Physicalthreatsortouching,Physical threats or touching,12,true
+harassment,Noticessinglingoutonetenantbutnotuniformlygiventoalltenants,Notices singling out one tenant but not uniformly given to all tenants,13,true
+harassment,Duplicativenotices,Duplicative notices,14,true
+harassment,UntimelyResponsefromLandlord,Untimely response from landlord,15,true
+notices,3day,3-day,1,true
+notices,24hour,24-hour,2,true
+notices,30day,30-day,3,true
+notices,60day,60-day,4,true
+notices,Toquit,To quit,5,true
+notices,Performorquit,Perform or quit,6,true
+utility,Gasleak,Gas leak,1,true
+utility,Watershutoffs,Water shutoffs,2,true
+utility,Electricityshutoffs,Electricity shutoffs,3,true
+utility,Heatshutoff,Heat shutoff,4,true
+utility,Gasshutoff,Gas shutoff,5,true
+safety,Brokeninoperablesecuritygate,Broken/inoperable security gate,1,true
+safety,Brokendoors,Broken doors,2,true
+safety,Unauthorizedentries,Unauthorized entries,3,true
+safety,Brokenbuzzertogetin,Broken buzzer to get in,4,true
+safety,Securitycameras,Security cameras,5,true
+safety,Inoperablelocks,Inoperable locks,6,true

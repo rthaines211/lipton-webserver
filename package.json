@@ -7,6 +7,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "validate:env": "node config/env-validator.js",
+    "generate:issue-config": "node scripts/generate-issue-categories-config.js",
     "build": "node build.js && cd client-intake && npm install && npm run build && cd ..",
     "build:prod": "NODE_ENV=production node build.js && cd client-intake && npm install && npm run build && cd ..",
     "test": "jest",

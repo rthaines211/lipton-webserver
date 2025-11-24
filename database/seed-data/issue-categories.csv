@@ -1,0 +1,31 @@
+category_code,category_name,display_order,is_active
+vermin,Vermin/Pests,1,true
+insects,Insect Infestation,2,true
+hvac,HVAC Issues,3,true
+electrical,Electrical Problems,4,true
+fireHazard,Fire Hazards,5,true
+government,Government Contact,6,true
+appliances,Appliance Issues,7,true
+plumbing,Plumbing Problems,8,true
+cabinets,Cabinet Issues,9,true
+flooring,Flooring Problems,10,true
+windows,Window Issues,11,true
+doors,Door Problems,12,true
+structure,Structural Issues,13,true
+commonAreas,Common Area Problems,14,true
+trash,Trash Problems,15,true
+nuisance,Nuisance Issues,16,true
+healthHazard,Health Hazards,17,true
+harassment,Harassment,18,true
+notices,Notices Received,19,true
+utility,Utility Interruptions,20,true
+safety,Safety Issues,21,true
+injury,Injury Issues,22,true
+nonresponsive,Nonresponsive Landlord,23,true
+unauthorized,Unauthorized Entries,24,true
+stolen,Stolen Items,25,true
+damaged,Damaged Items,26,true
+ageDiscrim,Age Discrimination,27,true
+racialDiscrim,Racial Discrimination,28,true
+disabilityDiscrim,Disability Discrimination,29,true
+securityDeposit,Security Deposit Issues,30,true

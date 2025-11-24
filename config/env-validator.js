@@ -121,7 +121,12 @@ function validate(options = {}) {
     for (const [varName, config] of Object.entries(ENV_VARS.critical)) {
         const value = process.env[varName];
 
-        if (!value) {
+        // Special case: Allow empty DB_PASSWORD in development (local PostgreSQL peer auth)
+        const isEmptyPasswordAllowed = varName === 'DB_PASSWORD' &&
+                                       process.env.NODE_ENV === 'development' &&
+                                       value === '';
+
+        if (!value && !isEmptyPasswordAllowed) {
             errors.push({
                 var: varName,
                 message: `${varName} is not set`,
