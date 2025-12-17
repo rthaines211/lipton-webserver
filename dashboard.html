@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Dashboard - Lipton Legal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="/Logo.png" alt="Lipton Legal" class="logo" onerror="this.style.display='none'">
+                <div class="header-text">
+                    <h1>CRM Dashboard</h1>
+                    <p class="subtitle">Case Management & Document Generation</p>
+                </div>
+            </div>
+            <nav class="header-nav">
+                <a href="/" class="nav-link">
+                    <i class="fas fa-file-alt"></i> Document Generation
+                </a>
+                <a href="/dashboard.html" class="nav-link active">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <!-- Sidebar Filters -->
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-section">
+                <h3><i class="fas fa-filter"></i> Filters</h3>
+
+                <!-- Status Filter -->
+                <div class="filter-group">
+                    <label>Status</label>
+                    <div class="status-filter-list" id="status-filters">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Attorney Filter -->
+                <div class="filter-group">
+                    <label>Assigned Attorney</label>
+                    <select id="attorney-filter" class="filter-select">
+                        <option value="">All Attorneys</option>
+                        <!-- Populated by JavaScript -->
+                    </select>
+                </div>
+
+                <!-- Priority Filter -->
+                <div class="filter-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="priority-filter">
+                        <span class="checkmark"></span>
+                        Priority Cases Only
+                    </label>
+                </div>
+
+                <!-- Clear Filters -->
+                <button id="clear-filters" class="btn btn-outline btn-full">
+                    <i class="fas fa-times"></i> Clear Filters
+                </button>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="sidebar-section">
+                <h3><i class="fas fa-chart-bar"></i> Summary</h3>
+                <div class="stats-grid" id="stats-summary">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Case List Panel -->
+        <section class="case-list-panel">
+            <!-- Search Bar -->
+            <div class="search-bar">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-input" placeholder="Search by name, intake #, or email...">
+                </div>
+                <button id="refresh-btn" class="btn btn-secondary" title="Refresh">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+
+            <!-- Results Header -->
+            <div class="results-header">
+                <span id="results-count">Loading...</span>
+                <div class="sort-controls">
+                    <label>Sort by:</label>
+                    <select id="sort-select">
+                        <option value="updated_at-desc">Last Updated</option>
+                        <option value="created_at-desc">Newest First</option>
+                        <option value="created_at-asc">Oldest First</option>
+                        <option value="primary_client_name-asc">Client Name A-Z</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Case List -->
+            <div class="case-list" id="case-list">
+                <!-- Populated by JavaScript -->
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading cases...</span>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination">
+                <!-- Populated by JavaScript -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Case Detail Modal -->
+    <div class="modal-overlay" id="case-detail-modal">
+        <div class="modal-container">
+            <div class="case-detail-panel" id="case-detail-panel">
+                <!-- Populated by case-detail.js -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification-container"></div>
+
+    <!-- Scripts -->
+    <script src="js/dashboard.js"></script>
+    <script src="js/case-detail.js"></script>
+</body>
+</html>

@@ -18,6 +18,7 @@ const dropboxService = require('../dropbox-service');
 const logger = require('../monitoring/logger');
 const metricsModule = require('../monitoring/metrics');
 const { asyncHandler } = require('../middleware/error-handler');
+const { getPool } = require('../server/services/database-service');
 
 // These will be passed in via router initialization
 // to avoid circular dependencies and access helper functions from server.js
@@ -44,6 +45,94 @@ function initializeRouter(helpers) {
     serverHelpers = helpers;
 }
 
+// ============================================================================
+// Phase 7B.3: Document Logging Hook for CRM Dashboard
+// ============================================================================
+/**
+ * Log generated documents and update dashboard status
+ * Called after pipeline completes successfully
+ *
+ * @param {Object} formData - Original form data
+ * @param {Object} pipelineResult - Result from pipeline execution
+ * @param {Array<string>} documentTypes - Document types that were generated
+ */
+async function logGeneratedDocuments(formData, pipelineResult, documentTypes) {
+    const intakeId = formData.intakeId || formData.intake_id;
+    if (!intakeId) {
+        logger.info('No intake_id in form data, skipping CRM dashboard document logging');
+        return;
+    }
+
+    try {
+        const pool = getPool();
+
+        // Find dashboard entry for this intake
+        const dashboardResult = await pool.query(
+            'SELECT id FROM case_dashboard WHERE intake_id = $1',
+            [intakeId]
+        );
+
+        if (dashboardResult.rows.length === 0) {
+            logger.warn('No dashboard entry found for intake, skipping document logging', { intakeId });
+            return;
+        }
+
+        const dashboardId = dashboardResult.rows[0].id;
+        const webhookSummary = pipelineResult.webhook_summary || {};
+        const totalDocs = webhookSummary.total_sets || documentTypes.length;
+
+        // Log each document type as a generated document
+        for (const docType of documentTypes) {
+            await pool.query(`
+                INSERT INTO generated_documents (intake_id, document_type, document_name, generated_by, status)
+                VALUES ($1, $2, $3, 'system', 'generated')
+                ON CONFLICT DO NOTHING
+            `, [intakeId, docType, `${docType.toUpperCase()} Document Set`]);
+        }
+
+        // Update dashboard status to 'docs_generated' and record counts
+        await pool.query(`
+            UPDATE case_dashboard
+            SET status = CASE
+                  WHEN status IN ('new', 'in_review', 'docs_in_progress') THEN 'docs_generated'
+                  ELSE status
+                END,
+                status_changed_by = 'system',
+                docs_generated_at = CURRENT_TIMESTAMP,
+                docs_generated_by = 'system',
+                last_doc_gen_count = $1
+            WHERE id = $2
+            RETURNING status
+        `, [totalDocs, dashboardId]);
+
+        // Log activity
+        await pool.query(`
+            INSERT INTO case_activities (dashboard_id, intake_id, activity_type, description, performed_by, metadata)
+            VALUES ($1, $2, 'doc_generated', $3, 'system', $4)
+        `, [
+            dashboardId,
+            intakeId,
+            `Generated ${totalDocs} document set(s): ${documentTypes.join(', ')}`,
+            JSON.stringify({ documentTypes, totalSets: totalDocs, executionTime: pipelineResult.executionTime })
+        ]);
+
+        logger.info('Documents logged to CRM dashboard', {
+            intakeId,
+            dashboardId,
+            documentTypes,
+            totalDocs
+        });
+
+    } catch (error) {
+        // Log error but don't fail - this is a non-critical operation
+        logger.error('Failed to log documents to CRM dashboard', {
+            intakeId,
+            error: error.message
+        });
+    }
+}
+// ============================================================================
+
 /**
  * POST /api/form-entries
  * Create new form submission
@@ -57,7 +146,7 @@ function initializeRouter(helpers) {
  */
 router.post('/', asyncHandler(async (req, res) => {
     const formData = req.body;
-    console.log('Received form data:', JSON.stringify(formData, null, 2));
+    logger.debug('Received form data', { formId: formData.id });
 
     // Validate required fields - check for at least one plaintiff
     const hasPlaintiff = Object.keys(formData).some(key =>
@@ -65,10 +154,7 @@ router.post('/', asyncHandler(async (req, res) => {
     );
 
     if (!formData.id || !hasPlaintiff) {
-        console.log('Missing fields check:', {
-            id: !!formData.id,
-            hasPlaintiff: hasPlaintiff
-        });
+        logger.warn('Form validation failed', { hasId: !!formData.id, hasPlaintiff });
         return res.status(400).json({
             success: false,
             error: 'Missing required fields: id and at least one plaintiff name'
@@ -84,7 +170,7 @@ router.post('/', asyncHandler(async (req, res) => {
 
     // Validate: must be an array
     if (!Array.isArray(documentTypesToGenerate)) {
-        console.error('❌ Invalid documentTypesToGenerate: not an array');
+        logger.warn('Invalid documentTypesToGenerate: not an array');
         return res.status(400).json({
             success: false,
             error: 'documentTypesToGenerate must be an array'
@@ -93,7 +179,7 @@ router.post('/', asyncHandler(async (req, res) => {
 
     // Validate: at least one document type required
     if (documentTypesToGenerate.length === 0) {
-        console.error('❌ Invalid documentTypesToGenerate: empty array');
+        logger.warn('Invalid documentTypesToGenerate: empty array');
         return res.status(400).json({
             success: false,
             error: 'At least one document type must be selected'
@@ -103,7 +189,7 @@ router.post('/', asyncHandler(async (req, res) => {
     // Validate: all types must be valid
     const invalidTypes = documentTypesToGenerate.filter(type => !validTypes.includes(type));
     if (invalidTypes.length > 0) {
-        console.error(`❌ Invalid document types: ${invalidTypes.join(', ')}`);
+        logger.warn('Invalid document types submitted', { invalidTypes });
         return res.status(400).json({
             success: false,
             error: 'Invalid document types',
@@ -111,7 +197,7 @@ router.post('/', asyncHandler(async (req, res) => {
         });
     }
 
-    console.log(`📄 Document types to generate: ${documentTypesToGenerate.join(', ')}`);
+    logger.info('Document types to generate', { documentTypes: documentTypesToGenerate });
     // ============================================================
 
     // Create a temporary case ID for progress tracking (will be replaced by DB ID)
@@ -146,15 +232,13 @@ router.post('/', asyncHandler(async (req, res) => {
     // Write to storage (Cloud Storage in production, local filesystem in development)
     await serverHelpers.saveFormData(filename, originalFormatData);
 
-    // Log the submission
-    console.log(`✅ Form entry saved: ${filename}`);
+    logger.info('Form entry saved', { filename });
 
     // Record form submission metrics
     const plaintiffCount = originalFormatData.PlaintiffDetails?.length || 0;
     const defendantCount = originalFormatData.DefendantDetails2?.length || 0;
     const processingTime = (Date.now() - Date.parse(originalFormatData.serverTimestamp || new Date().toISOString())) / 1000;
     metricsModule.recordFormSubmission(true, plaintiffCount, defendantCount, processingTime);
-    console.log(`📊 Metrics recorded: ${plaintiffCount} plaintiffs, ${defendantCount} defendants`);
 
     // ============================================================
     // DROPBOX UPLOAD (TEMPORARILY DISABLED)
@@ -203,7 +287,7 @@ router.post('/', asyncHandler(async (req, res) => {
     let dbCaseId = null;
     try {
         dbCaseId = await serverHelpers.saveToDatabase(structuredData, formData, documentTypesToGenerate);
-        console.log(`✅ Form entry saved to database with case ID: ${dbCaseId}`);
+        logger.info('Form entry saved to database', { caseId: dbCaseId });
 
         // Copy the status from temp ID to actual DB case ID
         const tempStatus = pipelineService.getPipelineStatus(tempCaseId);
@@ -215,8 +299,7 @@ router.post('/', asyncHandler(async (req, res) => {
             });
         }
     } catch (dbError) {
-        console.error('⚠️  Database save failed, but JSON file was saved:', dbError.message);
-        console.error('   Error details:', dbError.stack);
+        logger.error('Database save failed, but JSON file was saved', { error: dbError.message });
         // Continue - don't fail the request if database fails
     }
 
@@ -226,7 +309,6 @@ router.post('/', asyncHandler(async (req, res) => {
     // Use database case ID if available, otherwise fall back to form ID
     // This ensures progress tracking works even if database save fails
     const trackingCaseId = dbCaseId || formData.id;
-    console.log(`📊 Tracking Case ID: ${trackingCaseId} (DB: ${dbCaseId ? 'YES' : 'NO'})`);
 
     // ============================================================
     // SEND RESPONSE IMMEDIATELY - DON'T WAIT FOR PIPELINE
@@ -238,9 +320,6 @@ router.post('/', asyncHandler(async (req, res) => {
 
     // IMPORTANT: Send the database case ID for SSE progress tracking
     // The Python pipeline uses this ID to broadcast progress updates
-    console.log(`📤 Sending response with dbCaseId: ${trackingCaseId} (type: ${typeof trackingCaseId})`);
-    console.log(`   Form ID (UUID): ${formData.id}`);
-    console.log(`   Database ID (integer): ${dbCaseId}`);
 
     res.status(201).json({
         success: true,
@@ -266,41 +345,39 @@ router.post('/', asyncHandler(async (req, res) => {
     // Execute pipeline asynchronously without blocking the response.
     // The frontend will poll for progress updates via /api/pipeline-status/:caseId
     // ============================================================
-    console.log(`\n${'='.repeat(70)}`);
-    console.log(`🚀 STARTING BACKGROUND PIPELINE EXECUTION`);
-    console.log(`   Tracking Case ID: ${trackingCaseId}`);
-    console.log(`   Database Case ID: ${dbCaseId || 'N/A (using form ID)'}`);
-    console.log(`   Form ID: ${formData.id}`);
-    console.log(`   Pipeline Enabled: ${serverHelpers.PIPELINE_CONFIG.enabled}`);
-    console.log(`   Execute on Submit: ${serverHelpers.PIPELINE_CONFIG.executeOnSubmit}`);
-    console.log(`${'='.repeat(70)}\n`);
+    logger.info('Starting background pipeline execution', {
+        trackingCaseId,
+        dbCaseId,
+        formId: formData.id,
+        pipelineEnabled: serverHelpers.PIPELINE_CONFIG.enabled,
+        executeOnSubmit: serverHelpers.PIPELINE_CONFIG.executeOnSubmit
+    });
 
     pipelineService.callNormalizationPipeline(originalFormatData, trackingCaseId, documentTypesToGenerate)
-        .then((pipelineResult) => {
-            console.log(`\n${'='.repeat(70)}`);
+        .then(async (pipelineResult) => {
             if (pipelineResult.success) {
-                console.log('✅ PIPELINE COMPLETED SUCCESSFULLY');
-                console.log(`   Case ID: ${dbCaseId}`);
-                console.log(`   Execution time: ${pipelineResult.executionTime}ms`);
+                logger.info('Pipeline completed successfully', {
+                    caseId: dbCaseId,
+                    executionTime: pipelineResult.executionTime
+                });
                 // Record successful pipeline execution
                 metricsModule.recordPipelineExecution(true, pipelineResult.executionTime / 1000, pipelineResult.phase || 'complete');
+
+                // Phase 7B.3: Log documents and update dashboard status
+                await logGeneratedDocuments(originalFormatData, pipelineResult, documentTypesToGenerate);
             } else if (pipelineResult.skipped) {
-                console.log(`📋 PIPELINE SKIPPED`);
-                console.log(`   Reason: ${pipelineResult.reason}`);
+                logger.info('Pipeline skipped', { reason: pipelineResult.reason });
             } else {
-                console.warn('⚠️  PIPELINE FAILED (but form was saved)');
-                console.log(`   Error: ${pipelineResult.error || 'Unknown'}`);
+                logger.warn('Pipeline failed (form was saved)', { error: pipelineResult.error });
                 // Record failed pipeline execution
                 metricsModule.recordPipelineExecution(false, pipelineResult.executionTime / 1000 || 0, pipelineResult.phase || 'error');
             }
-            console.log(`${'='.repeat(70)}\n`);
         })
         .catch((pipelineError) => {
-            console.log(`\n${'='.repeat(70)}`);
-            console.error('❌ PIPELINE EXECUTION THREW ERROR');
-            console.error(`   Error: ${pipelineError.message}`);
-            console.error(`   Stack: ${pipelineError.stack}`);
-            console.log(`${'='.repeat(70)}\n`);
+            logger.error('Pipeline execution error', {
+                error: pipelineError.message,
+                stack: pipelineError.stack
+            });
             // Record pipeline error
             metricsModule.recordPipelineExecution(false, 0, 'error');
         });
@@ -375,7 +452,7 @@ router.get('/', asyncHandler(async (req, res) => {
                     size: fileInfo.size
                 };
             } catch (error) {
-                logger.error(`Error reading form entry ${fileInfo.name}:`, error);
+                logger.error('Error reading form entry', { file: fileInfo.name, error: error.message });
                 return null;
             }
         })))
@@ -621,7 +698,7 @@ router.delete('/clear-all', asyncHandler(async (req, res) => {
     const deletePromises = fileList.map(fileInfo =>
         serverHelpers.deleteFormData(fileInfo.name)
             .catch(error => {
-                console.error(`Error deleting ${fileInfo.name}:`, error);
+                logger.error('Error deleting form entry', { file: fileInfo.name, error: error.message });
                 return { error: error.message, file: fileInfo.name };
             })
     );

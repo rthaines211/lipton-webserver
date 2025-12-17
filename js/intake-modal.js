@@ -10,7 +10,7 @@
  * - Transform intake data to doc-gen format
  * - Auto-populate form fields
  *
- * Last Updated: 2025-11-18
+ * Last Updated: 2025-12-16
  */
 
 // Wrap in IIFE to avoid global variable conflicts
@@ -19,6 +19,18 @@
 
     let currentIntakes = [];
     let INTAKE_ACCESS_TOKEN = null;
+
+    /**
+     * Escape HTML special characters to prevent XSS
+     * @param {string} str - String to escape
+     * @returns {string} Escaped string safe for innerHTML
+     */
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
 
 /**
  * Initialize the intake modal system
@@ -37,9 +49,6 @@ function initIntakeModal() {
     // Store in localStorage for future use
     if (INTAKE_ACCESS_TOKEN) {
         localStorage.setItem('INTAKE_ACCESS_TOKEN', INTAKE_ACCESS_TOKEN);
-        console.log('Access token initialized for intake modal');
-    } else {
-        console.warn('No access token found. Intake modal will require authentication.');
     }
 }
 
@@ -145,10 +154,14 @@ async function searchIntakes() {
         if (loadingState) loadingState.style.display = 'none';
         if (emptyState) {
             emptyState.style.display = 'flex';
-            emptyState.innerHTML = `
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>${error.message || 'Failed to load intakes. Please try again.'}</p>
-            `;
+            // Clear existing content and build safely to prevent XSS
+            emptyState.innerHTML = '';
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-exclamation-triangle';
+            const p = document.createElement('p');
+            p.textContent = error.message || 'Failed to load intakes. Please try again.';
+            emptyState.appendChild(icon);
+            emptyState.appendChild(p);
         }
         showNotification(error.message || 'Failed to load intakes', 'error');
     }
@@ -181,21 +194,21 @@ function displayIntakes(intakes) {
         const statusBadge = getStatusBadge(intake.intake_status);
 
         row.innerHTML = `
-            <td><strong>${intake.first_name} ${intake.last_name}</strong></td>
-            <td>${address}</td>
-            <td>${submittedDate}</td>
+            <td><strong>${escapeHtml(intake.first_name)} ${escapeHtml(intake.last_name)}</strong></td>
+            <td>${escapeHtml(address)}</td>
+            <td>${escapeHtml(submittedDate)}</td>
             <td>${statusBadge}</td>
             <td>
                 <button
                     class="intake-action-btn intake-action-btn-primary"
-                    onclick="loadIntakeIntoForm('${intake.id}')"
+                    onclick="loadIntakeIntoForm('${escapeHtml(intake.id)}')"
                     title="Load this intake into the form"
                 >
                     <i class="fas fa-check"></i> Select
                 </button>
                 <button
                     class="intake-action-btn intake-action-btn-secondary"
-                    onclick="previewIntake('${intake.id}')"
+                    onclick="previewIntake('${escapeHtml(intake.id)}')"
                     title="Preview full intake details"
                 >
                     <i class="fas fa-eye"></i> Preview
@@ -221,7 +234,7 @@ function getStatusBadge(status) {
         'assigned': '<span class="intake-status-badge intake-status-approved"><i class="fas fa-user-check"></i> Assigned</span>'
     };
 
-    return badges[status] || `<span class="intake-status-badge">${status}</span>`;
+    return badges[status] || `<span class="intake-status-badge">${escapeHtml(status)}</span>`;
 }
 
 /**
@@ -251,20 +264,6 @@ async function loadIntakeIntoForm(intakeId) {
 
         const docGenData = await response.json();
 
-        // ===== DEBUGGING: Log API response =====
-        console.log('=== INTAKE MODAL DEBUG ===');
-        console.log('Full API Response:', docGenData);
-
-        // Log all hab-* fields
-        const habFields = Object.entries(docGenData)
-            .filter(([key]) => key.startsWith('hab-'));
-        console.log(`Found ${habFields.length} hab-* fields in response`);
-        console.log('hab-* fields:', habFields);
-
-        // Log true hab-* fields
-        const trueHabFields = habFields.filter(([, value]) => value === true);
-        console.log(`${trueHabFields.length} hab-* fields are TRUE:`, trueHabFields.map(([key]) => key));
-
         // Populate the form
         populateDocGenForm(docGenData);
 
@@ -289,20 +288,18 @@ async function loadIntakeIntoForm(intakeId) {
  * @param {Object} data - Document generation formatted data
  */
 function populateDocGenForm(data) {
-    console.log('Populating form with data:', data);
-
     // Ensure at least one plaintiff exists before populating
     const plaintiffsContainer = document.getElementById('plaintiffs-container');
+
     if (plaintiffsContainer && plaintiffsContainer.children.length === 0) {
         // Call the global addPlaintiff function to create plaintiff #1
         if (typeof window.addPlaintiff === 'function') {
             window.addPlaintiff();
-            console.log('Created plaintiff #1 for intake data population');
         }
     }
 
     // Wait for DOM to update before populating fields
-    // Use setTimeout to allow plaintiff creation to complete
+    // Increased timeout to 500ms to ensure issue categories are rendered
     setTimeout(() => {
         // Property Information
         setFieldValue('property-address', data['property-address']);
@@ -313,7 +310,6 @@ function populateDocGenForm(data) {
         setFieldValue('filing-county', data['filing-county']);
 
         // Plaintiff 1 (Primary Client)
-        // Only populate fields that exist in the attorney form
         // Handle both naming conventions (with and without hyphens in "firstname"/"lastname")
         setFieldValue('plaintiff-1-first-name', data['plaintiff-1-first-name'] || data['plaintiff-1-firstname']);
         setFieldValue('plaintiff-1-last-name', data['plaintiff-1-last-name'] || data['plaintiff-1-lastname']);
@@ -331,18 +327,15 @@ function populateDocGenForm(data) {
         }
 
         // ===== BUILDING ISSUES POPULATION =====
-        // The API now returns field names that EXACTLY match the doc-gen form checkbox names
+        // The API returns field names that EXACTLY match the doc-gen form checkbox names
         // Format: hab-{category}-{item} (e.g., 'hab-pest-mice-rats', 'hab-heating-ac-problems')
-        // NO MAPPING NEEDED - just populate checkboxes directly from API response
-        console.log('Populating building issues checkboxes from API data...');
         let issuesPopulated = 0;
-        const categoriesToExpand = new Set(); // Track which categories have issues
+        const categoriesToExpand = new Set();
 
         // Iterate through ALL fields in the API response
         for (const [fieldName, fieldValue] of Object.entries(data)) {
-            // Process hab-* fields (habitability form), edit-issue-* fields, *-toggle-* fields, AND individual checkbox fields (doc-gen form)
-            // Individual checkboxes follow pattern: {category}-{ItemName}-{plaintiffId} like "vermin-RatsMice-1", "plumbing-Toilet-1"
-            const isIndividualCheckbox = fieldName.match(/^(vermin|insect|plumbing|electrical|hvac|appliances|health-hazard|structure|flooring|cabinets|door|windows|fire-hazard|nuisance|trash|common-areas|notices|utility|safety|harassment)-[A-Za-z]+-\d+$/);
+            // Process hab-* fields, edit-issue-* fields, *-toggle-* fields, AND individual checkbox fields
+            const isIndividualCheckbox = fieldName.match(/^(vermin|insect|plumbing|electrical|hvac|appliances|health-hazard|structure|flooring|cabinets|door|windows|fire-hazard|nuisance|trash|common-areas|notices|utility|safety|harassment|government|direct)-[A-Za-z0-9]+-\d+$/);
 
             if ((fieldName.startsWith('hab-') || fieldName.startsWith('edit-issue-') || fieldName.includes('-toggle-') || isIndividualCheckbox) && fieldValue === true) {
                 // Try checkbox first
@@ -351,60 +344,207 @@ function populateDocGenForm(data) {
                 // If checkbox not found, try radio button
                 if (!success) {
                     success = setRadioValue(fieldName, 'yes');
-                    if (success) {
-                        console.log(`✓ Populated radio button: ${fieldName} = yes`);
-                    }
                 }
 
-                // If still not found, check if it's a textarea and mark it with a note
+                // If still not found, check if it's a textarea
                 if (!success) {
                     const textarea = document.querySelector(`textarea[name="${fieldName}"]`);
                     if (textarea) {
                         textarea.value = '(Issues reported in client intake form)';
                         success = true;
-                        console.log(`✓ Populated textarea: ${fieldName}`);
                     }
                 }
 
                 if (success) {
                     issuesPopulated++;
-                    if (!fieldName.includes('-problems') && !fieldName.includes('-issues')) {
-                        console.log(`✓ Populated checkbox: ${fieldName}`);
-                    }
-                } else {
-                    console.warn(`✗ Failed to populate field: ${fieldName} (not found as checkbox, radio, or textarea)`);
                 }
             }
         }
-        console.log(`Successfully populated ${issuesPopulated} building issue checkboxes`);
 
-        // ===== VERIFICATION: Check what's actually checked in the DOM =====
-        console.log('\n=== VERIFICATION: Checking DOM state after population ===');
-        const checkedCheckboxes = document.querySelectorAll('input[type="checkbox"][name^="hab-"]:checked');
-        const checkedRadios = document.querySelectorAll('input[type="radio"][name^="hab-"][value="yes"]:checked');
-        const checkedToggles = document.querySelectorAll('input[type="checkbox"][id*="-toggle-"]:checked');
-        // Individual items: checkboxes with IDs containing '-' but NOT '-toggle-' and ending with '-1'
-        const checkedIndividualItems = document.querySelectorAll('input[type="checkbox"][id$="-1"]:not([id*="-toggle-"]):checked');
+        // ===== ISSUE DETAIL TEXTAREAS =====
+        const detailFields = [
+            'hab-electrical-details', 'hab-appliance-details', 'hab-heating-details',
+            'hab-plumbing-details', 'hab-flooring-details', 'hab-windows-details',
+            'hab-doors-details', 'hab-structure-details', 'hab-nuisances-details',
+            'hab-pest-details', 'hab-common-details', 'hab-fire-details',
+            'hab-health-details', 'hab-additional-notes', 'vermin-details',
+            'insect-details', 'additional-notes'
+        ];
 
-        console.log(`Found ${checkedCheckboxes.length} checked hab-* checkboxes:`,
-            Array.from(checkedCheckboxes).map(cb => cb.name));
-        console.log(`Found ${checkedRadios.length} checked hab-* radio buttons (yes):`,
-            Array.from(checkedRadios).map(r => r.name));
-        console.log(`Found ${checkedToggles.length} checked *-toggle-* checkboxes (doc-gen form):`,
-            Array.from(checkedToggles).map(cb => cb.id));
-        console.log(`Found ${checkedIndividualItems.length} checked individual building issue items (doc-gen form):`,
-            Array.from(checkedIndividualItems).slice(0, 10).map(cb => cb.id),
-            checkedIndividualItems.length > 10 ? `... and ${checkedIndividualItems.length - 10} more` : '');
+        const severityFields = [
+            'vermin-severity', 'insect-severity',
+            'vermin-first-noticed', 'insect-first-noticed'
+        ];
 
-        // Expand categories that have populated checkboxes so they're visible
+        for (const fieldName of detailFields) {
+            const value = data[fieldName];
+            if (value && typeof value === 'string' && value.trim()) {
+                setFieldValue(fieldName, value);
+            }
+        }
+
+        for (const fieldName of severityFields) {
+            const value = data[fieldName];
+            if (value) {
+                setFieldValue(fieldName, value);
+            }
+        }
+
+        // ===== POPULATE CATEGORY-SPECIFIC INTAKE NOTES =====
+        const intakeCategoryMap = {
+            'vermin': 'vermin', 'insect': 'insect', 'hvac': 'hvac',
+            'electrical': 'electrical', 'plumbing': 'plumbing',
+            'appliances': 'appliance', 'health-hazard': 'health-hazard',
+            'structure': 'structure', 'flooring': 'flooring',
+            'cabinets': 'cabinet', 'door': 'door', 'windows': 'window',
+            'fire-hazard': 'fire-hazard', 'nuisance': 'nuisance',
+            'trash': 'trash', 'common-areas': 'common-area',
+            'notices': 'notices', 'utility': 'utility', 'safety': 'safety',
+            'harassment': 'harassment', 'government': 'government'
+        };
+
+        Object.entries(intakeCategoryMap).forEach(([htmlCategory, apiPrefix]) => {
+            const details = data[`${apiPrefix}-details`];
+            const severity = data[`${apiPrefix}-severity`];
+            const firstNoticed = data[`${apiPrefix}-first-noticed`];
+            const repairHistory = data[`${apiPrefix}-repair-history`];
+
+            if (details || severity || firstNoticed || repairHistory) {
+                const plaintiffId = 1;
+                const notesContainer = document.getElementById(`${htmlCategory}-intake-notes-${plaintiffId}`);
+
+                if (notesContainer) {
+                    notesContainer.style.display = 'block';
+
+                    if (firstNoticed) {
+                        const dateContainer = document.getElementById(`${htmlCategory}-intake-date-${plaintiffId}`);
+                        if (dateContainer) {
+                            dateContainer.style.display = 'block';
+                            const dateText = dateContainer.querySelector('.intake-date-text');
+                            if (dateText) dateText.textContent = firstNoticed;
+                        }
+                    }
+
+                    if (severity) {
+                        const severityContainer = document.getElementById(`${htmlCategory}-intake-severity-${plaintiffId}`);
+                        if (severityContainer) {
+                            severityContainer.style.display = 'block';
+                            const severityText = severityContainer.querySelector('.intake-severity-text');
+                            if (severityText) {
+                                severityText.textContent = severity.charAt(0).toUpperCase() + severity.slice(1);
+                                const severityColors = {
+                                    'severe': '#dc2626', 'moderate': '#f59e0b', 'mild': '#16a34a'
+                                };
+                                severityText.style.color = severityColors[severity.toLowerCase()] || '#1e293b';
+                            }
+                        }
+                    }
+
+                    if (details) {
+                        const detailsContainer = document.getElementById(`${htmlCategory}-intake-details-${plaintiffId}`);
+                        if (detailsContainer) {
+                            detailsContainer.style.display = 'block';
+                            const detailsText = detailsContainer.querySelector('.intake-details-text');
+                            if (detailsText) detailsText.textContent = details;
+                        }
+                    }
+
+                    if (repairHistory) {
+                        const repairContainer = document.getElementById(`${htmlCategory}-intake-repair-${plaintiffId}`);
+                        if (repairContainer) {
+                            repairContainer.style.display = 'block';
+                            const repairText = repairContainer.querySelector('.intake-repair-text');
+                            if (repairText) repairText.textContent = repairHistory;
+                        }
+                    }
+
+                    // Expand the category section
+                    const categoryContent = document.getElementById(`${htmlCategory}-content-${plaintiffId}`);
+                    const categoryButton = document.getElementById(`${htmlCategory}-button-${plaintiffId}`);
+                    if (categoryContent && categoryButton) {
+                        categoryContent.removeAttribute('hidden');
+                        categoryContent.classList.add('show');
+                        categoryButton.setAttribute('aria-expanded', 'true');
+                    }
+                }
+            }
+        });
+
+        // ===== POPULATE DIRECT ISSUE INTAKE NOTES =====
+        const directIssuesMap = {
+            'injury': 'Injury Issues',
+            'nonresponsive': 'Nonresponsive Landlord',
+            'unauthorized': 'Unauthorized Entries',
+            'stolen': 'Stolen Items',
+            'disabilityDiscrim': 'Disability Discrimination',
+            'damaged': 'Damaged Items',
+            'ageDiscrim': 'Age Discrimination',
+            'racialDiscrim': 'Racial Discrimination',
+            'securityDeposit': 'Security Deposit'
+        };
+
+        const plaintiffId = 1;
+        const notesContainer = document.getElementById(`direct-issues-intake-notes-${plaintiffId}`);
+        const notesGrid = document.getElementById(`direct-issues-notes-grid-${plaintiffId}`);
+
+        if (notesContainer && notesGrid) {
+            let directNotesHtml = '';
+            let directNotesPopulated = 0;
+
+            const severityColors = {
+                'severe': '#dc2626', 'moderate': '#f59e0b', 'mild': '#16a34a'
+            };
+
+            Object.entries(directIssuesMap).forEach(([apiPrefix, title]) => {
+                const kebabPrefix = apiPrefix.replace(/([A-Z])/g, '-$1').toLowerCase();
+                const details = data[`${kebabPrefix}-details`];
+                const severity = data[`${kebabPrefix}-severity`];
+                const firstNoticed = data[`${kebabPrefix}-first-noticed`];
+                const repairHistory = data[`${kebabPrefix}-repair-history`];
+
+                if (details || severity || firstNoticed || repairHistory) {
+                    directNotesPopulated++;
+                    const severityColor = severityColors[severity?.toLowerCase()] || '#1e293b';
+                    const severityLabel = severity ? severity.charAt(0).toUpperCase() + severity.slice(1) : '';
+
+                    directNotesHtml += `
+                        <div class="direct-issue-note-card" style="background: white; border: 1px solid #e0f2fe; border-radius: 6px; padding: 10px 12px;">
+                            <div style="font-weight: 600; color: #0369a1; font-size: 12px; margin-bottom: 8px; border-bottom: 1px solid #e0f2fe; padding-bottom: 6px;">${escapeHtml(title)}</div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; margin-bottom: ${details || repairHistory ? '10px' : '0'};">
+                                ${firstNoticed ? `<div>
+                                    <div style="font-size: 11px; color: #64748b; font-weight: 500; margin-bottom: 2px;">First Noticed</div>
+                                    <div style="font-size: 13px; color: #0c4a6e; font-weight: 600;">${escapeHtml(firstNoticed)}</div>
+                                </div>` : ''}
+                                ${severity ? `<div>
+                                    <div style="font-size: 11px; color: #64748b; font-weight: 500; margin-bottom: 2px;">Severity</div>
+                                    <div style="font-size: 13px; color: ${severityColor}; font-weight: 600;">${escapeHtml(severityLabel)}</div>
+                                </div>` : ''}
+                            </div>
+                            ${details ? `<div style="margin-bottom: 10px;">
+                                <div style="font-size: 11px; color: #64748b; font-weight: 500; margin-bottom: 4px;">Details</div>
+                                <div style="font-size: 13px; color: #1e293b; background: white; padding: 8px 10px; border-radius: 4px; border: 1px solid #e0f2fe;">${escapeHtml(details)}</div>
+                            </div>` : ''}
+                            ${repairHistory ? `<div>
+                                <div style="font-size: 11px; color: #64748b; font-weight: 500; margin-bottom: 4px;">Repair History</div>
+                                <div style="font-size: 13px; color: #1e293b; background: white; padding: 8px 10px; border-radius: 4px; border: 1px solid #e0f2fe;">${escapeHtml(repairHistory)}</div>
+                            </div>` : ''}
+                        </div>
+                    `;
+                }
+            });
+
+            if (directNotesPopulated > 0) {
+                notesGrid.innerHTML = directNotesHtml;
+                notesContainer.style.display = 'block';
+            }
+        }
+
+        // Expand categories that have populated checkboxes
         if (categoriesToExpand.size > 0) {
-            console.log(`Expanding ${categoriesToExpand.size} categories:`, Array.from(categoriesToExpand));
             categoriesToExpand.forEach(category => {
-                // Expand the category for plaintiff 1
                 if (typeof setCategoryExpansion === 'function') {
                     setCategoryExpansion(1, category, true);
                 } else {
-                    // Fallback: directly manipulate DOM if function not available
                     const content = document.getElementById(`${category}-content-1`);
                     const button = document.getElementById(`${category}-button-1`);
                     if (content && button) {
@@ -416,8 +556,7 @@ function populateDocGenForm(data) {
             });
         }
 
-        console.log('Form population complete');
-    }, 100); // Wait 100ms for DOM to update
+    }, 500);
 }
 
 /**
@@ -426,9 +565,8 @@ function populateDocGenForm(data) {
  * @param {any} value - Value to set
  */
 function setFieldValue(fieldName, value) {
-    if (!value) return; // Don't set empty/null values
+    if (!value) return;
 
-    // Try by name first, then by ID
     let field = document.querySelector(`[name="${fieldName}"]`);
     if (!field) {
         field = document.getElementById(fieldName);
@@ -436,10 +574,7 @@ function setFieldValue(fieldName, value) {
 
     if (field) {
         field.value = value;
-        // Trigger change event for any listeners
         field.dispatchEvent(new Event('change', { bubbles: true }));
-    } else {
-        console.warn(`Field not found: ${fieldName}`);
     }
 }
 
@@ -450,19 +585,14 @@ function setFieldValue(fieldName, value) {
  * @returns {boolean} True if checkbox was found and set, false otherwise
  */
 function setCheckboxValue(fieldName, checked) {
-    // Try by name first, then by ID
     let field = document.querySelector(`[name="${fieldName}"][type="checkbox"]`);
     if (!field) {
         field = document.querySelector(`#${fieldName}[type="checkbox"]`);
     }
 
     if (field && field.type === 'checkbox') {
-        const wasBefore = field.checked;
         field.checked = checked;
-        // Trigger change event for any listeners
         field.dispatchEvent(new Event('change', { bubbles: true }));
-        const isAfter = field.checked;
-        console.log(`    🔲 Checkbox ${fieldName}: ${wasBefore} → ${isAfter} ${isAfter === checked ? '✓' : '✗ FAILED'}`);
         return true;
     }
     return false;
@@ -472,46 +602,31 @@ function setCheckboxValue(fieldName, checked) {
  * Set a radio button value by name
  * @param {string} radioName - Name of the radio button group
  * @param {string} value - Value to select
+ * @returns {boolean} True if radio was found and set, false otherwise
  */
 function setRadioValue(radioName, value) {
-    // Find all radio buttons with this name
     const radios = document.querySelectorAll(`input[type="radio"][name="${radioName}"]`);
 
-    console.log(`Looking for radio: ${radioName}, found ${radios.length} radios`);
-
-    // Select the one with matching value
     let found = false;
     radios.forEach(radio => {
-        console.log(`  - Radio value: ${radio.value}, ID: ${radio.id}, currently checked: ${radio.checked}`);
         if (radio.value === value) {
-            const wasBefore = radio.checked;
             radio.checked = true;
-            // Trigger change event for any listeners
             radio.dispatchEvent(new Event('change', { bubbles: true }));
-            const isAfter = radio.checked;
-            console.log(`    📻 Radio ${radio.id}: ${wasBefore} → ${isAfter} ${isAfter ? '✓' : '✗ FAILED'}`);
             found = true;
         }
     });
-
-    if (radios.length === 0) {
-        console.warn(`Radio group not found: ${radioName}`);
-        // Try to find ANY element with this name
-        const anyElement = document.querySelector(`[name="${radioName}"]`);
-        console.warn(`  Any element with name="${radioName}":`, anyElement);
-    }
 
     return found;
 }
 
 /**
- * Preview intake details (future enhancement)
+ * Preview intake details
  * @param {string} intakeId - UUID of the intake to preview
  */
 function previewIntake(intakeId) {
-    // TODO: Implement preview modal with full intake details
-    showNotification('Preview feature coming soon!', 'info');
-    console.log('Preview intake:', intakeId);
+    // Open intake in a new tab for preview
+    const token = INTAKE_ACCESS_TOKEN ? `&token=${INTAKE_ACCESS_TOKEN}` : '';
+    window.open(`/api/intakes/${intakeId}?format=html${token}`, '_blank');
 }
 
 /**
@@ -520,37 +635,64 @@ function previewIntake(intakeId) {
  * @param {string} type - Notification type ('success', 'error', 'info')
  */
 function showNotification(message, type = 'success') {
-    // Remove any existing notifications
     const existing = document.querySelectorAll('.intake-notification');
     existing.forEach(el => el.remove());
 
-    // Create notification element
     const notification = document.createElement('div');
     notification.className = `intake-notification intake-notification-${type}`;
 
-    // Add icon based on type
     const icon = type === 'success' ? 'check-circle' :
                  type === 'error' ? 'exclamation-circle' :
                  'info-circle';
 
     notification.innerHTML = `
         <i class="fas fa-${icon}"></i>
-        <span>${message}</span>
+        <span>${escapeHtml(message)}</span>
     `;
 
     document.body.appendChild(notification);
 
-    // Auto-remove after 5 seconds
     setTimeout(() => {
         notification.style.opacity = '0';
         setTimeout(() => notification.remove(), 300);
     }, 5000);
 }
 
+// ============================================================================
+// Phase 7B.4: Auto-load intake from URL parameter
+// ============================================================================
+/**
+ * Check for loadIntake URL parameter and auto-load the intake
+ * Called after intake modal is initialized
+ */
+async function checkAutoLoadIntake() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const intakeId = urlParams.get('loadIntake');
+
+    if (intakeId) {
+        showNotification('Loading intake from CRM Dashboard...', 'info');
+
+        // Wait for form to fully initialize
+        setTimeout(async () => {
+            try {
+                await loadIntakeIntoForm(intakeId);
+
+                // Remove the URL parameter to avoid re-loading on refresh
+                const url = new URL(window.location.href);
+                url.searchParams.delete('loadIntake');
+                window.history.replaceState({}, document.title, url.pathname + url.search);
+            } catch (error) {
+                console.error('Failed to auto-load intake:', error);
+                showNotification('Failed to load intake from dashboard. Please try selecting it manually.', 'error');
+            }
+        }, 500);
+    }
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     initIntakeModal();
-    console.log('Intake modal system initialized');
+    checkAutoLoadIntake();
 });
 
 // Close modal when clicking outside
