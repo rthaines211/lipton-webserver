@@ -1,0 +1,815 @@
+/**
+ * Case Detail Page Styles
+ * Full-page layout for case management
+ */
+
+/* ============================================================================
+   CSS Variables (matching dashboard theme)
+   ============================================================================ */
+
+:root {
+    --primary-navy: #1F2A44;
+    --primary-navy-light: #2A3B5A;
+    --accent-teal: #00AEEF;
+    --accent-teal-dark: #0095D6;
+    --neutral-light: #F5F5F5;
+    --neutral-gray: #E2E8F0;
+    --text-dark: #333333;
+    --text-muted: #64748B;
+    --text-light: #94A3B8;
+    --white: #FFFFFF;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --error: #EF4444;
+    --info: #3B82F6;
+}
+
+/* ============================================================================
+   Base Styles
+   ============================================================================ */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--neutral-light);
+    color: var(--text-dark);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* ============================================================================
+   Header
+   ============================================================================ */
+
+.page-header {
+    background: linear-gradient(135deg, var(--primary-navy) 0%, var(--primary-navy-light) 100%);
+    color: var(--white);
+    padding: 16px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.header-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.logo {
+    height: 48px;
+    width: auto;
+}
+
+.header-text h1 {
+    font-family: 'Merriweather', Georgia, serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.header-text .subtitle {
+    font-size: 0.85rem;
+    opacity: 0.8;
+    margin: 0;
+}
+
+.header-nav {
+    display: flex;
+    gap: 12px;
+}
+
+.nav-link {
+    color: var(--white);
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.nav-link.active {
+    background: var(--accent-teal);
+}
+
+/* ============================================================================
+   Main Content Area
+   ============================================================================ */
+
+.case-detail-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.case-detail-container {
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+/* ============================================================================
+   Loading State
+   ============================================================================ */
+
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    color: var(--text-muted);
+}
+
+.loading-state i {
+    font-size: 2.5rem;
+    color: var(--accent-teal);
+    margin-bottom: 16px;
+}
+
+.loading-state p {
+    font-size: 1.1rem;
+}
+
+/* Placeholder for "no case selected" */
+.detail-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    color: var(--text-muted);
+}
+
+.detail-placeholder i {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+/* ============================================================================
+   Case Detail Header
+   ============================================================================ */
+
+.detail-header {
+    background: linear-gradient(135deg, var(--primary-navy) 0%, var(--primary-navy-light) 100%);
+    color: var(--white);
+    padding: 24px 32px;
+}
+
+.detail-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.detail-client-name {
+    font-family: 'Merriweather', Georgia, serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+}
+
+.detail-intake-number {
+    font-size: 1rem;
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.detail-intake-number::before {
+    content: 'Intake #';
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
+
+.detail-header-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.detail-header-meta span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.detail-header-meta i {
+    opacity: 0.7;
+}
+
+/* Back button in header */
+.back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: var(--white);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================================================
+   Detail Sections
+   ============================================================================ */
+
+.detail-section {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--neutral-gray);
+}
+
+.detail-section:last-of-type {
+    border-bottom: none;
+}
+
+.detail-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--primary-navy);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.detail-section-title i {
+    color: var(--accent-teal);
+    font-size: 1rem;
+}
+
+/* ============================================================================
+   Case Management Section (Status, Attorney, Priority)
+   ============================================================================ */
+
+.control-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 24px;
+    margin-bottom: 20px;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.control-group select {
+    padding: 10px 14px;
+    border: 1px solid var(--neutral-gray);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: var(--text-dark);
+    background: var(--white);
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.control-group select:hover {
+    border-color: var(--accent-teal);
+}
+
+.control-group select:focus {
+    outline: none;
+    border-color: var(--accent-teal);
+    box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.15);
+}
+
+/* Priority Toggle */
+.priority-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--neutral-light);
+    border-radius: 8px;
+    width: fit-content;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    cursor: pointer;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--neutral-gray);
+    border-radius: 13px;
+    transition: background 0.2s ease;
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background: var(--white);
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: var(--warning);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(22px);
+}
+
+.toggle-label {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+/* ============================================================================
+   Info Grid (Property Information)
+   ============================================================================ */
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.info-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-value {
+    font-size: 1rem;
+    color: var(--text-dark);
+}
+
+/* ============================================================================
+   Notes Section
+   ============================================================================ */
+
+.notes-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.note-item {
+    background: var(--neutral-light);
+    border-radius: 8px;
+    padding: 14px 16px;
+    border-left: 3px solid var(--accent-teal);
+}
+
+.note-content {
+    font-size: 0.95rem;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.note-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.note-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.note-action-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.note-action-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.note-action-btn.delete:hover {
+    color: var(--error);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* Add Note Form */
+.add-note-form {
+    margin-bottom: 12px;
+}
+
+.add-note-form textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--neutral-gray);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.add-note-form textarea:focus {
+    outline: none;
+    border-color: var(--accent-teal);
+    box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.15);
+}
+
+.add-note-form textarea::placeholder {
+    color: var(--text-light);
+}
+
+/* ============================================================================
+   Activity Timeline
+   ============================================================================ */
+
+.activity-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    position: relative;
+    padding-left: 24px;
+}
+
+.activity-item::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 20px;
+    bottom: -16px;
+    width: 2px;
+    background: var(--neutral-gray);
+}
+
+.activity-item:last-child::before {
+    display: none;
+}
+
+.activity-dot {
+    position: absolute;
+    left: 0;
+    top: 4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--neutral-gray);
+    border: 3px solid var(--white);
+    box-shadow: 0 0 0 2px var(--neutral-gray);
+}
+
+.activity-dot.status_change {
+    background: var(--info);
+    box-shadow: 0 0 0 2px var(--info);
+}
+
+.activity-dot.note_added,
+.activity-dot.note_deleted {
+    background: var(--accent-teal);
+    box-shadow: 0 0 0 2px var(--accent-teal);
+}
+
+.activity-dot.attorney_assigned {
+    background: var(--success);
+    box-shadow: 0 0 0 2px var(--success);
+}
+
+.activity-dot.priority_changed {
+    background: var(--warning);
+    box-shadow: 0 0 0 2px var(--warning);
+}
+
+.activity-dot.created {
+    background: var(--primary-navy);
+    box-shadow: 0 0 0 2px var(--primary-navy);
+}
+
+.activity-content {
+    flex: 1;
+    font-size: 0.95rem;
+    color: var(--text-dark);
+}
+
+.activity-time {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* ============================================================================
+   Action Buttons
+   ============================================================================ */
+
+.detail-actions {
+    padding: 24px 32px;
+    background: var(--neutral-light);
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Button Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--accent-teal);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background: var(--accent-teal-dark);
+}
+
+.btn-success {
+    background: var(--success);
+    color: var(--white);
+}
+
+.btn-success:hover {
+    background: #0D9669;
+}
+
+.btn-secondary {
+    background: var(--white);
+    color: var(--text-dark);
+    border: 1px solid var(--neutral-gray);
+}
+
+.btn-secondary:hover {
+    background: var(--neutral-light);
+    border-color: var(--text-muted);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--accent-teal);
+    border: 1px solid var(--accent-teal);
+}
+
+.btn-outline:hover {
+    background: var(--accent-teal);
+    color: var(--white);
+}
+
+.btn-sm {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+}
+
+/* ============================================================================
+   Notifications
+   ============================================================================ */
+
+#notification-container {
+    position: fixed;
+    top: 80px;
+    right: 24px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.notification {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideIn 0.3s ease;
+    max-width: 400px;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.notification.success {
+    border-left: 4px solid var(--success);
+}
+
+.notification.success i {
+    color: var(--success);
+}
+
+.notification.error {
+    border-left: 4px solid var(--error);
+}
+
+.notification.error i {
+    color: var(--error);
+}
+
+.notification.warning {
+    border-left: 4px solid var(--warning);
+}
+
+.notification.warning i {
+    color: var(--warning);
+}
+
+.notification.info {
+    border-left: 4px solid var(--info);
+}
+
+.notification.info i {
+    color: var(--info);
+}
+
+/* ============================================================================
+   Responsive Design
+   ============================================================================ */
+
+@media (max-width: 1024px) {
+    .case-detail-main {
+        padding: 16px;
+    }
+
+    .detail-header {
+        padding: 20px 24px;
+    }
+
+    .detail-section {
+        padding: 20px 24px;
+    }
+
+    .detail-actions {
+        padding: 20px 24px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .header-nav {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .detail-client-name {
+        font-size: 1.4rem;
+    }
+
+    .detail-header-meta {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .control-row {
+        grid-template-columns: 1fr;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-actions {
+        flex-direction: column;
+    }
+
+    .detail-actions .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-header {
+        padding: 12px 16px;
+    }
+
+    .case-detail-main {
+        padding: 12px;
+    }
+
+    .detail-header {
+        padding: 16px;
+    }
+
+    .detail-section {
+        padding: 16px;
+    }
+
+    .detail-actions {
+        padding: 16px;
+    }
+
+    .nav-link {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+    }
+}

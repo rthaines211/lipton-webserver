@@ -1143,7 +1143,7 @@
 
         .direct-issues-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 6px;
             margin-top: 10px;
         }
@@ -2070,6 +2070,9 @@
 
         <!-- Navigation Tabs -->
         <div class="nav-tabs">
+            <a href="/dashboard.html" id="dashboard-nav-link" class="nav-tab" style="text-decoration: none;">
+                <i class="fas fa-tachometer-alt"></i> CRM Dashboard
+            </a>
             <button class="nav-tab active" onclick="showTab('form')">
                 <i class="fas fa-file-alt"></i> Document Generation Form
             </button>
@@ -2890,6 +2893,53 @@
                                     <input type="checkbox" name="hab-pest-mice-rats" value="mice-rats">
                                     <span>Mice/rats/rodents</span>
                                 </label>
+                            </div>
+
+                            <!-- Notes from Client Intake -->
+                            <div class="intake-notes-section" id="pest-intake-notes" style="margin-top: 20px; padding: 15px; background-color: #f0f7ff; border: 1px solid #b3d7ff; border-radius: 8px; display: none;">
+                                <h4 style="margin: 0 0 10px 0; color: #0056b3; font-size: 14px; font-weight: 600;">
+                                    <span style="margin-right: 8px;">📋</span>Notes from Client Intake
+                                </h4>
+                                <div class="intake-notes-grid" style="display: grid; gap: 12px;">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="vermin-details" style="font-size: 13px; color: #333; font-weight: 500;">Vermin Details:</label>
+                                        <textarea id="vermin-details" name="vermin-details" rows="2" style="width: 100%; margin-top: 4px; font-size: 13px;" placeholder="Details from client intake..."></textarea>
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="insect-details" style="font-size: 13px; color: #333; font-weight: 500;">Insects Details:</label>
+                                        <textarea id="insect-details" name="insect-details" rows="2" style="width: 100%; margin-top: 4px; font-size: 13px;" placeholder="Details from client intake..."></textarea>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="vermin-severity" style="font-size: 13px; color: #333; font-weight: 500;">Vermin Severity:</label>
+                                            <select id="vermin-severity" name="vermin-severity" style="width: 100%; margin-top: 4px; padding: 8px; font-size: 13px;">
+                                                <option value="">Not specified</option>
+                                                <option value="mild">Mild</option>
+                                                <option value="moderate">Moderate</option>
+                                                <option value="severe">Severe</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="insect-severity" style="font-size: 13px; color: #333; font-weight: 500;">Insects Severity:</label>
+                                            <select id="insect-severity" name="insect-severity" style="width: 100%; margin-top: 4px; padding: 8px; font-size: 13px;">
+                                                <option value="">Not specified</option>
+                                                <option value="mild">Mild</option>
+                                                <option value="moderate">Moderate</option>
+                                                <option value="severe">Severe</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="vermin-first-noticed" style="font-size: 13px; color: #333; font-weight: 500;">Vermin First Noticed:</label>
+                                            <input type="date" id="vermin-first-noticed" name="vermin-first-noticed" style="width: 100%; margin-top: 4px; padding: 8px; font-size: 13px;">
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="insect-first-noticed" style="font-size: 13px; color: #333; font-weight: 500;">Insects First Noticed:</label>
+                                            <input type="date" id="insect-first-noticed" name="insect-first-noticed" style="width: 100%; margin-top: 4px; padding: 8px; font-size: 13px;">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -4631,6 +4681,16 @@
                 showStepperButton.addEventListener('click', () => setStepperVisibility(true));
             }
 
+            // Update dashboard nav link with auth token
+            const dashboardNavLink = document.getElementById('dashboard-nav-link');
+            if (dashboardNavLink) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const token = urlParams.get('token');
+                if (token) {
+                    dashboardNavLink.href = `/dashboard.html?token=${token}`;
+                }
+            }
+
             /**
              * Initialize Habitability Intake Form submission handler
              *
@@ -5360,16 +5420,17 @@
                 }
             ];
 
-            const simpleToggles = [
-                'Injury Issues',
-                'Nonresponsive Landlord Issues',
-                'Unauthorized Entries',
-                'Stolen Items',
-                'Disability Discrimination',
-                'Damaged Items',
-                'Age Discrimination',
-                'Racial Discrimination',
-                'Security Deposit Issues'
+            // Direct Yes/No issues with their API field prefixes for metadata
+            const directIssues = [
+                { title: 'Injury Issues', apiPrefix: 'injury' },
+                { title: 'Nonresponsive Landlord Issues', apiPrefix: 'nonresponsive' },
+                { title: 'Unauthorized Entries', apiPrefix: 'unauthorized' },
+                { title: 'Stolen Items', apiPrefix: 'stolen' },
+                { title: 'Disability Discrimination', apiPrefix: 'disabilityDiscrim' },
+                { title: 'Damaged Items', apiPrefix: 'damaged' },
+                { title: 'Age Discrimination', apiPrefix: 'ageDiscrim' },
+                { title: 'Racial Discrimination', apiPrefix: 'racialDiscrim' },
+                { title: 'Security Deposit Issues', apiPrefix: 'securityDeposit' }
             ];
 
             let html = '<h4>Issue Categories</h4>';
@@ -5390,6 +5451,30 @@
                             </button>
                         </div>
                         <div class="toggle-content" id="${category.name}-content-${plaintiffId}" role="region" aria-labelledby="${category.name}-button-${plaintiffId}" hidden>
+                            <!-- Intake Notes for this category (shown when intake is loaded) -->
+                            <div class="category-intake-notes" id="${category.name}-intake-notes-${plaintiffId}" style="display: none; margin-bottom: 16px; padding: 14px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #7dd3fc; border-radius: 8px; box-shadow: 0 1px 3px rgba(14, 165, 233, 0.1);">
+                                <div style="font-size: 13px; color: #0369a1; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #bae6fd; padding-bottom: 8px;">
+                                    <span>📋</span> Client Intake Notes
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 10px;">
+                                    <div class="intake-notes-date" id="${category.name}-intake-date-${plaintiffId}" style="display: none;">
+                                        <div style="font-size: 11px; color: #64748b; font-weight: 500; margin-bottom: 2px;">First Noticed</div>
+                                        <div class="intake-date-text" style="font-size: 13px; color: #0c4a6e; font-weight: 600;"></div>
+                                    </div>
+                                    <div class="intake-notes-severity" id="${category.name}-intake-severity-${plaintiffId}" style="display: none;">
+                                        <div style="font-size: 11px; color: #64748b; font-weight: 500; margin-bottom: 2px;">Severity</div>
+                                        <div class="intake-severity-text" style="font-size: 13px; font-weight: 600;"></div>
+                                    </div>
+                                </div>
+                                <div class="intake-notes-details" id="${category.name}-intake-details-${plaintiffId}" style="display: none; margin-bottom: 10px;">
+                                    <div style="font-size: 11px; color: #64748b; font-weight: 500; margin-bottom: 4px;">Details</div>
+                                    <div class="intake-details-text" style="font-size: 13px; color: #1e293b; background: white; padding: 8px 10px; border-radius: 4px; border: 1px solid #e0f2fe;"></div>
+                                </div>
+                                <div class="intake-notes-repair" id="${category.name}-intake-repair-${plaintiffId}" style="display: none;">
+                                    <div style="font-size: 11px; color: #64748b; font-weight: 500; margin-bottom: 4px;">Repair History</div>
+                                    <div class="intake-repair-text" style="font-size: 13px; color: #1e293b; background: white; padding: 8px 10px; border-radius: 4px; border: 1px solid #e0f2fe;"></div>
+                                </div>
+                            </div>
                             <div class="checkbox-group">
                                 ${category.items.map(item => `
                                     <div class="checkbox-item" onclick="toggleCheckbox('${category.name}-${item.replace(/[^a-zA-Z0-9]/g, '')}-${plaintiffId}')">
@@ -5404,15 +5489,28 @@
             });
             html += '</div>';
 
-            // Generate simple yes/no toggles
+            // Generate Direct Yes/No Issues with consolidated intake notes container
             html += '<h4>Direct Yes/No Issues</h4>';
+
+            // Consolidated Client Intake Notes container for all direct issues (hidden until populated)
+            html += `
+                <div class="direct-issues-intake-notes" id="direct-issues-intake-notes-${plaintiffId}" style="display: none; margin-bottom: 16px; padding: 14px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #7dd3fc; border-radius: 8px; box-shadow: 0 1px 3px rgba(14, 165, 233, 0.1);">
+                    <div style="font-size: 13px; color: #0369a1; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #bae6fd; padding-bottom: 8px;">
+                        <span>📋</span> Client Intake Notes
+                    </div>
+                    <div class="direct-issues-notes-grid" id="direct-issues-notes-grid-${plaintiffId}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
+                    </div>
+                </div>
+            `;
+
+            // Simple checkbox grid for direct issues
             html += '<div class="direct-issues-grid">';
-            simpleToggles.forEach(toggle => {
-                const id = toggle.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            directIssues.forEach(issue => {
+                const id = issue.title.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
                 html += `
                     <div class="direct-issue-item" onclick="toggleCheckbox('direct-${id}-${plaintiffId}')">
                         <input type="checkbox" id="direct-${id}-${plaintiffId}" name="direct-${id}-${plaintiffId}">
-                        <label for="direct-${id}-${plaintiffId}">${toggle}</label>
+                        <label for="direct-${id}-${plaintiffId}">${issue.title}</label>
                     </div>
                 `;
             });
@@ -7950,7 +8048,7 @@
     </style>
 
     <!-- Intake Modal JavaScript -->
-    <script src="js/intake-modal.js?v=6"></script>
+    <script src="js/intake-modal.js?v=11"></script>
 
     <!-- SSE Progress Tracking Modules -->
     <script src="js/progress-state.js?v=2"></script>

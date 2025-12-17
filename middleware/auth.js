@@ -39,6 +39,11 @@ function requireAuth(req, res, next) {
         return next();
     }
 
+    // Skip auth for client intake React app (public-facing form)
+    if (req.path.startsWith('/intake')) {
+        return next();
+    }
+
     // Skip auth for client intake form submissions (public endpoint)
     // But require auth for GET requests (viewing/listing intakes - admin only)
     if (req.path === '/api/intakes' && req.method === 'POST') {

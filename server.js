@@ -92,6 +92,8 @@ const formRoutes = require('./routes/forms');
 const pipelineRoutes = require('./routes/pipeline');
 const metricsRoutes = require('./routes/metrics');
 const intakesRoutes = require('./routes/intakes-jsonb');
+const dashboardRoutes = require('./routes/dashboard');
+const attorneysRoutes = require('./routes/attorneys');
 
 // Services
 const FormTransformer = require('./services/form-transformer');
@@ -424,6 +426,10 @@ app.use('/api', pipelineRoutes);
 
 // Mount client intake routes (Week 4: Client Intake System)
 app.use('/api/intakes', intakesRoutes);
+
+// Mount CRM dashboard routes (Phase 7: CRM Dashboard)
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/attorneys', attorneysRoutes);
 
 /**
  * Transform raw form data into structured format matching goalOutput.md
