@@ -373,6 +373,12 @@ router.post('/', async (req, res) => {
       windowNoScreens: formData.windowNoScreens || false,
       windowWontOpen: formData.windowWontOpen || false,
       windowOther: formData.windowOther || false,
+      // Additional window checkbox fields for doc-gen compatibility
+      windowLeaks: formData.windowLeaks || false,
+      windowScreens: formData.windowScreens || false,
+      windowDonotlock: formData.windowDonotlock || false,
+      windowMissingwindows: formData.windowMissingwindows || false,
+      windowBrokenormissingscreens: formData.windowBrokenormissingscreens || false,
       windowDetails: formData.windowDetails || null,
       windowFirstNoticed: formData.windowFirstNoticed || null,
       windowReportedDate: formData.windowReportedDate || null,
@@ -405,6 +411,9 @@ router.post('/', async (req, res) => {
       cabinetBroken: formData.cabinetBroken || false,
       cabinetMissing: formData.cabinetMissing || false,
       cabinetOther: formData.cabinetOther || false,
+      // Additional cabinet checkbox fields for doc-gen compatibility
+      cabinetHinges: formData.cabinetHinges || false,
+      cabinetAlignment: formData.cabinetAlignment || false,
       cabinetDetails: formData.cabinetDetails || null,
       cabinetFirstNoticed: formData.cabinetFirstNoticed || null,
       cabinetReportedDate: formData.cabinetReportedDate || null,
@@ -1230,27 +1239,28 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       // =======================================================================
 
       // ===== PLUMBING ISSUES (15 items) =====
-      // Supports BOTH boolean format (plumbingToilet) AND array format (plumbingTypes: ["Clogged toilets"])
-      'plumbing-Toilet-1': bi.plumbingToilet || bi.plumbingCloggedtoilets || arrayIncludes(plumbingTypes, 'toilet', 'clogged toilets') || false,
-      'plumbing-Sink-1': bi.plumbingCloggedsinks || arrayIncludes(plumbingTypes, 'sink', 'clogged sinks') || false,
+      // Supports BOTH boolean format AND array format (plumbingTypes: ["Clogged toilets"])
+      // Also supports stored field names like plumbingToiletNotWorking, plumbingNoHotWater, etc.
+      'plumbing-Toilet-1': bi.plumbingToiletNotWorking || bi.plumbingToilet || bi.plumbingCloggedtoilets || arrayIncludes(plumbingTypes, 'toilet', 'clogged toilets') || false,
+      'plumbing-Sink-1': bi.plumbingSinkNotWorking || bi.plumbingCloggedsinks || arrayIncludes(plumbingTypes, 'sink', 'clogged sinks') || false,
       'plumbing-Bathtub-1': bi.plumbingBath || bi.plumbingCloggedbath || arrayIncludes(plumbingTypes, 'bath', 'bathtub') || false,
-      'plumbing-Shower-1': bi.plumbingShower || bi.plumbingCloggedshower || arrayIncludes(plumbingTypes, 'shower') || false,
-      'plumbing-WaterPressure-1': bi.plumbingInsufficientwaterpressure || arrayIncludes(plumbingTypes, 'water pressure', 'insufficient') || false,
+      'plumbing-Shower-1': bi.plumbingShowerNotWorking || bi.plumbingShower || bi.plumbingCloggedshower || arrayIncludes(plumbingTypes, 'shower') || false,
+      'plumbing-WaterPressure-1': bi.plumbingLowPressure || bi.plumbingInsufficientwaterpressure || arrayIncludes(plumbingTypes, 'water pressure', 'insufficient') || false,
       'plumbing-Fixtures-1': bi.plumbingFixtures || arrayIncludes(plumbingTypes, 'fixtures') || false,
       'plumbing-Leaks-1': bi.plumbingLeaks || arrayIncludes(plumbingTypes, 'leaks') || false,
       // UI uses exact label text without spaces as ID
-      'plumbing-Sewagecomingout-1': bi.plumbingSewagecomingout || arrayIncludes(plumbingTypes, 'sewage', 'sewage coming out') || false,
-      'plumbing-Nohotwater-1': bi.plumbingNohotwater || arrayIncludes(plumbingTypes, 'hot water', 'no hot water') || false,
-      'plumbing-Nocoldwater-1': bi.plumbingNocoldwater || arrayIncludes(plumbingTypes, 'cold water', 'no cold water') || false,
-      'plumbing-NoCleanWaterSupply-1': bi.plumbingNoCleanWaterSupply || arrayIncludes(plumbingTypes, 'water supply', 'clean water') || false,
-      'plumbing-Unsanitarywater-1': bi.plumbingUnsanitarywater || arrayIncludes(plumbingTypes, 'unsanitary') || false,
+      'plumbing-Sewagecomingout-1': bi.plumbingSewerBackup || bi.plumbingSewagecomingout || arrayIncludes(plumbingTypes, 'sewage', 'sewage coming out') || false,
+      'plumbing-Nohotwater-1': bi.plumbingNoHotWater || bi.plumbingNohotwater || arrayIncludes(plumbingTypes, 'hot water', 'no hot water') || false,
+      'plumbing-Nocoldwater-1': bi.plumbingNoWater || bi.plumbingNocoldwater || arrayIncludes(plumbingTypes, 'cold water', 'no cold water') || false,
+      'plumbing-NoCleanWaterSupply-1': bi.plumbingWaterDiscoloration || bi.plumbingNoCleanWaterSupply || arrayIncludes(plumbingTypes, 'water supply', 'clean water') || false,
+      'plumbing-Unsanitarywater-1': bi.plumbingWaterDiscoloration || bi.plumbingUnsanitarywater || arrayIncludes(plumbingTypes, 'unsanitary') || false,
       // Additional plumbing mappings needed for UI
-      'plumbing-Cloggedtoilets-1': bi.plumbingCloggedtoilets || arrayIncludes(plumbingTypes, 'clogged toilets') || false,
+      'plumbing-Cloggedtoilets-1': bi.plumbingToiletNotWorking || bi.plumbingCloggedtoilets || arrayIncludes(plumbingTypes, 'clogged toilets') || false,
       'plumbing-Bath-1': bi.plumbingBath || arrayIncludes(plumbingTypes, 'bath') || false,
-      'plumbing-Cloggedbath-1': bi.plumbingCloggedbath || arrayIncludes(plumbingTypes, 'clogged bath') || false,
-      'plumbing-Cloggedshower-1': bi.plumbingCloggedshower || arrayIncludes(plumbingTypes, 'clogged shower') || false,
-      'plumbing-Cloggedsinks-1': bi.plumbingCloggedsinks || arrayIncludes(plumbingTypes, 'clogged sinks') || false,
-      'plumbing-Insufficientwaterpressure-1': bi.plumbingInsufficientwaterpressure || arrayIncludes(plumbingTypes, 'insufficient water pressure', 'water pressure') || false,
+      'plumbing-Cloggedbath-1': bi.plumbingCloggedDrains || bi.plumbingCloggedbath || arrayIncludes(plumbingTypes, 'clogged bath') || false,
+      'plumbing-Cloggedshower-1': bi.plumbingCloggedDrains || bi.plumbingCloggedshower || arrayIncludes(plumbingTypes, 'clogged shower') || false,
+      'plumbing-Cloggedsinks-1': bi.plumbingCloggedDrains || bi.plumbingCloggedsinks || arrayIncludes(plumbingTypes, 'clogged sinks') || false,
+      'plumbing-Insufficientwaterpressure-1': bi.plumbingLowPressure || bi.plumbingInsufficientwaterpressure || arrayIncludes(plumbingTypes, 'insufficient water pressure', 'water pressure') || false,
 
       // ===== PEST/VERMIN ISSUES =====
       // Supports BOTH boolean format (pestRats) AND array format (verminTypes: ["Rats / Mice"])
@@ -1318,31 +1328,33 @@ router.get('/:id/doc-gen-format', async (req, res) => {
 
       // ===== STRUCTURAL ISSUES (15 items) =====
       // Supports BOTH boolean format AND array format (structuralTypes: ["Water stains on ceiling"])
-      'structure-Bumpsinceiling-1': bi.structuralBumpsinceiling || arrayIncludes(structuralTypes, 'bumps in ceiling', 'ceiling bumps') || false,
-      'structure-Holeinceiling-1': bi.structuralHoleinceiling || arrayIncludes(structuralTypes, 'hole in ceiling', 'ceiling hole') || false,
-      'structure-Waterstainsonceiling-1': bi.structuralWaterstainsonceiling || arrayIncludes(structuralTypes, 'water stains on ceiling', 'ceiling stains') || false,
-      'structure-Waterstainsonwall-1': bi.structuralWaterstainsonwall || arrayIncludes(structuralTypes, 'water stains on wall', 'wall stains') || false,
-      'structure-Holeinwall-1': bi.structuralHoleinwall || arrayIncludes(structuralTypes, 'hole in wall', 'wall hole') || false,
+      // Also supports stored field names like structuralCeilingDamage, structuralWallCracks, etc.
+      'structure-Bumpsinceiling-1': bi.structuralCeilingDamage || bi.structuralBumpsinceiling || arrayIncludes(structuralTypes, 'bumps in ceiling', 'ceiling bumps') || false,
+      'structure-Holeinceiling-1': bi.structuralCeilingDamage || bi.structuralHoleinceiling || arrayIncludes(structuralTypes, 'hole in ceiling', 'ceiling hole') || false,
+      'structure-Waterstainsonceiling-1': bi.structuralCeilingDamage || bi.structuralWaterstainsonceiling || arrayIncludes(structuralTypes, 'water stains on ceiling', 'ceiling stains') || false,
+      'structure-Waterstainsonwall-1': bi.structuralWallCracks || bi.structuralWaterstainsonwall || arrayIncludes(structuralTypes, 'water stains on wall', 'wall stains') || false,
+      'structure-Holeinwall-1': bi.structuralWallCracks || bi.structuralHoleinwall || arrayIncludes(structuralTypes, 'hole in wall', 'wall hole') || false,
       'structure-Paint-1': bi.structuralPaint || arrayIncludes(structuralTypes, 'paint') || false,
-      'structure-Exteriordeckporch-1': bi.structuralExteriordeckporch || arrayIncludes(structuralTypes, 'deck', 'porch', 'exterior') || false,
+      'structure-Exteriordeckporch-1': bi.structuralBalconyUnsafe || bi.structuralExteriordeckporch || arrayIncludes(structuralTypes, 'deck', 'porch', 'exterior') || false,
       'structure-Waterprooftoilet-1': bi.structuralWaterprooftoilet || arrayIncludes(structuralTypes, 'waterproof toilet') || false,
       'structure-Waterprooftub-1': bi.structuralWaterprooftub || arrayIncludes(structuralTypes, 'waterproof tub') || false,
-      'structure-Staircase-1': bi.structuralStaircase || arrayIncludes(structuralTypes, 'staircase', 'stairs') || false,
+      'structure-Staircase-1': bi.structuralStairsUnsafe || bi.structuralStaircase || arrayIncludes(structuralTypes, 'staircase', 'stairs') || false,
       'structure-Basementflood-1': bi.structuralBasementflood || arrayIncludes(structuralTypes, 'basement flood', 'basement') || false,
-      'structure-Leaksingarage-1': bi.structuralLeaksingarage || arrayIncludes(structuralTypes, 'leaks in garage', 'garage leaks', 'garage') || false,
-      'structure-SoftSpotsduetoLeaks-1': bi.structuralSoftSpotsduetoLeaks || arrayIncludes(structuralTypes, 'soft spots') || false,
+      'structure-Leaksingarage-1': bi.structuralRoofLeaks || bi.structuralLeaksingarage || arrayIncludes(structuralTypes, 'leaks in garage', 'garage leaks', 'garage') || false,
+      'structure-SoftSpotsduetoLeaks-1': bi.structuralFloorDamage || bi.structuralSoftSpotsduetoLeaks || arrayIncludes(structuralTypes, 'soft spots') || false,
       'structure-UneffectiveWaterproofingofthetubsortoilet-1': bi.structuralUneffectiveWaterproofingofthetubsortoilet || arrayIncludes(structuralTypes, 'waterproofing', 'tubs') || false,
-      'structure-IneffectiveWeatherproofingofanywindows-1': bi.structuralIneffectiveWeatherproofingofanywindows || arrayIncludes(structuralTypes, 'weatherproofing') || false,
+      'structure-IneffectiveWeatherproofingofanywindows-1': bi.structuralWindowDamage || bi.structuralIneffectiveWeatherproofingofanywindows || arrayIncludes(structuralTypes, 'weatherproofing') || false,
 
       // ===== APPLIANCE ISSUES (7 items) =====
       // Supports BOTH boolean format AND array format (applianceTypes: ["Stove", "Refrigerator"])
-      'appliances-Refrigerator-1': bi.applianceRefrigerator || arrayIncludes(applianceTypes, 'refrigerator', 'fridge') || false,
-      'appliances-Stove-1': bi.applianceStove || arrayIncludes(applianceTypes, 'stove') || false,
-      'appliances-Oven-1': bi.applianceOven || arrayIncludes(applianceTypes, 'oven') || false,
-      'appliances-Dishwasher-1': bi.applianceDishwasher || arrayIncludes(applianceTypes, 'dishwasher') || false,
-      'appliances-Garbagedisposal-1': bi.applianceGarbagedisposal || arrayIncludes(applianceTypes, 'garbage disposal', 'disposal') || false,
-      'appliances-Microwave-1': bi.applianceMicrowave || arrayIncludes(applianceTypes, 'microwave') || false,
-      'appliances-Washerdryer-1': bi.applianceWasherdryer || arrayIncludes(applianceTypes, 'washer', 'dryer') || false,
+      // Field names use "Broken" suffix in storage (applianceRefrigeratorBroken, etc.)
+      'appliances-Refrigerator-1': bi.applianceRefrigeratorBroken || bi.applianceRefrigerator || arrayIncludes(applianceTypes, 'refrigerator', 'fridge') || false,
+      'appliances-Stove-1': bi.applianceStoveBroken || bi.applianceStove || arrayIncludes(applianceTypes, 'stove') || false,
+      'appliances-Oven-1': bi.applianceOvenBroken || bi.applianceOven || arrayIncludes(applianceTypes, 'oven') || false,
+      'appliances-Dishwasher-1': bi.applianceDishwasherBroken || bi.applianceDishwasher || arrayIncludes(applianceTypes, 'dishwasher') || false,
+      'appliances-Garbagedisposal-1': bi.applianceGarbageDisposalBroken || bi.applianceGarbagedisposal || arrayIncludes(applianceTypes, 'garbage disposal', 'disposal') || false,
+      'appliances-Microwave-1': bi.applianceOther || bi.applianceMicrowave || arrayIncludes(applianceTypes, 'microwave') || false,
+      'appliances-Washerdryer-1': bi.applianceWasherBroken || bi.applianceDryerBroken || bi.applianceWasherdryer || arrayIncludes(applianceTypes, 'washer', 'dryer') || false,
 
       // ===== FLOORING ISSUES (7 items) =====
       // Supports BOTH boolean format AND array format (flooringTypes: ["Carpet", "Tiles"])
@@ -1479,12 +1491,13 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       // ===== NOTICE ISSUES (6 items) =====
       // Supports BOTH boolean format AND array format (noticeTypes: ["3-day", "30-day", "To quit"])
       // Field names must match index.html generateIssueCategories() exactly (line 5341)
-      'notices-3day-1': bi.notice3day || arrayIncludes(noticeTypes, '3-day', '3 day') || false,
-      'notices-24hour-1': bi.notice24hour || arrayIncludes(noticeTypes, '24-hour', '24 hour') || false,
-      'notices-30day-1': bi.notice30day || arrayIncludes(noticeTypes, '30-day', '30 day') || false,
-      'notices-60day-1': bi.notice60day || arrayIncludes(noticeTypes, '60-day', '60 day') || false,
-      'notices-Toquit-1': bi.noticeToquit || arrayIncludes(noticeTypes, 'to quit') || false,
-      'notices-Performorquit-1': bi.noticePerformorquit || arrayIncludes(noticeTypes, 'perform or quit') || false,
+      // Also supports stored field names like noticeEviction, noticeLeaseTerm, noticeEntry, noticeRepair
+      'notices-3day-1': bi.noticeEviction || bi.notice3day || arrayIncludes(noticeTypes, '3-day', '3 day') || false,
+      'notices-24hour-1': bi.noticeEntry || bi.notice24hour || arrayIncludes(noticeTypes, '24-hour', '24 hour') || false,
+      'notices-30day-1': bi.noticeLeaseTerm || bi.notice30day || arrayIncludes(noticeTypes, '30-day', '30 day') || false,
+      'notices-60day-1': bi.noticeLeaseTerm || bi.notice60day || arrayIncludes(noticeTypes, '60-day', '60 day') || false,
+      'notices-Toquit-1': bi.noticeEviction || bi.noticeToquit || arrayIncludes(noticeTypes, 'to quit') || false,
+      'notices-Performorquit-1': bi.noticeRepair || bi.noticePerformorquit || arrayIncludes(noticeTypes, 'perform or quit') || false,
 
       // ===== UTILITY ISSUES (7 items) =====
       // Supports BOTH boolean format AND array format (utilityTypes: ["Water", "Gas", "Electric"])
@@ -1522,29 +1535,30 @@ router.get('/:id/doc-gen-format', async (req, res) => {
 
       // ===== HARASSMENT ISSUES (7 items) =====
       // Supports BOTH boolean format AND array format (harassmentTypes: ["Eviction threats", "Aggressive/inappropriate language"])
-      'harassment-Verbal-1': bi.harassmentVerbalAbuse || arrayIncludes(harassmentTypes, 'verbal', 'aggressive', 'inappropriate language') || false,
+      // Also supports stored field names like harassmentByOwner, harassmentByDefendant, etc.
+      'harassment-Verbal-1': bi.harassmentAggressiveLanguage || bi.harassmentVerbalAbuse || arrayIncludes(harassmentTypes, 'verbal', 'aggressive', 'inappropriate language') || false,
       'harassment-Physical-1': bi.harassmentPhysicalThreats || arrayIncludes(harassmentTypes, 'physical') || false,
       'harassment-Sexual-1': bi.harassmentSexual || arrayIncludes(harassmentTypes, 'sexual') || false,
-      'harassment-Discrimination-1': bi.harassmentDiscrimination || arrayIncludes(harassmentTypes, 'discrimination') || false,
+      'harassment-Discrimination-1': bi.harassmentSinglingOut || bi.harassmentDiscrimination || arrayIncludes(harassmentTypes, 'discrimination') || false,
       'harassment-Retaliation-1': bi.harassmentRetaliation || arrayIncludes(harassmentTypes, 'retaliation') || false,
       'harassment-Intimidation-1': bi.harassmentIntimidation || arrayIncludes(harassmentTypes, 'intimidation') || false,
       'harassment-Threats-1': bi.harassmentEvictionThreats || bi.harassmentPhysicalThreats || bi.harassmentWrittenThreats || arrayIncludes(harassmentTypes, 'threats', 'eviction') || false,
-      // Additional harassment mappings from doc-gen form
-      'harassment-UnlawfulDetainer-1': arrayIncludes(harassmentTypes, 'unlawful detainer') || false,
+      // Additional harassment mappings from doc-gen form - check stored boolean fields
+      'harassment-UnlawfulDetainer-1': bi.harassmentUnlawfulDetainer || arrayIncludes(harassmentTypes, 'unlawful detainer') || false,
       'harassment-Evictionthreats-1': bi.harassmentEvictionThreats || arrayIncludes(harassmentTypes, 'eviction threats') || false,
-      'harassment-Bydefendant-1': arrayIncludes(harassmentTypes, 'by defendant') || false,
-      'harassment-Bymaintenancemanworkers-1': arrayIncludes(harassmentTypes, 'maintenance man', 'workers') || false,
-      'harassment-Bymanagerbuildingstaff-1': arrayIncludes(harassmentTypes, 'manager', 'building staff') || false,
-      'harassment-Byowner-1': arrayIncludes(harassmentTypes, 'by owner') || false,
-      'harassment-Othertenants-1': arrayIncludes(harassmentTypes, 'other tenants') || false,
-      'harassment-Illegitimatenotices-1': arrayIncludes(harassmentTypes, 'illegitimate notices') || false,
-      'harassment-Refusaltomaketimelyrepairs-1': arrayIncludes(harassmentTypes, 'refusal to make timely repairs', 'timely repairs') || false,
+      'harassment-Bydefendant-1': bi.harassmentByDefendant || arrayIncludes(harassmentTypes, 'by defendant') || false,
+      'harassment-Bymaintenancemanworkers-1': bi.harassmentByMaintenance || arrayIncludes(harassmentTypes, 'maintenance man', 'workers') || false,
+      'harassment-Bymanagerbuildingstaff-1': bi.harassmentByManager || arrayIncludes(harassmentTypes, 'manager', 'building staff') || false,
+      'harassment-Byowner-1': bi.harassmentByOwner || arrayIncludes(harassmentTypes, 'by owner') || false,
+      'harassment-Othertenants-1': bi.harassmentByOtherTenants || arrayIncludes(harassmentTypes, 'other tenants') || false,
+      'harassment-Illegitimatenotices-1': bi.harassmentIllegitimateNotices || arrayIncludes(harassmentTypes, 'illegitimate notices') || false,
+      'harassment-Refusaltomaketimelyrepairs-1': bi.harassmentRefusalToRepair || arrayIncludes(harassmentTypes, 'refusal to make timely repairs', 'timely repairs') || false,
       'harassment-Writtenthreats-1': bi.harassmentWrittenThreats || arrayIncludes(harassmentTypes, 'written threats') || false,
-      'harassment-Aggressiveinappropriatelanguage-1': arrayIncludes(harassmentTypes, 'aggressive', 'inappropriate language') || false,
+      'harassment-Aggressiveinappropriatelanguage-1': bi.harassmentAggressiveLanguage || arrayIncludes(harassmentTypes, 'aggressive', 'inappropriate language') || false,
       'harassment-Physicalthreatsortouching-1': bi.harassmentPhysicalThreats || arrayIncludes(harassmentTypes, 'physical threats', 'touching') || false,
-      'harassment-Noticessinglingoutonetenantbutnotuniformlygiventoalltenants-1': arrayIncludes(harassmentTypes, 'singling out') || false,
-      'harassment-Duplicativenotices-1': arrayIncludes(harassmentTypes, 'duplicative notices') || false,
-      'harassment-UntimelyResponsefromLandlord-1': arrayIncludes(harassmentTypes, 'untimely response') || false,
+      'harassment-Noticessinglingoutonetenantbutnotuniformlygiventoalltenants-1': bi.harassmentSinglingOut || arrayIncludes(harassmentTypes, 'singling out') || false,
+      'harassment-Duplicativenotices-1': bi.harassmentDuplicativeNotices || arrayIncludes(harassmentTypes, 'duplicative notices') || false,
+      'harassment-UntimelyResponsefromLandlord-1': bi.harassmentUntimelyResponse || arrayIncludes(harassmentTypes, 'untimely response') || false,
 
       // ===== MASTER CHECKBOX ONLY CATEGORIES (9 items) =====
       // These categories only have a yes/no toggle, no individual checkboxes
