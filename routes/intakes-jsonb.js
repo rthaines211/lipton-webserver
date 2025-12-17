@@ -1379,12 +1379,13 @@ router.get('/:id/doc-gen-format', async (req, res) => {
 
       // ===== WINDOW ISSUES (6 items) =====
       // Supports BOTH boolean format AND array format (windowTypes: ["Broken", "Leaks", "Do not lock"])
+      // Also supports alternative field names from IntakeFormExpanded (windowMissing, windowNoScreens, etc.)
       'windows-Broken-1': bi.windowBroken || arrayIncludes(windowTypes, 'broken') || false,
-      'windows-Leaks-1': bi.windowLeaks || arrayIncludes(windowTypes, 'leaks') || false,
-      'windows-Missingwindows-1': bi.windowMissingwindows || arrayIncludes(windowTypes, 'missing') || false,
-      'windows-Screens-1': bi.windowScreens || arrayIncludes(windowTypes, 'screens') || false,
-      'windows-Donotlock-1': bi.windowDonotlock || arrayIncludes(windowTypes, 'do not lock', 'lock') || false,
-      'windows-Brokenormissingscreens-1': bi.windowBrokenormissingscreens || arrayIncludes(windowTypes, 'broken or missing screens', 'missing screens') || false,
+      'windows-Leaks-1': bi.windowLeaks || bi.windowDrafty || arrayIncludes(windowTypes, 'leaks') || false,
+      'windows-Missingwindows-1': bi.windowMissingwindows || bi.windowMissing || arrayIncludes(windowTypes, 'missing') || false,
+      'windows-Screens-1': bi.windowScreens || bi.windowNoScreens || arrayIncludes(windowTypes, 'screens') || false,
+      'windows-Donotlock-1': bi.windowDonotlock || bi.windowWontOpen || arrayIncludes(windowTypes, 'do not lock', 'lock') || false,
+      'windows-Brokenormissingscreens-1': bi.windowBrokenormissingscreens || bi.windowNoScreens || arrayIncludes(windowTypes, 'broken or missing screens', 'missing screens') || false,
 
       // ===== FIRE HAZARD ISSUES (5 items) =====
       // Supports BOTH boolean format AND array format (fireHazardTypes: ["Smoke Alarms", "Carbon monoxide detectors"])
@@ -1410,13 +1411,14 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       //                                      DepartmentofHealthServices, FireDepartment
       // ===== GOVERNMENT ENTITY ISSUES =====
       // Supports BOTH boolean format AND array format (governmentTypes: ["Health Department", "Code Enforcement"])
-      'government-HealthDepartment-1': bi.govEntityHealthDepartment || arrayIncludes(governmentTypes, 'health department') || false,
-      'government-PoliceDepartment-1': bi.govEntityPoliceDepartment || arrayIncludes(governmentTypes, 'police department', 'police') || false,
-      'government-HousingAuthority-1': bi.govEntityHousingAuthority || arrayIncludes(governmentTypes, 'housing authority') || false,
-      'government-DepartmentofEnvironmentalHealth-1': bi.govEntityDepartmentofEnvironmentalHealth || arrayIncludes(governmentTypes, 'environmental health', 'department of environmental') || false,
-      'government-CodeEnforcement-1': bi.govEntityCodeEnforcement || arrayIncludes(governmentTypes, 'code enforcement') || false,
-      'government-DepartmentofHealthServices-1': bi.govEntityDepartmentofHealthServices || arrayIncludes(governmentTypes, 'health services', 'department of health') || false,
-      'government-FireDepartment-1': bi.govEntityFireDepartment || arrayIncludes(governmentTypes, 'fire department', 'fire') || false,
+      // Also supports abbreviated field names from IntakeFormExpanded (govEntityHPD, govEntityDOB, etc.)
+      'government-HealthDepartment-1': bi.govEntityHealthDepartment || bi.govEntityDHS || arrayIncludes(governmentTypes, 'health department') || false,
+      'government-PoliceDepartment-1': bi.govEntityPoliceDepartment || bi.govEntity311 || arrayIncludes(governmentTypes, 'police department', 'police') || false,
+      'government-HousingAuthority-1': bi.govEntityHousingAuthority || bi.govEntityHPD || arrayIncludes(governmentTypes, 'housing authority') || false,
+      'government-DepartmentofEnvironmentalHealth-1': bi.govEntityDepartmentofEnvironmentalHealth || bi.govEntityDHS || arrayIncludes(governmentTypes, 'environmental health', 'department of environmental') || false,
+      'government-CodeEnforcement-1': bi.govEntityCodeEnforcement || bi.govEntityDOB || arrayIncludes(governmentTypes, 'code enforcement') || false,
+      'government-DepartmentofHealthServices-1': bi.govEntityDepartmentofHealthServices || bi.govEntityDHS || arrayIncludes(governmentTypes, 'health services', 'department of health') || false,
+      'government-FireDepartment-1': bi.govEntityFireDepartment || bi.govEntityOther || arrayIncludes(governmentTypes, 'fire department', 'fire') || false,
 
       // ===== NUISANCE ISSUES (8 items) =====
       // Supports BOTH boolean format AND array format (nuisanceTypes: ["Noisy neighbors", "Drugs"])

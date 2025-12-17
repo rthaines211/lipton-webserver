@@ -192,6 +192,7 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
     utilityNoHeat: false,
     utilityNoElectricity: false,
     utilityNoGas: false,
+    utilityGasleak: false,  // Added for doc-gen compatibility
     utilityOther: false,
     utilityDetails: '',
     utilityFirstNoticed: '',
@@ -207,7 +208,7 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
     flooringFirstNoticed: '',
     flooringReportedDate: '',
 
-    // Window Issues (6 checkboxes + dates)
+    // Window Issues (expanded for doc-gen compatibility)
     hasWindowIssues: false,
     windowBroken: false,
     windowMissing: false,
@@ -215,6 +216,12 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
     windowNoScreens: false,
     windowWontOpen: false,
     windowOther: false,
+    // Additional fields for doc-gen checkbox mapping
+    windowLeaks: false,
+    windowScreens: false,
+    windowDonotlock: false,
+    windowMissingwindows: false,
+    windowBrokenormissingscreens: false,
     windowDetails: '',
     windowFirstNoticed: '',
     windowReportedDate: '',
@@ -233,11 +240,14 @@ export function IntakeFormExpanded({ onSubmit }: IntakeFormProps) {
     doorFirstNoticed: '',
     doorReportedDate: '',
 
-    // Cabinet Issues (3 checkboxes + dates)
+    // Cabinet Issues (expanded for doc-gen compatibility)
     hasCabinetIssues: false,
     cabinetBroken: false,
     cabinetMissing: false,
     cabinetOther: false,
+    // Additional fields for doc-gen checkbox mapping
+    cabinetHinges: false,
+    cabinetAlignment: false,
     cabinetDetails: '',
     cabinetFirstNoticed: '',
     cabinetReportedDate: '',

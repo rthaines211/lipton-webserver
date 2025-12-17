@@ -164,42 +164,45 @@ const OPTION_TO_FIELD_MAP: Record<string, Record<string, string>> = {
   },
 
   // Categories with explicit field name mismatches (already working)
+  // Appliances - map to IntakeFormExpanded field names
   'appliances': {
-    'Stove': 'applianceStove',
-    'Dishwasher': 'applianceDishwasher',
-    'Washerdryer': 'applianceWasherdryer',
-    'Oven': 'applianceOven',
-    'Microwave': 'applianceMicrowave',
-    'Garbagedisposal': 'applianceGarbagedisposal',
-    'Refrigerator': 'applianceRefrigerator'
+    'Stove': 'applianceStoveBroken',
+    'Dishwasher': 'applianceDishwasherBroken',
+    'Washerdryer': 'applianceWasherBroken',  // IntakeFormExpanded uses separate washer/dryer
+    'Oven': 'applianceOvenBroken',
+    'Microwave': 'applianceOther',  // No microwave field, use other
+    'Garbagedisposal': 'applianceGarbageDisposalBroken',
+    'Refrigerator': 'applianceRefrigeratorBroken'
   },
 
+  // Government - map to IntakeFormExpanded field names (uses abbreviations)
   'government': {
-    'HealthDepartment': 'govEntityHealthDepartment',
-    'HousingAuthority': 'govEntityHousingAuthority',
-    'CodeEnforcement': 'govEntityCodeEnforcement',
-    'FireDepartment': 'govEntityFireDepartment',
-    'PoliceDepartment': 'govEntityPoliceDepartment',
-    'DepartmentofEnvironmentalHealth': 'govEntityDepartmentofEnvironmentalHealth',
-    'DepartmentofHealthServices': 'govEntityDepartmentofHealthServices'
+    'HealthDepartment': 'govEntityDHS',  // Dept of Health Services
+    'HousingAuthority': 'govEntityHPD',  // Housing Preservation & Development
+    'CodeEnforcement': 'govEntityDOB',   // Dept of Buildings
+    'FireDepartment': 'govEntityOther',  // No specific fire dept field
+    'PoliceDepartment': 'govEntity311',  // Use 311 as proxy
+    'DepartmentofEnvironmentalHealth': 'govEntityDHS',
+    'DepartmentofHealthServices': 'govEntityDHS'
   },
 
+  // Plumbing - map to IntakeFormExpanded field names
   'plumbing': {
-    'Toilet': 'plumbingToilet',
-    'Insufficientwaterpressure': 'plumbingInsufficientwaterpressure',
-    'Cloggedbath': 'plumbingCloggedbath',
-    'Shower': 'plumbingShower',
-    'Nohotwater': 'plumbingNohotwater',
-    'Cloggedsinks': 'plumbingCloggedsinks',
-    'Bath': 'plumbingBath',
-    'Nocoldwater': 'plumbingNocoldwater',
-    'Cloggedshower': 'plumbingCloggedshower',
-    'Fixtures': 'plumbingFixtures',
-    'Sewagecomingout': 'plumbingSewagecomingout',
-    'NoCleanWaterSupply': 'plumbingNoCleanWaterSupply',
+    'Toilet': 'plumbingToiletNotWorking',
+    'Insufficientwaterpressure': 'plumbingLowPressure',
+    'Cloggedbath': 'plumbingCloggedDrains',  // No specific cloggedbath field
+    'Shower': 'plumbingShowerNotWorking',
+    'Nohotwater': 'plumbingNoHotWater',
+    'Cloggedsinks': 'plumbingCloggedDrains',  // Grouped into cloggedDrains
+    'Bath': 'plumbingOther',  // No specific bath field
+    'Nocoldwater': 'plumbingNoWater',  // No specific cold water field
+    'Cloggedshower': 'plumbingCloggedDrains',  // Grouped into cloggedDrains
+    'Fixtures': 'plumbingOther',  // No specific fixtures field
+    'Sewagecomingout': 'plumbingSewerBackup',
+    'NoCleanWaterSupply': 'plumbingWaterDiscoloration',
     'Leaks': 'plumbingLeaks',
-    'Cloggedtoilets': 'plumbingCloggedtoilets',
-    'Unsanitarywater': 'plumbingUnsanitarywater'
+    'Cloggedtoilets': 'plumbingCloggedDrains',  // Grouped into cloggedDrains
+    'Unsanitarywater': 'plumbingWaterDiscoloration'
   },
 
   'cabinets': {
@@ -217,31 +220,33 @@ const OPTION_TO_FIELD_MAP: Record<string, Record<string, string>> = {
     'Brokenormissingscreens': 'windowBrokenormissingscreens'
   },
 
+  // Structure - map to IntakeFormExpanded field names
   'structure': {
-    'Bumpsinceiling': 'structuralBumpsinceiling',
-    'Holeinceiling': 'structuralHoleinceiling',
-    'Waterstainsonceiling': 'structuralWaterstainsonceiling',
-    'Waterstainsonwall': 'structuralWaterstainsonwall',
-    'Holeinwall': 'structuralHoleinwall',
-    'Paint': 'structuralPaint',
-    'Exteriordeckporch': 'structuralExteriordeckporch',
-    'Waterprooftoilet': 'structuralWaterprooftoilet',
-    'Waterprooftub': 'structuralWaterprooftub',
-    'Staircase': 'structuralStaircase',
-    'Basementflood': 'structuralBasementflood',
-    'Leaksingarage': 'structuralLeaksingarage',
-    'SoftSpotsduetoLeaks': 'structuralSoftSpotsduetoLeaks',
-    'UneffectiveWaterproofingofthetubsortoilet': 'structuralUneffectiveWaterproofingofthetubsortoilet',
-    'IneffectiveWeatherproofingofanywindows': 'structuralIneffectiveWeatherproofingofanywindows'
+    'Bumpsinceiling': 'structuralCeilingDamage',
+    'Holeinceiling': 'structuralCeilingDamage',
+    'Waterstainsonceiling': 'structuralCeilingDamage',
+    'Waterstainsonwall': 'structuralWallCracks',
+    'Holeinwall': 'structuralWallCracks',
+    'Paint': 'structuralOther',  // No specific paint field
+    'Exteriordeckporch': 'structuralBalconyUnsafe',
+    'Waterprooftoilet': 'structuralOther',
+    'Waterprooftub': 'structuralOther',
+    'Staircase': 'structuralStairsUnsafe',
+    'Basementflood': 'structuralFoundationIssues',
+    'Leaksingarage': 'structuralRoofLeaks',  // Use roof leaks as proxy
+    'SoftSpotsduetoLeaks': 'structuralFloorDamage',
+    'UneffectiveWaterproofingofthetubsortoilet': 'structuralOther',
+    'IneffectiveWeatherproofingofanywindows': 'structuralWindowDamage'
   },
 
+  // Notices - map to IntakeFormExpanded field names
   'notices': {
-    '3day': 'notice3day',
-    '24hour': 'notice24hour',
-    '30day': 'notice30day',
-    '60day': 'notice60day',
-    'Toquit': 'noticeToquit',
-    'Performorquit': 'noticePerformorquit'
+    '3day': 'noticeEviction',  // 3-day is typically eviction notice
+    '24hour': 'noticeEntry',   // 24-hour typically for entry
+    '30day': 'noticeLeaseTerm',
+    '60day': 'noticeLeaseTerm',
+    'Toquit': 'noticeEviction',
+    'Performorquit': 'noticeRepair'
   }
 };
 
