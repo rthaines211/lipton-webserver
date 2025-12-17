@@ -1244,10 +1244,10 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       // Also supports stored field names like plumbingToiletNotWorking, plumbingNoHotWater, etc.
       'plumbing-Toilet-1': bi.plumbingToiletNotWorking || bi.plumbingToilet || bi.plumbingCloggedtoilets || arrayIncludes(plumbingTypes, 'toilet', 'clogged toilets') || false,
       'plumbing-Sink-1': bi.plumbingSinkNotWorking || bi.plumbingCloggedsinks || arrayIncludes(plumbingTypes, 'sink', 'clogged sinks') || false,
-      'plumbing-Bathtub-1': bi.plumbingBath || bi.plumbingCloggedbath || bi.plumbingCloggedDrains || arrayIncludes(plumbingTypes, 'bath', 'bathtub') || false,
+      'plumbing-Bathtub-1': bi.plumbingBath || bi.plumbingCloggedbath || arrayIncludes(plumbingTypes, 'bath', 'bathtub') || false,
       'plumbing-Shower-1': bi.plumbingShowerNotWorking || bi.plumbingShower || bi.plumbingCloggedshower || arrayIncludes(plumbingTypes, 'shower') || false,
       'plumbing-WaterPressure-1': bi.plumbingLowPressure || bi.plumbingInsufficientwaterpressure || arrayIncludes(plumbingTypes, 'water pressure', 'insufficient') || false,
-      'plumbing-Fixtures-1': bi.plumbingFixtures || bi.plumbingLeaks || bi.plumbingOther || arrayIncludes(plumbingTypes, 'fixtures') || false,
+      'plumbing-Fixtures-1': bi.plumbingFixtures || arrayIncludes(plumbingTypes, 'fixtures') || false,
       'plumbing-Leaks-1': bi.plumbingLeaks || arrayIncludes(plumbingTypes, 'leaks') || false,
       // UI uses exact label text without spaces as ID
       'plumbing-Sewagecomingout-1': bi.plumbingSewerBackup || bi.plumbingSewagecomingout || arrayIncludes(plumbingTypes, 'sewage', 'sewage coming out') || false,
@@ -1257,10 +1257,10 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'plumbing-Unsanitarywater-1': bi.plumbingWaterDiscoloration || bi.plumbingUnsanitarywater || arrayIncludes(plumbingTypes, 'unsanitary') || false,
       // Additional plumbing mappings needed for UI
       'plumbing-Cloggedtoilets-1': bi.plumbingToiletNotWorking || bi.plumbingCloggedtoilets || arrayIncludes(plumbingTypes, 'clogged toilets') || false,
-      'plumbing-Bath-1': bi.plumbingBath || bi.plumbingShowerNotWorking || bi.plumbingCloggedDrains || arrayIncludes(plumbingTypes, 'bath') || false,
-      'plumbing-Cloggedbath-1': bi.plumbingCloggedDrains || bi.plumbingCloggedbath || arrayIncludes(plumbingTypes, 'clogged bath') || false,
-      'plumbing-Cloggedshower-1': bi.plumbingCloggedDrains || bi.plumbingCloggedshower || arrayIncludes(plumbingTypes, 'clogged shower') || false,
-      'plumbing-Cloggedsinks-1': bi.plumbingCloggedDrains || bi.plumbingCloggedsinks || arrayIncludes(plumbingTypes, 'clogged sinks') || false,
+      'plumbing-Bath-1': bi.plumbingBath || arrayIncludes(plumbingTypes, 'bath') || false,
+      'plumbing-Cloggedbath-1': bi.plumbingCloggedbath || arrayIncludes(plumbingTypes, 'clogged bath') || false,
+      'plumbing-Cloggedshower-1': bi.plumbingCloggedshower || arrayIncludes(plumbingTypes, 'clogged shower') || false,
+      'plumbing-Cloggedsinks-1': bi.plumbingCloggedsinks || arrayIncludes(plumbingTypes, 'clogged sinks') || false,
       'plumbing-Insufficientwaterpressure-1': bi.plumbingLowPressure || bi.plumbingInsufficientwaterpressure || arrayIncludes(plumbingTypes, 'insufficient water pressure', 'water pressure') || false,
 
       // ===== PEST/VERMIN ISSUES =====
@@ -1335,15 +1335,15 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'structure-Waterstainsonceiling-1': bi.structuralCeilingDamage || bi.structuralWaterstainsonceiling || arrayIncludes(structuralTypes, 'water stains on ceiling', 'ceiling stains') || false,
       'structure-Waterstainsonwall-1': bi.structuralWallCracks || bi.structuralWaterstainsonwall || arrayIncludes(structuralTypes, 'water stains on wall', 'wall stains') || false,
       'structure-Holeinwall-1': bi.structuralWallCracks || bi.structuralHoleinwall || arrayIncludes(structuralTypes, 'hole in wall', 'wall hole') || false,
-      'structure-Paint-1': bi.structuralPaint || bi.structuralOther || arrayIncludes(structuralTypes, 'paint') || false,
+      'structure-Paint-1': bi.structuralPaint || arrayIncludes(structuralTypes, 'paint') || false,
       'structure-Exteriordeckporch-1': bi.structuralBalconyUnsafe || bi.structuralExteriordeckporch || arrayIncludes(structuralTypes, 'deck', 'porch', 'exterior') || false,
-      'structure-Waterprooftoilet-1': bi.structuralWaterprooftoilet || bi.plumbingLeaks || arrayIncludes(structuralTypes, 'waterproof toilet') || false,
-      'structure-Waterprooftub-1': bi.structuralWaterprooftub || bi.plumbingLeaks || arrayIncludes(structuralTypes, 'waterproof tub') || false,
+      'structure-Waterprooftoilet-1': bi.structuralWaterprooftoilet || arrayIncludes(structuralTypes, 'waterproof toilet') || false,
+      'structure-Waterprooftub-1': bi.structuralWaterprooftub || arrayIncludes(structuralTypes, 'waterproof tub') || false,
       'structure-Staircase-1': bi.structuralStairsUnsafe || bi.structuralStaircase || arrayIncludes(structuralTypes, 'staircase', 'stairs') || false,
       'structure-Basementflood-1': bi.structuralBasementflood || bi.commonAreaBasementFlooded || arrayIncludes(structuralTypes, 'basement flood', 'basement') || false,
       'structure-Leaksingarage-1': bi.structuralRoofLeaks || bi.structuralLeaksingarage || arrayIncludes(structuralTypes, 'leaks in garage', 'garage leaks', 'garage') || false,
       'structure-SoftSpotsduetoLeaks-1': bi.structuralFloorDamage || bi.structuralSoftSpotsduetoLeaks || arrayIncludes(structuralTypes, 'soft spots') || false,
-      'structure-UneffectiveWaterproofingofthetubsortoilet-1': bi.structuralUneffectiveWaterproofingofthetubsortoilet || bi.plumbingLeaks || bi.plumbingWaterDamage || arrayIncludes(structuralTypes, 'waterproofing', 'tubs') || false,
+      'structure-UneffectiveWaterproofingofthetubsortoilet-1': bi.structuralUneffectiveWaterproofingofthetubsortoilet || arrayIncludes(structuralTypes, 'waterproofing', 'tubs') || false,
       'structure-IneffectiveWeatherproofingofanywindows-1': bi.structuralWindowDamage || bi.structuralIneffectiveWeatherproofingofanywindows || arrayIncludes(structuralTypes, 'weatherproofing') || false,
 
       // ===== APPLIANCE ISSUES (7 items) =====
