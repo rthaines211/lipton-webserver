@@ -1343,7 +1343,7 @@ router.get('/:id/doc-gen-format', async (req, res) => {
       'structure-Basementflood-1': bi.structuralBasementflood || bi.commonAreaBasementFlooded || arrayIncludes(structuralTypes, 'basement flood', 'basement') || false,
       'structure-Leaksingarage-1': bi.structuralRoofLeaks || bi.structuralLeaksingarage || arrayIncludes(structuralTypes, 'leaks in garage', 'garage leaks', 'garage') || false,
       'structure-SoftSpotsduetoLeaks-1': bi.structuralFloorDamage || bi.structuralSoftSpotsduetoLeaks || arrayIncludes(structuralTypes, 'soft spots') || false,
-      'structure-UneffectiveWaterproofingofthetubsortoilet-1': bi.structuralUneffectiveWaterproofingofthetubsortoilet || arrayIncludes(structuralTypes, 'waterproofing', 'tubs') || false,
+      'structure-UneffectiveWaterproofingofthetubsortoilet-1': bi.structuralUneffectiveWaterproofingofthetubsortoilet || bi.plumbingLeaks || bi.plumbingWaterDamage || arrayIncludes(structuralTypes, 'waterproofing', 'tubs') || false,
       'structure-IneffectiveWeatherproofingofanywindows-1': bi.structuralWindowDamage || bi.structuralIneffectiveWeatherproofingofanywindows || arrayIncludes(structuralTypes, 'weatherproofing') || false,
 
       // ===== APPLIANCE ISSUES (7 items) =====
