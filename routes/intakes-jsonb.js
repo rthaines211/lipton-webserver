@@ -165,329 +165,245 @@ router.post('/', async (req, res) => {
       email: formData.managerEmail || null,
     } : null;
 
+    // =========================================================================
+    // BUILDING ISSUES - 1:1 mapping with doc-gen checkbox codes
+    // Each field name matches exactly what the doc-gen format expects
+    // =========================================================================
     const buildingIssues = {
-      // Structural Issues - ALL fields from intake form
+      // Structural Issues (15 checkboxes)
       hasStructuralIssues: formData.hasStructuralIssues || false,
-      structuralCeilingDamage: formData.structuralCeilingDamage || false,
-      structuralWallCracks: formData.structuralWallCracks || false,
-      structuralFloorDamage: formData.structuralFloorDamage || false,
-      structuralFoundationIssues: formData.structuralFoundationIssues || false,
-      structuralRoofLeaks: formData.structuralRoofLeaks || false,
-      structuralWindowDamage: formData.structuralWindowDamage || false,
-      structuralDoorDamage: formData.structuralDoorDamage || false,
-      structuralStairsUnsafe: formData.structuralStairsUnsafe || false,
-      structuralBalconyUnsafe: formData.structuralBalconyUnsafe || false,
-      structuralRailingMissing: formData.structuralRailingMissing || false,
-      structuralOther: formData.structuralOther || false,
+      structuralBumpsinceiling: formData.structuralBumpsinceiling || false,
+      structuralHoleinceiling: formData.structuralHoleinceiling || false,
+      structuralWaterstainsonceiling: formData.structuralWaterstainsonceiling || false,
+      structuralWaterstainsonwall: formData.structuralWaterstainsonwall || false,
+      structuralHoleinwall: formData.structuralHoleinwall || false,
+      structuralPaint: formData.structuralPaint || false,
+      structuralExteriordeckporch: formData.structuralExteriordeckporch || false,
+      structuralWaterprooftoilet: formData.structuralWaterprooftoilet || false,
+      structuralWaterprooftub: formData.structuralWaterprooftub || false,
+      structuralStaircase: formData.structuralStaircase || false,
+      structuralBasementflood: formData.structuralBasementflood || false,
+      structuralLeaksingarage: formData.structuralLeaksingarage || false,
+      structuralSoftSpotsduetoLeaks: formData.structuralSoftSpotsduetoLeaks || false,
+      structuralUneffectiveWaterproofingofthetubsortoilet: formData.structuralUneffectiveWaterproofingofthetubsortoilet || false,
+      structuralIneffectiveWeatherproofingofanywindows: formData.structuralIneffectiveWeatherproofingofanywindows || false,
       structuralDetails: formData.structuralDetails || null,
       structuralFirstNoticed: formData.structuralFirstNoticed || null,
-      structuralReportedDate: formData.structuralReportedDate || null,
       structuralRepairHistory: formData.structuralRepairHistory || null,
       structuralSeverity: formData.structuralSeverity || null,
 
-      // Plumbing Issues - ALL fields from intake form
+      // Plumbing Issues (15 checkboxes)
       hasPlumbingIssues: formData.hasPlumbingIssues || false,
-      plumbingNoHotWater: formData.plumbingNoHotWater || false,
-      plumbingNoWater: formData.plumbingNoWater || false,
-      plumbingLowPressure: formData.plumbingLowPressure || false,
+      plumbingToilet: formData.plumbingToilet || false,
+      plumbingInsufficientwaterpressure: formData.plumbingInsufficientwaterpressure || false,
+      plumbingCloggedbath: formData.plumbingCloggedbath || false,
+      plumbingShower: formData.plumbingShower || false,
+      plumbingNohotwater: formData.plumbingNohotwater || false,
+      plumbingCloggedsinks: formData.plumbingCloggedsinks || false,
+      plumbingBath: formData.plumbingBath || false,
+      plumbingNocoldwater: formData.plumbingNocoldwater || false,
+      plumbingCloggedshower: formData.plumbingCloggedshower || false,
+      plumbingFixtures: formData.plumbingFixtures || false,
+      plumbingSewagecomingout: formData.plumbingSewagecomingout || false,
+      plumbingNoCleanWaterSupply: formData.plumbingNoCleanWaterSupply || false,
       plumbingLeaks: formData.plumbingLeaks || false,
-      plumbingBurstPipes: formData.plumbingBurstPipes || false,
-      plumbingCloggedDrains: formData.plumbingCloggedDrains || false,
-      plumbingToiletNotWorking: formData.plumbingToiletNotWorking || false,
-      plumbingShowerNotWorking: formData.plumbingShowerNotWorking || false,
-      plumbingSinkNotWorking: formData.plumbingSinkNotWorking || false,
-      plumbingSewerBackup: formData.plumbingSewerBackup || false,
-      plumbingWaterDamage: formData.plumbingWaterDamage || false,
-      plumbingFlooding: formData.plumbingFlooding || false,
-      plumbingWaterDiscoloration: formData.plumbingWaterDiscoloration || false,
-      plumbingOther: formData.plumbingOther || false,
+      plumbingCloggedtoilets: formData.plumbingCloggedtoilets || false,
+      plumbingUnsanitarywater: formData.plumbingUnsanitarywater || false,
       plumbingDetails: formData.plumbingDetails || null,
       plumbingFirstNoticed: formData.plumbingFirstNoticed || null,
-      plumbingReportedDate: formData.plumbingReportedDate || null,
       plumbingRepairHistory: formData.plumbingRepairHistory || null,
       plumbingSeverity: formData.plumbingSeverity || null,
 
-      // Electrical Issues - ALL fields from intake form
+      // Electrical Issues (7 checkboxes)
       hasElectricalIssues: formData.hasElectricalIssues || false,
-      electricalNoPower: formData.electricalNoPower || false,
-      electricalPartialOutages: formData.electricalPartialOutages || false,
-      electricalExposedWiring: formData.electricalExposedWiring || false,
-      electricalSparkingOutlets: formData.electricalSparkingOutlets || false,
-      electricalBrokenOutlets: formData.electricalBrokenOutlets || false,
-      electricalBrokenSwitches: formData.electricalBrokenSwitches || false,
-      electricalFlickeringLights: formData.electricalFlickeringLights || false,
-      electricalCircuitBreakerIssues: formData.electricalCircuitBreakerIssues || false,
-      electricalInsufficientOutlets: formData.electricalInsufficientOutlets || false,
-      electricalBurningSmell: formData.electricalBurningSmell || false,
-      electricalBrokenFans: formData.electricalBrokenFans || false,
+      electricalOutlets: formData.electricalOutlets || false,
+      electricalPanel: formData.electricalPanel || false,
+      electricalWallSwitches: formData.electricalWallSwitches || false,
       electricalExteriorLighting: formData.electricalExteriorLighting || false,
-      electricalBrokenLightFixtures: formData.electricalBrokenLightFixtures || false,
-      electricalOther: formData.electricalOther || false,
+      electricalInteriorLighting: formData.electricalInteriorLighting || false,
+      electricalLightFixtures: formData.electricalLightFixtures || false,
+      electricalFans: formData.electricalFans || false,
       electricalDetails: formData.electricalDetails || null,
       electricalFirstNoticed: formData.electricalFirstNoticed || null,
-      electricalReportedDate: formData.electricalReportedDate || null,
       electricalRepairHistory: formData.electricalRepairHistory || null,
       electricalSeverity: formData.electricalSeverity || null,
 
-      // HVAC Issues - ALL fields from intake form
+      // HVAC Issues (3 checkboxes)
       hasHvacIssues: formData.hasHvacIssues || false,
-      hvacNoHeat: formData.hvacNoHeat || false,
-      hvacInadequateHeat: formData.hvacInadequateHeat || false,
-      hvacNoAirConditioning: formData.hvacNoAirConditioning || false,
-      hvacInadequateCooling: formData.hvacInadequateCooling || false,
-      hvacBrokenThermostat: formData.hvacBrokenThermostat || false,
-      hvacGasSmell: formData.hvacGasSmell || false,
-      hvacCarbonMonoxideDetectorMissing: formData.hvacCarbonMonoxideDetectorMissing || false,
-      hvacVentilationPoor: formData.hvacVentilationPoor || false,
-      hvacOther: formData.hvacOther || false,
+      hvacAirConditioner: formData.hvacAirConditioner || false,
+      hvacHeater: formData.hvacHeater || false,
+      hvacVentilation: formData.hvacVentilation || false,
       hvacDetails: formData.hvacDetails || null,
       hvacFirstNoticed: formData.hvacFirstNoticed || null,
-      hvacReportedDate: formData.hvacReportedDate || null,
       hvacRepairHistory: formData.hvacRepairHistory || null,
       hvacSeverity: formData.hvacSeverity || null,
 
-      // Appliance Issues - ALL fields from intake form
+      // Appliance Issues (7 checkboxes)
       hasApplianceIssues: formData.hasApplianceIssues || false,
-      applianceRefrigeratorBroken: formData.applianceRefrigeratorBroken || false,
-      applianceStoveBroken: formData.applianceStoveBroken || false,
-      applianceOvenBroken: formData.applianceOvenBroken || false,
-      applianceDishwasherBroken: formData.applianceDishwasherBroken || false,
-      applianceGarbageDisposalBroken: formData.applianceGarbageDisposalBroken || false,
-      applianceWasherBroken: formData.applianceWasherBroken || false,
-      applianceDryerBroken: formData.applianceDryerBroken || false,
-      applianceOther: formData.applianceOther || false,
+      applianceStove: formData.applianceStove || false,
+      applianceDishwasher: formData.applianceDishwasher || false,
+      applianceWasherdryer: formData.applianceWasherdryer || false,
+      applianceOven: formData.applianceOven || false,
+      applianceMicrowave: formData.applianceMicrowave || false,
+      applianceGarbagedisposal: formData.applianceGarbagedisposal || false,
+      applianceRefrigerator: formData.applianceRefrigerator || false,
       applianceDetails: formData.applianceDetails || null,
       applianceFirstNoticed: formData.applianceFirstNoticed || null,
-      applianceRepairHistory: formData.applianceRepairHistory || null,
+      appliancesRepairHistory: formData.appliancesRepairHistory || null,
       appliancesSeverity: formData.appliancesSeverity || null,
 
-      // Security Issues - ALL fields from intake form
-      hasSecurityIssues: formData.hasSecurityIssues || false,
-      securityBrokenLocks: formData.securityBrokenLocks || false,
-      securityBrokenWindows: formData.securityBrokenWindows || false,
-      securityBrokenDoors: formData.securityBrokenDoors || false,
-      securityNoDeadbolt: formData.securityNoDeadbolt || false,
-      securityBrokenGate: formData.securityBrokenGate || false,
-      securityBrokenIntercom: formData.securityBrokenIntercom || false,
-      securityInadequateLighting: formData.securityInadequateLighting || false,
-      securityNoSmokeDetector: formData.securityNoSmokeDetector || false,
-      securityBreakIns: formData.securityBreakIns || false,
-      securityOther: formData.securityOther || false,
-      securityDetails: formData.securityDetails || null,
-      securityFirstNoticed: formData.securityFirstNoticed || null,
-      securityRepairHistory: formData.securityRepairHistory || null,
-      securitySeverity: formData.securitySeverity || null,
-
-      // Pest Issues - ALL fields from intake form (21 checkboxes total)
+      // Pest/Vermin Issues (6 checkboxes)
       hasPestIssues: formData.hasPestIssues || false,
-      // Vermin (8 fields)
-      pestRats: formData.pestRats || false,
-      pestMice: formData.pestMice || false,
-      pestBats: formData.pestBats || false,
-      pestBirds: formData.pestBirds || false,
+      pestRatsMice: formData.pestRatsMice || false,
       pestSkunks: formData.pestSkunks || false,
+      pestBats: formData.pestBats || false,
       pestRaccoons: formData.pestRaccoons || false,
+      pestPigeons: formData.pestPigeons || false,
       pestOpossums: formData.pestOpossums || false,
-      pestOtherVermin: formData.pestOtherVermin || false,
-      // Insects (13 fields)
-      pestAnts: formData.pestAnts || false,
-      pestBedbugs: formData.pestBedbugs || false,
-      pestSpiders: formData.pestSpiders || false,
-      pestMosquitos: formData.pestMosquitos || false,
-      pestCockroaches: formData.pestCockroaches || false,
-      pestWasps: formData.pestWasps || false,
-      pestTermites: formData.pestTermites || false,
-      pestBees: formData.pestBees || false,
-      pestFlies: formData.pestFlies || false,
-      pestHornets: formData.pestHornets || false,
-      pestFleas: formData.pestFleas || false,
-      pestOtherInsects: formData.pestOtherInsects || false,
-      // Details and dates (OLD shared fields - kept for backward compatibility)
-      pestDetails: formData.pestDetails || null,
-      pestFirstNoticed: formData.pestFirstNoticed || null,
-      pestReportedDate: formData.pestReportedDate || null,
-      // NEW separated metadata fields (vermin and insects are independent)
       verminDetails: formData.verminDetails || null,
       verminFirstNoticed: formData.verminFirstNoticed || null,
       verminRepairHistory: formData.verminRepairHistory || null,
       verminSeverity: formData.verminSeverity || null,
+
+      // Insect Issues (10 checkboxes)
+      pestAnts: formData.pestAnts || false,
+      pestRoaches: formData.pestRoaches || false,
+      pestFlies: formData.pestFlies || false,
+      pestBedbugs: formData.pestBedbugs || false,
+      pestWasps: formData.pestWasps || false,
+      pestHornets: formData.pestHornets || false,
+      pestSpiders: formData.pestSpiders || false,
+      pestTermites: formData.pestTermites || false,
+      pestMosquitos: formData.pestMosquitos || false,
+      pestBees: formData.pestBees || false,
       insectsDetails: formData.insectsDetails || null,
       insectsFirstNoticed: formData.insectsFirstNoticed || null,
       insectsRepairHistory: formData.insectsRepairHistory || null,
       insectsSeverity: formData.insectsSeverity || null,
 
-      // Fire Hazard Issues - ALL fields from intake form
+      // Fire Hazard Issues (5 checkboxes)
       hasFireHazardIssues: formData.hasFireHazardIssues || false,
-      fireHazardExposedWiring: formData.fireHazardExposedWiring || false,
-      fireHazardBlockedExits: formData.fireHazardBlockedExits || false,
-      fireHazardNoSmokeDetectors: formData.fireHazardNoSmokeDetectors || false,
-      fireHazardBrokenSmokeDetectors: formData.fireHazardBrokenSmokeDetectors || false,
-      fireHazardNoFireExtinguisher: formData.fireHazardNoFireExtinguisher || false,
-      fireHazardIneffective: formData.fireHazardIneffective || false,
-      fireHazardOther: formData.fireHazardOther || false,
+      fireHazardSmokeAlarms: formData.fireHazardSmokeAlarms || false,
+      fireHazardFireExtinguisher: formData.fireHazardFireExtinguisher || false,
+      fireHazardNoncompliantelectricity: formData.fireHazardNoncompliantelectricity || false,
+      fireHazardNonGFIoutletsnearwater: formData.fireHazardNonGFIoutletsnearwater || false,
+      fireHazardCarbonmonoxidedetectors: formData.fireHazardCarbonmonoxidedetectors || false,
       fireHazardDetails: formData.fireHazardDetails || null,
       fireHazardFirstNoticed: formData.fireHazardFirstNoticed || null,
-      fireHazardReportedDate: formData.fireHazardReportedDate || null,
       fireHazardRepairHistory: formData.fireHazardRepairHistory || null,
       fireHazardSeverity: formData.fireHazardSeverity || null,
 
-      // Utility Issues - ALL fields from intake form
+      // Utility Issues (5 checkboxes)
       hasUtilityIssues: formData.hasUtilityIssues || false,
-      utilityNoHotWater: formData.utilityNoHotWater || false,
-      utilityNoHeat: formData.utilityNoHeat || false,
-      utilityNoElectricity: formData.utilityNoElectricity || false,
-      utilityNoGas: formData.utilityNoGas || false,
-      utilityOther: formData.utilityOther || false,
-      // Individual utility checkbox fields
       utilityGasleak: formData.utilityGasleak || false,
+      utilityWatershutoffs: formData.utilityWatershutoffs || false,
+      utilityElectricityshutoffs: formData.utilityElectricityshutoffs || false,
+      utilityHeatshutoff: formData.utilityHeatshutoff || false,
+      utilityGasshutoff: formData.utilityGasshutoff || false,
       utilityDetails: formData.utilityDetails || null,
       utilityFirstNoticed: formData.utilityFirstNoticed || null,
-      utilityReportedDate: formData.utilityReportedDate || null,
       utilityRepairHistory: formData.utilityRepairHistory || null,
       utilitySeverity: formData.utilitySeverity || null,
 
-      // Flooring Issues - ALL fields from intake form
+      // Flooring Issues (8 checkboxes)
       hasFlooringIssues: formData.hasFlooringIssues || false,
-      flooringDamaged: formData.flooringDamaged || false,
       flooringUneven: formData.flooringUneven || false,
-      flooringMissing: formData.flooringMissing || false,
-      flooringOther: formData.flooringOther || false,
-      // Individual flooring checkbox fields
-      flooringCarpetDamaged: formData.flooringCarpetDamaged || false,
+      flooringCarpet: formData.flooringCarpet || false,
       flooringNailsstickingout: formData.flooringNailsstickingout || false,
-      flooringTileBroken: formData.flooringTileBroken || false,
-      flooringHardwoodDamaged: formData.flooringHardwoodDamaged || false,
-      flooringLinoleumDamaged: formData.flooringLinoleumDamaged || false,
-      flooringSubfloorDamaged: formData.flooringSubfloorDamaged || false,
+      flooringTiles: formData.flooringTiles || false,
+      flooringHardwood: formData.flooringHardwood || false,
+      flooringLinoleum: formData.flooringLinoleum || false,
+      flooringDamage: formData.flooringDamage || false,
+      flooringSubfloor: formData.flooringSubfloor || false,
       flooringDetails: formData.flooringDetails || null,
       flooringFirstNoticed: formData.flooringFirstNoticed || null,
-      flooringReportedDate: formData.flooringReportedDate || null,
       flooringRepairHistory: formData.flooringRepairHistory || null,
       flooringSeverity: formData.flooringSeverity || null,
 
-      // Window Issues - ALL fields from intake form
+      // Window Issues (6 checkboxes)
       hasWindowIssues: formData.hasWindowIssues || false,
       windowBroken: formData.windowBroken || false,
-      windowMissing: formData.windowMissing || false,
-      windowDrafty: formData.windowDrafty || false,
-      windowNoScreens: formData.windowNoScreens || false,
-      windowWontOpen: formData.windowWontOpen || false,
-      windowOther: formData.windowOther || false,
-      // Additional window checkbox fields for doc-gen compatibility
-      windowLeaks: formData.windowLeaks || false,
       windowScreens: formData.windowScreens || false,
+      windowLeaks: formData.windowLeaks || false,
       windowDonotlock: formData.windowDonotlock || false,
       windowMissingwindows: formData.windowMissingwindows || false,
       windowBrokenormissingscreens: formData.windowBrokenormissingscreens || false,
       windowDetails: formData.windowDetails || null,
       windowFirstNoticed: formData.windowFirstNoticed || null,
-      windowReportedDate: formData.windowReportedDate || null,
       windowsRepairHistory: formData.windowsRepairHistory || null,
       windowsSeverity: formData.windowsSeverity || null,
 
-      // Door Issues - ALL fields from intake form
+      // Door Issues (8 checkboxes)
       hasDoorIssues: formData.hasDoorIssues || false,
       doorBroken: formData.doorBroken || false,
-      doorNoLock: formData.doorNoLock || false,
-      doorDamaged: formData.doorDamaged || false,
-      doorWontClose: formData.doorWontClose || false,
-      doorMissing: formData.doorMissing || false,
-      doorDrafty: formData.doorDrafty || false,
-      doorNoScreen: formData.doorNoScreen || false,
-      doorOther: formData.doorOther || false,
-      // Individual door checkbox fields
       doorKnobs: formData.doorKnobs || false,
-      doorSlidingGlass: formData.doorSlidingGlass || false,
-      doorWaterproofing: formData.doorWaterproofing || false,
-      doorWaterIntrusion: formData.doorWaterIntrusion || false,
+      doorLocks: formData.doorLocks || false,
+      doorBrokenhinges: formData.doorBrokenhinges || false,
+      doorSlidingglassdoors: formData.doorSlidingglassdoors || false,
+      doorIneffectivewaterproofing: formData.doorIneffectivewaterproofing || false,
+      doorWaterintrusionandorinsects: formData.doorWaterintrusionandorinsects || false,
+      doorDonotcloseproperly: formData.doorDonotcloseproperly || false,
       doorDetails: formData.doorDetails || null,
       doorFirstNoticed: formData.doorFirstNoticed || null,
-      doorReportedDate: formData.doorReportedDate || null,
       doorsRepairHistory: formData.doorsRepairHistory || null,
       doorsSeverity: formData.doorsSeverity || null,
 
-      // Cabinet Issues - ALL fields from intake form
+      // Cabinet Issues (3 checkboxes)
       hasCabinetIssues: formData.hasCabinetIssues || false,
       cabinetBroken: formData.cabinetBroken || false,
-      cabinetMissing: formData.cabinetMissing || false,
-      cabinetOther: formData.cabinetOther || false,
-      // Additional cabinet checkbox fields for doc-gen compatibility
       cabinetHinges: formData.cabinetHinges || false,
       cabinetAlignment: formData.cabinetAlignment || false,
       cabinetDetails: formData.cabinetDetails || null,
       cabinetFirstNoticed: formData.cabinetFirstNoticed || null,
-      cabinetReportedDate: formData.cabinetReportedDate || null,
       cabinetsRepairHistory: formData.cabinetsRepairHistory || null,
       cabinetsSeverity: formData.cabinetsSeverity || null,
 
-      // Common Area Issues - ALL fields from intake form
+      // Common Area Issues (16 checkboxes)
       hasCommonAreaIssues: formData.hasCommonAreaIssues || false,
-      commonAreaHallwayDirty: formData.commonAreaHallwayDirty || false,
-      commonAreaStairsDamaged: formData.commonAreaStairsDamaged || false,
-      commonAreaElevatorBroken: formData.commonAreaElevatorBroken || false,
-      commonAreaLaundryBroken: formData.commonAreaLaundryBroken || false,
-      commonAreaMailboxBroken: formData.commonAreaMailboxBroken || false,
-      commonAreaLightingBroken: formData.commonAreaLightingBroken || false,
-      commonAreaNoSecurity: formData.commonAreaNoSecurity || false,
-      commonAreaDoorsUnlocked: formData.commonAreaDoorsUnlocked || false,
-      commonAreaIntercomBroken: formData.commonAreaIntercomBroken || false,
-      commonAreaRoofLeaking: formData.commonAreaRoofLeaking || false,
-      commonAreaBasementFlooded: formData.commonAreaBasementFlooded || false,
-      commonAreaGarbageNotCollected: formData.commonAreaGarbageNotCollected || false,
-      commonAreaSnowNotRemoved: formData.commonAreaSnowNotRemoved || false,
-      commonAreaNoHeat: formData.commonAreaNoHeat || false,
-      commonAreaNoHotWater: formData.commonAreaNoHotWater || false,
-      commonAreaOther: formData.commonAreaOther || false,
-      // Individual common area checkbox fields
+      commonAreaMailboxbroken: formData.commonAreaMailboxbroken || false,
+      commonAreaParkingareaissues: formData.commonAreaParkingareaissues || false,
       commonAreaDamagetocars: formData.commonAreaDamagetocars || false,
-      commonAreaParkingIssue: formData.commonAreaParkingIssue || false,
+      commonAreaFlooding: formData.commonAreaFlooding || false,
       commonAreaEntrancesblocked: formData.commonAreaEntrancesblocked || false,
       commonAreaSwimmingpool: formData.commonAreaSwimmingpool || false,
       commonAreaJacuzzi: formData.commonAreaJacuzzi || false,
+      commonAreaLaundryroom: formData.commonAreaLaundryroom || false,
       commonAreaRecreationroom: formData.commonAreaRecreationroom || false,
       commonAreaGym: formData.commonAreaGym || false,
+      commonAreaElevator: formData.commonAreaElevator || false,
+      commonAreaFilthRubbishGarbage: formData.commonAreaFilthRubbishGarbage || false,
       commonAreaVermin: formData.commonAreaVermin || false,
       commonAreaInsects: formData.commonAreaInsects || false,
       commonAreaBrokenGate: formData.commonAreaBrokenGate || false,
       commonAreaBlockedareasdoors: formData.commonAreaBlockedareasdoors || false,
       commonAreaDetails: formData.commonAreaDetails || null,
       commonAreaFirstNoticed: formData.commonAreaFirstNoticed || null,
-      commonAreaReportedDate: formData.commonAreaReportedDate || null,
       commonAreasRepairHistory: formData.commonAreasRepairHistory || null,
       commonAreasSeverity: formData.commonAreasSeverity || null,
 
-      // Trash Problems - ALL fields from intake form
+      // Trash Issues (2 checkboxes)
       hasTrashProblems: formData.hasTrashProblems || false,
-      trashNotCollected: formData.trashNotCollected || false,
-      trashOverflowing: formData.trashOverflowing || false,
+      trashInadequatenumberofreceptacles: formData.trashInadequatenumberofreceptacles || false,
+      trashImproperservicingemptying: formData.trashImproperservicingemptying || false,
       trashDetails: formData.trashDetails || null,
       trashFirstNoticed: formData.trashFirstNoticed || null,
-      trashReportedDate: formData.trashReportedDate || null,
       trashRepairHistory: formData.trashRepairHistory || null,
       trashSeverity: formData.trashSeverity || null,
 
-      // Nuisance Issues - ALL fields from intake form
+      // Nuisance Issues (4 checkboxes)
       hasNuisanceIssues: formData.hasNuisanceIssues || false,
-      nuisanceNoise: formData.nuisanceNoise || false,
-      nuisanceSmell: formData.nuisanceSmell || false,
-      nuisanceSmoke: formData.nuisanceSmoke || false,
-      nuisanceOther: formData.nuisanceOther || false,
+      nuisanceDrugs: formData.nuisanceDrugs || false,
+      nuisanceSmoking: formData.nuisanceSmoking || false,
+      nuisanceNoisyneighbors: formData.nuisanceNoisyneighbors || false,
+      nuisanceGangs: formData.nuisanceGangs || false,
       nuisanceDetails: formData.nuisanceDetails || null,
       nuisanceFirstNoticed: formData.nuisanceFirstNoticed || null,
-      nuisanceReportedDate: formData.nuisanceReportedDate || null,
       nuisanceRepairHistory: formData.nuisanceRepairHistory || null,
       nuisanceSeverity: formData.nuisanceSeverity || null,
 
-      // Health Hazard Issues - ALL fields from intake form
+      // Health Hazard Issues (8 checkboxes)
       hasHealthHazardIssues: formData.hasHealthHazardIssues || false,
       healthHazardMold: formData.healthHazardMold || false,
-      healthHazardLeadPaint: formData.healthHazardLeadPaint || false,
-      healthHazardAsbestos: formData.healthHazardAsbestos || false,
-      healthHazardPoorVentilation: formData.healthHazardPoorVentilation || false,
-      healthHazardChemicalSmell: formData.healthHazardChemicalSmell || false,
-      healthHazardContaminatedWater: formData.healthHazardContaminatedWater || false,
-      healthHazardOther: formData.healthHazardOther || false,
-      // Individual health hazard checkbox fields
       healthHazardMildew: formData.healthHazardMildew || false,
       healthHazardMushrooms: formData.healthHazardMushrooms || false,
       healthHazardRawsewageonexterior: formData.healthHazardRawsewageonexterior || false,
@@ -495,113 +411,100 @@ router.post('/', async (req, res) => {
       healthHazardChemicalpaintcontamination: formData.healthHazardChemicalpaintcontamination || false,
       healthHazardToxicwaterpollution: formData.healthHazardToxicwaterpollution || false,
       healthHazardOffensiveodors: formData.healthHazardOffensiveodors || false,
-      healthHazardSewageBackup: formData.healthHazardSewageBackup || false,
-      healthHazardWaterDamage: formData.healthHazardWaterDamage || false,
-      healthHazardFlooding: formData.healthHazardFlooding || false,
-      healthHazardGasLeak: formData.healthHazardGasLeak || false,
-      healthHazardCarbonMonoxide: formData.healthHazardCarbonMonoxide || false,
-      healthHazardAirQuality: formData.healthHazardAirQuality || false,
       healthHazardDetails: formData.healthHazardDetails || null,
       healthHazardFirstNoticed: formData.healthHazardFirstNoticed || null,
-      healthHazardReportedDate: formData.healthHazardReportedDate || null,
       healthHazardRepairHistory: formData.healthHazardRepairHistory || null,
       healthHazardSeverity: formData.healthHazardSeverity || null,
 
-      // Government Entities Contacted - ALL fields from intake form (NO date fields)
+      // Government Contact (7 checkboxes)
       hasGovernmentEntitiesContacted: formData.hasGovernmentEntitiesContacted || false,
-      govEntityHPD: formData.govEntityHPD || false,
-      govEntityDOB: formData.govEntityDOB || false,
-      govEntityOATH: formData.govEntityOATH || false,
-      govEntityDHCR: formData.govEntityDHCR || false,
-      govEntityDHS: formData.govEntityDHS || false,
-      govEntity311: formData.govEntity311 || false,
-      govEntityOther: formData.govEntityOther || false,
-      governmentEntitiesDetails: formData.governmentEntitiesDetails || formData.governmentDetails || null,
+      govEntityHealthDepartment: formData.govEntityHealthDepartment || false,
+      govEntityHousingAuthority: formData.govEntityHousingAuthority || false,
+      govEntityCodeEnforcement: formData.govEntityCodeEnforcement || false,
+      govEntityFireDepartment: formData.govEntityFireDepartment || false,
+      govEntityPoliceDepartment: formData.govEntityPoliceDepartment || false,
+      govEntityDepartmentofEnvironmentalHealth: formData.govEntityDepartmentofEnvironmentalHealth || false,
+      govEntityDepartmentofHealthServices: formData.govEntityDepartmentofHealthServices || false,
+      governmentEntitiesDetails: formData.governmentEntitiesDetails || null,
       governmentFirstNoticed: formData.governmentFirstNoticed || null,
       governmentRepairHistory: formData.governmentRepairHistory || null,
       governmentSeverity: formData.governmentSeverity || null,
 
-      // Notice Issues - ALL fields from intake form (NO date fields)
+      // Notice Issues (6 checkboxes)
       hasNoticeIssues: formData.hasNoticeIssues || false,
-      noticeEviction: formData.noticeEviction || false,
-      noticeRentIncrease: formData.noticeRentIncrease || false,
-      noticeLeaseTerm: formData.noticeLeaseTerm || false,
-      noticeEntry: formData.noticeEntry || false,
-      noticeRepair: formData.noticeRepair || false,
-      noticeOther: formData.noticeOther || false,
+      notice3day: formData.notice3day || false,
+      notice24hour: formData.notice24hour || false,
+      notice30day: formData.notice30day || false,
+      notice60day: formData.notice60day || false,
+      noticeToquit: formData.noticeToquit || false,
+      noticePerformorquit: formData.noticePerformorquit || false,
       noticeDetails: formData.noticeDetails || null,
       noticesFirstNoticed: formData.noticesFirstNoticed || null,
       noticesRepairHistory: formData.noticesRepairHistory || null,
       noticesSeverity: formData.noticesSeverity || null,
 
-      // Safety Issues - ALL fields from intake form
+      // Safety Issues (6 checkboxes)
       hasSafetyIssues: formData.hasSafetyIssues || false,
-      safetyNoFireExtinguisher: formData.safetyNoFireExtinguisher || false,
-      safetyNoEmergencyLighting: formData.safetyNoEmergencyLighting || false,
-      safetyNoFireEscape: formData.safetyNoFireEscape || false,
-      safetyBlockedFireEscape: formData.safetyBlockedFireEscape || false,
-      safetyDamagedFireEscape: formData.safetyDamagedFireEscape || false,
-      safetyOther: formData.safetyOther || false,
-      // Individual safety checkbox fields
+      safetyBrokeninoperablesecuritygate: formData.safetyBrokeninoperablesecuritygate || false,
+      safetyBrokendoors: formData.safetyBrokendoors || false,
+      safetyUnauthorizedentries: formData.safetyUnauthorizedentries || false,
       safetyBrokenbuzzertogetin: formData.safetyBrokenbuzzertogetin || false,
       safetySecuritycameras: formData.safetySecuritycameras || false,
+      safetyInoperablelocks: formData.safetyInoperablelocks || false,
       safetyDetails: formData.safetyDetails || null,
       safetyFirstNoticed: formData.safetyFirstNoticed || null,
-      safetyReportedDate: formData.safetyReportedDate || null,
       safetyRepairHistory: formData.safetyRepairHistory || null,
       safetySeverity: formData.safetySeverity || null,
 
-      // Harassment Issues - Phase 3A (15 checkboxes + 1 date field)
-      // Support both camelCase and lowercase field names from form
+      // Harassment Issues (15 checkboxes)
       hasHarassmentIssues: formData.hasHarassmentIssues || false,
       harassmentUnlawfulDetainer: formData.harassmentUnlawfulDetainer || false,
-      harassmentEvictionThreats: formData.harassmentEvictionThreats || formData.harassmentEvictionthreats || false,
-      harassmentByDefendant: formData.harassmentByDefendant || formData.harassmentBydefendant || false,
-      harassmentByMaintenance: formData.harassmentByMaintenance || formData.harassmentBymaintenancemanworkers || false,
-      harassmentByManager: formData.harassmentByManager || formData.harassmentBymanagerbuildingstaff || false,
-      harassmentByOwner: formData.harassmentByOwner || formData.harassmentByowner || false,
-      harassmentByOtherTenants: formData.harassmentByOtherTenants || formData.harassmentOthertenants || false,
-      harassmentIllegitimateNotices: formData.harassmentIllegitimateNotices || formData.harassmentIllegitimatenotices || false,
-      harassmentRefusalToRepair: formData.harassmentRefusalToRepair || formData.harassmentRefusaltomaketimelyrepairs || false,
-      harassmentWrittenThreats: formData.harassmentWrittenThreats || formData.harassmentWrittenthreats || false,
-      harassmentAggressiveLanguage: formData.harassmentAggressiveLanguage || formData.harassmentAggressiveinappropriatelanguage || false,
-      harassmentPhysicalThreats: formData.harassmentPhysicalThreats || formData.harassmentPhysicalthreatsortouching || false,
-      harassmentSinglingOut: formData.harassmentSinglingOut || formData.harassmentNoticessinglingoutonetenantbutnotuniformlygiventoalltenants || false,
-      harassmentDuplicativeNotices: formData.harassmentDuplicativeNotices || formData.harassmentDuplicativenotices || false,
-      harassmentUntimelyResponse: formData.harassmentUntimelyResponse || formData.harassmentUntimelyResponsefromLandlord || false,
+      harassmentEvictionthreats: formData.harassmentEvictionthreats || false,
+      harassmentBydefendant: formData.harassmentBydefendant || false,
+      harassmentBymaintenancemanworkers: formData.harassmentBymaintenancemanworkers || false,
+      harassmentBymanagerbuildingstaff: formData.harassmentBymanagerbuildingstaff || false,
+      harassmentByowner: formData.harassmentByowner || false,
+      harassmentOthertenants: formData.harassmentOthertenants || false,
+      harassmentIllegitimatenotices: formData.harassmentIllegitimatenotices || false,
+      harassmentRefusaltomaketimelyrepairs: formData.harassmentRefusaltomaketimelyrepairs || false,
+      harassmentWrittenthreats: formData.harassmentWrittenthreats || false,
+      harassmentAggressiveinappropriatelanguage: formData.harassmentAggressiveinappropriatelanguage || false,
+      harassmentPhysicalthreatsortouching: formData.harassmentPhysicalthreatsortouching || false,
+      harassmentNoticessinglingoutonetenantbutnotuniformlygiventoalltenants: formData.harassmentNoticessinglingoutonetenantbutnotuniformlygiventoalltenants || false,
+      harassmentDuplicativenotices: formData.harassmentDuplicativenotices || false,
+      harassmentUntimelyResponsefromLandlord: formData.harassmentUntimelyResponsefromLandlord || false,
       harassmentDetails: formData.harassmentDetails || null,
-      harassmentStartDate: formData.harassmentStartDate || null,
       harassmentFirstNoticed: formData.harassmentFirstNoticed || null,
       harassmentRepairHistory: formData.harassmentRepairHistory || null,
       harassmentSeverity: formData.harassmentSeverity || null,
+      harassmentStartDate: formData.harassmentStartDate || null,
 
-      // Master checkbox only categories (no individual options) - NEW in Phase 3
-      // Note: Includes fallback mappings for alternative field names from test intake
-      hasInjuryIssues: formData.hasInjuryIssues || formData.hasInjury || false,
+      // Master checkbox only categories (no individual options)
+      hasInjuryIssues: formData.hasInjuryIssues || false,
       injuryDetails: formData.injuryDetails || null,
       injuryFirstNoticed: formData.injuryFirstNoticed || null,
       injuryRepairHistory: formData.injuryRepairHistory || null,
       injurySeverity: formData.injurySeverity || null,
 
-      hasNonresponsiveIssues: formData.hasNonresponsiveIssues || formData.hasNonresponsiveLandlord || false,
+      hasNonresponsiveIssues: formData.hasNonresponsiveIssues || false,
       nonresponsiveDetails: formData.nonresponsiveDetails || null,
       nonresponsiveFirstNoticed: formData.nonresponsiveFirstNoticed || null,
       nonresponsiveRepairHistory: formData.nonresponsiveRepairHistory || null,
       nonresponsiveSeverity: formData.nonresponsiveSeverity || null,
 
-      hasUnauthorizedIssues: formData.hasUnauthorizedIssues || formData.hasUnauthorizedEntries || false,
+      hasUnauthorizedIssues: formData.hasUnauthorizedIssues || false,
       unauthorizedDetails: formData.unauthorizedDetails || null,
       unauthorizedFirstNoticed: formData.unauthorizedFirstNoticed || null,
       unauthorizedRepairHistory: formData.unauthorizedRepairHistory || null,
       unauthorizedSeverity: formData.unauthorizedSeverity || null,
 
-      hasStolenIssues: formData.hasStolenIssues || formData.hasStolenItems || false,
+      hasStolenIssues: formData.hasStolenIssues || false,
       stolenDetails: formData.stolenDetails || null,
       stolenFirstNoticed: formData.stolenFirstNoticed || null,
       stolenRepairHistory: formData.stolenRepairHistory || null,
       stolenSeverity: formData.stolenSeverity || null,
 
-      hasDamagedIssues: formData.hasDamagedIssues || formData.hasDamagedItems || false,
+      hasDamagedIssues: formData.hasDamagedIssues || false,
       damagedDetails: formData.damagedDetails || null,
       damagedFirstNoticed: formData.damagedFirstNoticed || null,
       damagedRepairHistory: formData.damagedRepairHistory || null,
@@ -619,46 +522,17 @@ router.post('/', async (req, res) => {
       racialDiscrimRepairHistory: formData.racialDiscrimRepairHistory || null,
       racialDiscrimSeverity: formData.racialDiscrimSeverity || null,
 
-      hasDisabilityDiscrimination: formData.hasDisabilityDiscrimination || formData.hasDisabilityDiscrimination || false,
-      disabilityDiscrimDetails: formData.disabilityDiscrimDetails || formData.disabilityDetails || null,
-      disabilityDiscrimFirstNoticed: formData.disabilityDiscrimFirstNoticed || formData.disabilityFirstNoticed || null,
-      disabilityDiscrimRepairHistory: formData.disabilityDiscrimRepairHistory || formData.disabilityRepairHistory || null,
-      disabilityDiscrimSeverity: formData.disabilityDiscrimSeverity || formData.disabilitySeverity || null,
+      hasDisabilityDiscrimination: formData.hasDisabilityDiscrimination || false,
+      disabilityDiscrimDetails: formData.disabilityDiscrimDetails || null,
+      disabilityDiscrimFirstNoticed: formData.disabilityDiscrimFirstNoticed || null,
+      disabilityDiscrimRepairHistory: formData.disabilityDiscrimRepairHistory || null,
+      disabilityDiscrimSeverity: formData.disabilityDiscrimSeverity || null,
 
-      hasSecurityDepositIssues: formData.hasSecurityDepositIssues || formData.hasSecurityDeposit || false,
+      hasSecurityDepositIssues: formData.hasSecurityDepositIssues || false,
       securityDepositDetails: formData.securityDepositDetails || null,
       securityDepositFirstNoticed: formData.securityDepositFirstNoticed || null,
       securityDepositRepairHistory: formData.securityDepositRepairHistory || null,
       securityDepositSeverity: formData.securityDepositSeverity || null,
-
-      // Legacy fields for backwards compatibility (can be removed later)
-      hasOtherIssues: formData.hasOtherIssues || false,
-      otherDescription: formData.otherIssuesDescription || null,
-
-      // ========== ARRAY FORMAT FIELDS ==========
-      // Store array-format fields from intake form for doc-gen mapping
-      // These allow intake to use ["Rats / Mice", "Bats"] format
-      verminTypes: formData.verminTypes || [],
-      insectTypes: formData.insectTypes || [],
-      plumbingTypes: formData.plumbingTypes || [],
-      electricalTypes: formData.electricalTypes || [],
-      hvacTypes: formData.hvacTypes || [],
-      healthHazardTypes: formData.healthHazardTypes || [],
-      fireHazardTypes: formData.fireHazardTypes || [],
-      structuralTypes: formData.structuralTypes || [],
-      flooringTypes: formData.flooringTypes || [],
-      cabinetTypes: formData.cabinetTypes || [],
-      doorTypes: formData.doorTypes || [],
-      windowTypes: formData.windowTypes || [],
-      applianceTypes: formData.applianceTypes || [],
-      commonAreaTypes: formData.commonAreaTypes || [],
-      nuisanceTypes: formData.nuisanceTypes || [],
-      trashTypes: formData.trashTypes || [],
-      harassmentTypes: formData.harassmentTypes || [],
-      governmentTypes: formData.governmentTypes || [],
-      noticeTypes: formData.noticeTypes || [],
-      safetyTypes: formData.safetyTypes || [],
-      utilityTypes: formData.utilityTypes || [],
 
     };
 
@@ -1241,42 +1115,44 @@ router.get('/:id/doc-gen-format', async (req, res) => {
 
       // ===== PLUMBING ISSUES (15 items) =====
       // Supports BOTH boolean format AND array format (plumbingTypes: ["Clogged toilets"])
-      // Also supports stored field names like plumbingToiletNotWorking, plumbingNoHotWater, etc.
-      'plumbing-Toilet-1': bi.plumbingToiletNotWorking || bi.plumbingToilet || bi.plumbingCloggedtoilets || arrayIncludes(plumbingTypes, 'toilet', 'clogged toilets') || false,
-      'plumbing-Sink-1': bi.plumbingSinkNotWorking || bi.plumbingCloggedsinks || arrayIncludes(plumbingTypes, 'sink', 'clogged sinks') || false,
+      // 1:1 field names: plumbingToilet, plumbingInsufficientwaterpressure, plumbingCloggedbath, plumbingShower, plumbingNohotwater, plumbingCloggedsinks, plumbingBath, plumbingNocoldwater, plumbingCloggedshower, plumbingFixtures, plumbingSewagecomingout, plumbingNoCleanWaterSupply, plumbingLeaks, plumbingCloggedtoilets, plumbingUnsanitarywater
+      'plumbing-Toilet-1': bi.plumbingToilet || bi.plumbingCloggedtoilets || bi.plumbingToiletNotWorking || arrayIncludes(plumbingTypes, 'toilet', 'clogged toilets') || false,
+      'plumbing-Sink-1': bi.plumbingCloggedsinks || bi.plumbingSinkNotWorking || arrayIncludes(plumbingTypes, 'sink', 'clogged sinks') || false,
       'plumbing-Bathtub-1': bi.plumbingBath || bi.plumbingCloggedbath || arrayIncludes(plumbingTypes, 'bath', 'bathtub') || false,
-      'plumbing-Shower-1': bi.plumbingShowerNotWorking || bi.plumbingShower || bi.plumbingCloggedshower || arrayIncludes(plumbingTypes, 'shower') || false,
-      'plumbing-WaterPressure-1': bi.plumbingLowPressure || bi.plumbingInsufficientwaterpressure || arrayIncludes(plumbingTypes, 'water pressure', 'insufficient') || false,
+      'plumbing-Shower-1': bi.plumbingShower || bi.plumbingCloggedshower || bi.plumbingShowerNotWorking || arrayIncludes(plumbingTypes, 'shower') || false,
+      'plumbing-WaterPressure-1': bi.plumbingInsufficientwaterpressure || bi.plumbingLowPressure || arrayIncludes(plumbingTypes, 'water pressure', 'insufficient') || false,
       'plumbing-Fixtures-1': bi.plumbingFixtures || arrayIncludes(plumbingTypes, 'fixtures') || false,
       'plumbing-Leaks-1': bi.plumbingLeaks || arrayIncludes(plumbingTypes, 'leaks') || false,
-      // UI uses exact label text without spaces as ID
-      'plumbing-Sewagecomingout-1': bi.plumbingSewerBackup || bi.plumbingSewagecomingout || arrayIncludes(plumbingTypes, 'sewage', 'sewage coming out') || false,
-      'plumbing-Nohotwater-1': bi.plumbingNoHotWater || bi.plumbingNohotwater || arrayIncludes(plumbingTypes, 'hot water', 'no hot water') || false,
-      'plumbing-Nocoldwater-1': bi.plumbingNoWater || bi.plumbingNocoldwater || arrayIncludes(plumbingTypes, 'cold water', 'no cold water') || false,
-      'plumbing-NoCleanWaterSupply-1': bi.plumbingWaterDiscoloration || bi.plumbingNoCleanWaterSupply || arrayIncludes(plumbingTypes, 'water supply', 'clean water') || false,
-      'plumbing-Unsanitarywater-1': bi.plumbingWaterDiscoloration || bi.plumbingUnsanitarywater || arrayIncludes(plumbingTypes, 'unsanitary') || false,
-      // Additional plumbing mappings needed for UI
-      'plumbing-Cloggedtoilets-1': bi.plumbingToiletNotWorking || bi.plumbingCloggedtoilets || arrayIncludes(plumbingTypes, 'clogged toilets') || false,
+      // UI uses exact label text without spaces as ID (1:1 field names checked first)
+      'plumbing-Sewagecomingout-1': bi.plumbingSewagecomingout || bi.plumbingSewerBackup || arrayIncludes(plumbingTypes, 'sewage', 'sewage coming out') || false,
+      'plumbing-Nohotwater-1': bi.plumbingNohotwater || bi.plumbingNoHotWater || arrayIncludes(plumbingTypes, 'hot water', 'no hot water') || false,
+      'plumbing-Nocoldwater-1': bi.plumbingNocoldwater || bi.plumbingNoWater || arrayIncludes(plumbingTypes, 'cold water', 'no cold water') || false,
+      'plumbing-NoCleanWaterSupply-1': bi.plumbingNoCleanWaterSupply || bi.plumbingWaterDiscoloration || arrayIncludes(plumbingTypes, 'water supply', 'clean water') || false,
+      'plumbing-Unsanitarywater-1': bi.plumbingUnsanitarywater || bi.plumbingWaterDiscoloration || arrayIncludes(plumbingTypes, 'unsanitary') || false,
+      // Additional plumbing mappings needed for UI (1:1 field names checked first)
+      'plumbing-Cloggedtoilets-1': bi.plumbingCloggedtoilets || bi.plumbingToiletNotWorking || arrayIncludes(plumbingTypes, 'clogged toilets') || false,
       'plumbing-Bath-1': bi.plumbingBath || arrayIncludes(plumbingTypes, 'bath') || false,
       'plumbing-Cloggedbath-1': bi.plumbingCloggedbath || arrayIncludes(plumbingTypes, 'clogged bath') || false,
       'plumbing-Cloggedshower-1': bi.plumbingCloggedshower || arrayIncludes(plumbingTypes, 'clogged shower') || false,
       'plumbing-Cloggedsinks-1': bi.plumbingCloggedsinks || arrayIncludes(plumbingTypes, 'clogged sinks') || false,
-      'plumbing-Insufficientwaterpressure-1': bi.plumbingLowPressure || bi.plumbingInsufficientwaterpressure || arrayIncludes(plumbingTypes, 'insufficient water pressure', 'water pressure') || false,
+      'plumbing-Insufficientwaterpressure-1': bi.plumbingInsufficientwaterpressure || bi.plumbingLowPressure || arrayIncludes(plumbingTypes, 'insufficient water pressure', 'water pressure') || false,
 
       // ===== PEST/VERMIN ISSUES =====
       // Supports BOTH boolean format (pestRats) AND array format (verminTypes: ["Rats / Mice"])
+      // 1:1 field names: pestRatsMice, pestSkunks, pestBats, pestRaccoons, pestPigeons, pestOpossums
       'vermin-RatsMice-1':
-        bi.pestRats || bi.pestMice || bi.pestRodents ||
+        bi.pestRatsMice || bi.pestRats || bi.pestMice || bi.pestRodents ||
         arrayIncludes(verminTypes, 'rats', 'mice', 'rodent') ||
         false,
       'vermin-Bats-1': bi.pestBats || arrayIncludes(verminTypes, 'bats') || false,
-      'vermin-Pigeons-1': bi.pestBirds || arrayIncludes(verminTypes, 'pigeons', 'birds') || false,
+      'vermin-Pigeons-1': bi.pestPigeons || bi.pestBirds || arrayIncludes(verminTypes, 'pigeons', 'birds') || false,
       'vermin-Skunks-1': bi.pestSkunks || arrayIncludes(verminTypes, 'skunks') || false,
       'vermin-Raccoons-1': bi.pestRaccoons || arrayIncludes(verminTypes, 'raccoons') || false,
       'vermin-Opossums-1': bi.pestOpossums || arrayIncludes(verminTypes, 'opossums') || false,
 
       // ===== INSECT ISSUES =====
       // Supports BOTH boolean format (pestAnts) AND array format (insectTypes: ["Ants"])
+      // 1:1 field names: pestAnts, pestRoaches, pestFlies, pestBedbugs, pestWasps, pestHornets, pestSpiders, pestTermites, pestMosquitos, pestBees
       'insect-Ants-1': bi.pestAnts || arrayIncludes(insectTypes, 'ants') || false,
       'insect-Bedbugs-1':
         bi.pestBedbugs || bi.pestBedBugs ||
@@ -1284,7 +1160,7 @@ router.get('/:id/doc-gen-format', async (req, res) => {
         false,
       'insect-Spiders-1': bi.pestSpiders || arrayIncludes(insectTypes, 'spiders') || false,
       'insect-Mosquitos-1': bi.pestMosquitos || arrayIncludes(insectTypes, 'mosquitos', 'mosquitoes') || false,
-      'insect-Roaches-1': bi.pestCockroaches || arrayIncludes(insectTypes, 'roaches', 'cockroaches') || false,
+      'insect-Roaches-1': bi.pestRoaches || bi.pestCockroaches || arrayIncludes(insectTypes, 'roaches', 'cockroaches') || false,
       'insect-Wasps-1': bi.pestWasps || arrayIncludes(insectTypes, 'wasps') || false,
       'insect-Termites-1': bi.pestTermites || arrayIncludes(insectTypes, 'termites') || false,
       'insect-Bees-1': bi.pestBees || arrayIncludes(insectTypes, 'bees') || false,
@@ -1293,33 +1169,37 @@ router.get('/:id/doc-gen-format', async (req, res) => {
 
       // ===== ELECTRICAL ISSUES =====
       // Supports BOTH boolean format AND array format (electricalTypes: ["Outlets"])
-      'electrical-Outlets-1': bi.electricalBrokenOutlets || bi.electricalSparkingOutlets || bi.electricalInsufficientOutlets || arrayIncludes(electricalTypes, 'outlets') || false,
-      'electrical-WallSwitches-1': bi.electricalBrokenSwitches || arrayIncludes(electricalTypes, 'wall switches', 'switches') || false,
-      'electrical-InteriorLighting-1': bi.electricalFlickeringLights || bi.electricalNoPower || arrayIncludes(electricalTypes, 'interior lighting', 'lighting') || false,
-      'electrical-Fans-1': bi.electricalBrokenFans || arrayIncludes(electricalTypes, 'fans') || false,
+      // 1:1 field names: electricalOutlets, electricalPanel, electricalWallSwitches, electricalExteriorLighting, electricalInteriorLighting, electricalLightFixtures, electricalFans
+      'electrical-Outlets-1': bi.electricalOutlets || bi.electricalBrokenOutlets || bi.electricalSparkingOutlets || bi.electricalInsufficientOutlets || arrayIncludes(electricalTypes, 'outlets') || false,
+      'electrical-WallSwitches-1': bi.electricalWallSwitches || bi.electricalBrokenSwitches || arrayIncludes(electricalTypes, 'wall switches', 'switches') || false,
+      'electrical-InteriorLighting-1': bi.electricalInteriorLighting || bi.electricalFlickeringLights || bi.electricalNoPower || arrayIncludes(electricalTypes, 'interior lighting', 'lighting') || false,
+      'electrical-Fans-1': bi.electricalFans || bi.electricalBrokenFans || arrayIncludes(electricalTypes, 'fans') || false,
       'electrical-ExteriorLighting-1': bi.electricalExteriorLighting || arrayIncludes(electricalTypes, 'exterior lighting') || false,
-      'electrical-LightFixtures-1': bi.electricalBrokenLightFixtures || arrayIncludes(electricalTypes, 'light fixtures', 'fixtures') || false,
-      'electrical-Panel-1': bi.electricalCircuitBreakerIssues || bi.electricalPartialOutages || bi.electricalExposedWiring || arrayIncludes(electricalTypes, 'panel') || false,
+      'electrical-LightFixtures-1': bi.electricalLightFixtures || bi.electricalBrokenLightFixtures || arrayIncludes(electricalTypes, 'light fixtures', 'fixtures') || false,
+      'electrical-Panel-1': bi.electricalPanel || bi.electricalCircuitBreakerIssues || bi.electricalPartialOutages || bi.electricalExposedWiring || arrayIncludes(electricalTypes, 'panel') || false,
 
       // ===== HVAC ISSUES =====
       // Supports BOTH boolean format AND array format (hvacTypes: ["Heater", "Air Conditioner"])
-      'hvac-AirConditioner-1': bi.hvacNoAirConditioning || bi.hvacInadequateCooling || arrayIncludes(hvacTypes, 'air conditioner', 'ac', 'cooling') || false,
-      'hvac-Heater-1': bi.hvacNoHeat || bi.hvacInadequateHeat || arrayIncludes(hvacTypes, 'heater', 'heat') || false,
-      'hvac-Ventilation-1': bi.hvacVentilationPoor || arrayIncludes(hvacTypes, 'ventilation') || false,
+      // 1:1 field names: hvacAirConditioner, hvacHeater, hvacVentilation
+      'hvac-AirConditioner-1': bi.hvacAirConditioner || bi.hvacNoAirConditioning || bi.hvacInadequateCooling || arrayIncludes(hvacTypes, 'air conditioner', 'ac', 'cooling') || false,
+      'hvac-Heater-1': bi.hvacHeater || bi.hvacNoHeat || bi.hvacInadequateHeat || arrayIncludes(hvacTypes, 'heater', 'heat') || false,
+      'hvac-Ventilation-1': bi.hvacVentilation || bi.hvacVentilationPoor || arrayIncludes(hvacTypes, 'ventilation') || false,
 
       // ===== HEALTH HAZARD ISSUES (10 items) =====
       // Supports BOTH boolean format AND array format (healthHazardTypes: ["Mold", "Mildew"])
+      // 1:1 field names: healthHazardMold, healthHazardMildew, healthHazardMushrooms, healthHazardRawsewageonexterior,
+      // healthHazardNoxiousfumes, healthHazardChemicalpaintcontamination, healthHazardToxicwaterpollution, healthHazardOffensiveodors
       'health-hazard-Mold-1': bi.healthHazardMold || arrayIncludes(healthHazardTypes, 'mold') || false,
       'health-hazard-Mildew-1': bi.healthHazardMildew || arrayIncludes(healthHazardTypes, 'mildew') || false,
       'health-hazard-LeadPaint-1': bi.healthHazardLeadPaint || arrayIncludes(healthHazardTypes, 'lead paint', 'lead') || false,
       'health-hazard-Asbestos-1': bi.healthHazardAsbestos || arrayIncludes(healthHazardTypes, 'asbestos') || false,
-      'health-hazard-SewageBackup-1': bi.healthHazardSewageBackup || bi.plumbingSewerBackup || arrayIncludes(healthHazardTypes, 'sewage', 'sewer') || false,
-      'health-hazard-WaterDamage-1': bi.healthHazardWaterDamage || arrayIncludes(healthHazardTypes, 'water damage') || false,
+      'health-hazard-SewageBackup-1': bi.healthHazardRawsewageonexterior || bi.healthHazardSewageBackup || bi.plumbingSewerBackup || arrayIncludes(healthHazardTypes, 'sewage', 'sewer') || false,
+      'health-hazard-WaterDamage-1': bi.healthHazardToxicwaterpollution || bi.healthHazardWaterDamage || arrayIncludes(healthHazardTypes, 'water damage') || false,
       'health-hazard-Flooding-1': bi.healthHazardFlooding || arrayIncludes(healthHazardTypes, 'flooding') || false,
-      'health-hazard-GasLeak-1': bi.healthHazardGasLeak || bi.hvacGasSmell || arrayIncludes(healthHazardTypes, 'gas leak', 'gas') || false,
+      'health-hazard-GasLeak-1': bi.healthHazardNoxiousfumes || bi.healthHazardGasLeak || bi.hvacGasSmell || arrayIncludes(healthHazardTypes, 'gas leak', 'gas') || false,
       'health-hazard-CarbonMonoxide-1': bi.healthHazardCarbonMonoxide || arrayIncludes(healthHazardTypes, 'carbon monoxide') || false,
-      'health-hazard-AirQuality-1': bi.healthHazardAirQuality || arrayIncludes(healthHazardTypes, 'air quality') || false,
-      // UI uses label-based IDs - add mappings for all UI checkboxes
+      'health-hazard-AirQuality-1': bi.healthHazardOffensiveodors || bi.healthHazardAirQuality || arrayIncludes(healthHazardTypes, 'air quality') || false,
+      // UI uses label-based IDs - add mappings for all UI checkboxes (1:1 field names checked first)
       'health-hazard-Mushrooms-1': bi.healthHazardMushrooms || arrayIncludes(healthHazardTypes, 'mushrooms') || false,
       'health-hazard-Noxiousfumes-1': bi.healthHazardNoxiousfumes || arrayIncludes(healthHazardTypes, 'noxious fumes', 'fumes') || false,
       'health-hazard-Toxicwaterpollution-1': bi.healthHazardToxicwaterpollution || arrayIncludes(healthHazardTypes, 'toxic water', 'water pollution') || false,
@@ -1348,25 +1228,26 @@ router.get('/:id/doc-gen-format', async (req, res) => {
 
       // ===== APPLIANCE ISSUES (7 items) =====
       // Supports BOTH boolean format AND array format (applianceTypes: ["Stove", "Refrigerator"])
-      // Field names use "Broken" suffix in storage (applianceRefrigeratorBroken, etc.)
-      'appliances-Refrigerator-1': bi.applianceRefrigeratorBroken || bi.applianceRefrigerator || arrayIncludes(applianceTypes, 'refrigerator', 'fridge') || false,
-      'appliances-Stove-1': bi.applianceStoveBroken || bi.applianceStove || arrayIncludes(applianceTypes, 'stove') || false,
-      'appliances-Oven-1': bi.applianceOvenBroken || bi.applianceOven || arrayIncludes(applianceTypes, 'oven') || false,
-      'appliances-Dishwasher-1': bi.applianceDishwasherBroken || bi.applianceDishwasher || arrayIncludes(applianceTypes, 'dishwasher') || false,
-      'appliances-Garbagedisposal-1': bi.applianceGarbageDisposalBroken || bi.applianceGarbagedisposal || arrayIncludes(applianceTypes, 'garbage disposal', 'disposal') || false,
-      'appliances-Microwave-1': bi.applianceOther || bi.applianceMicrowave || arrayIncludes(applianceTypes, 'microwave') || false,
-      'appliances-Washerdryer-1': bi.applianceWasherBroken || bi.applianceDryerBroken || bi.applianceWasherdryer || arrayIncludes(applianceTypes, 'washer', 'dryer') || false,
+      // 1:1 field names: applianceStove, applianceDishwasher, applianceWasherdryer, applianceOven, applianceMicrowave, applianceGarbagedisposal, applianceRefrigerator
+      'appliances-Refrigerator-1': bi.applianceRefrigerator || bi.applianceRefrigeratorBroken || arrayIncludes(applianceTypes, 'refrigerator', 'fridge') || false,
+      'appliances-Stove-1': bi.applianceStove || bi.applianceStoveBroken || arrayIncludes(applianceTypes, 'stove') || false,
+      'appliances-Oven-1': bi.applianceOven || bi.applianceOvenBroken || arrayIncludes(applianceTypes, 'oven') || false,
+      'appliances-Dishwasher-1': bi.applianceDishwasher || bi.applianceDishwasherBroken || arrayIncludes(applianceTypes, 'dishwasher') || false,
+      'appliances-Garbagedisposal-1': bi.applianceGarbagedisposal || bi.applianceGarbageDisposalBroken || arrayIncludes(applianceTypes, 'garbage disposal', 'disposal') || false,
+      'appliances-Microwave-1': bi.applianceMicrowave || bi.applianceOther || arrayIncludes(applianceTypes, 'microwave') || false,
+      'appliances-Washerdryer-1': bi.applianceWasherdryer || bi.applianceWasherBroken || bi.applianceDryerBroken || arrayIncludes(applianceTypes, 'washer', 'dryer') || false,
 
       // ===== FLOORING ISSUES (7 items) =====
       // Supports BOTH boolean format AND array format (flooringTypes: ["Carpet", "Tiles"])
-      'flooring-Carpet-1': bi.flooringCarpetDamaged || bi.flooringDamaged || arrayIncludes(flooringTypes, 'carpet') || false,
-      'flooring-Tiles-1': bi.flooringTileBroken || arrayIncludes(flooringTypes, 'tile', 'tiles') || false,
-      'flooring-Hardwood-1': bi.flooringHardwoodDamaged || arrayIncludes(flooringTypes, 'hardwood') || false,
-      'flooring-Linoleum-1': bi.flooringLinoleumDamaged || arrayIncludes(flooringTypes, 'linoleum') || false,
+      // 1:1 field names: flooringUneven, flooringCarpet, flooringNailsstickingout, flooringTiles, flooringHardwood, flooringLinoleum, flooringDamage, flooringSubfloor
+      'flooring-Carpet-1': bi.flooringCarpet || bi.flooringCarpetDamaged || bi.flooringDamaged || arrayIncludes(flooringTypes, 'carpet') || false,
+      'flooring-Tiles-1': bi.flooringTiles || bi.flooringTileBroken || arrayIncludes(flooringTypes, 'tile', 'tiles') || false,
+      'flooring-Hardwood-1': bi.flooringHardwood || bi.flooringHardwoodDamaged || arrayIncludes(flooringTypes, 'hardwood') || false,
+      'flooring-Linoleum-1': bi.flooringLinoleum || bi.flooringLinoleumDamaged || arrayIncludes(flooringTypes, 'linoleum') || false,
       'flooring-Uneven-1': bi.flooringUneven || arrayIncludes(flooringTypes, 'uneven') || false,
       'flooring-Nailsstickingout-1': bi.flooringNailsstickingout || arrayIncludes(flooringTypes, 'nails', 'nails sticking out') || false,
-      'flooring-Damage-1': bi.flooringDamaged || arrayIncludes(flooringTypes, 'damage', 'damaged') || false,
-      'flooring-Subfloor-1': bi.flooringSubfloorDamaged || arrayIncludes(flooringTypes, 'subfloor') || false,
+      'flooring-Damage-1': bi.flooringDamage || bi.flooringDamaged || arrayIncludes(flooringTypes, 'damage', 'damaged') || false,
+      'flooring-Subfloor-1': bi.flooringSubfloor || bi.flooringSubfloorDamaged || arrayIncludes(flooringTypes, 'subfloor') || false,
 
       // ===== CABINET ISSUES (3 items) =====
       // Supports BOTH boolean format AND array format (cabinetTypes: ["Broken", "Hinges", "Alignment"])
@@ -1376,19 +1257,20 @@ router.get('/:id/doc-gen-format', async (req, res) => {
 
       // ===== DOOR ISSUES (5 items) =====
       // Supports BOTH boolean format AND array format (doorTypes: ["Broken", "Locks"])
-      'door-Entry-1': bi.doorEntryDamaged || bi.doorBroken || arrayIncludes(doorTypes, 'entry', 'front door') || false,
+      // 1:1 field names: doorBroken, doorKnobs, doorLocks, doorBrokenhinges, doorSlidingglassdoors, doorIneffectivewaterproofing, doorWaterintrusionandorinsects, doorDonotcloseproperly
+      'door-Entry-1': bi.doorBroken || bi.doorEntryDamaged || arrayIncludes(doorTypes, 'entry', 'front door') || false,
       'door-Interior-1': bi.doorInteriorDamaged || bi.doorDamaged || arrayIncludes(doorTypes, 'interior') || false,
-      'door-Locks-1': bi.doorNoLock || bi.securityBrokenLocks || arrayIncludes(doorTypes, 'locks', 'lock') || false,
-      'door-Frames-1': bi.doorFramesDamaged || arrayIncludes(doorTypes, 'frames', 'hinges') || false,
-      'door-Threshold-1': bi.doorThresholdDamaged || arrayIncludes(doorTypes, 'threshold', 'close properly') || false,
-      // Additional door mappings from intake form
+      'door-Locks-1': bi.doorLocks || bi.doorNoLock || bi.securityBrokenLocks || arrayIncludes(doorTypes, 'locks', 'lock') || false,
+      'door-Frames-1': bi.doorBrokenhinges || bi.doorFramesDamaged || arrayIncludes(doorTypes, 'frames', 'hinges') || false,
+      'door-Threshold-1': bi.doorDonotcloseproperly || bi.doorThresholdDamaged || arrayIncludes(doorTypes, 'threshold', 'close properly') || false,
+      // Additional door mappings from intake form (1:1 field names checked first)
       'door-Broken-1': bi.doorBroken || arrayIncludes(doorTypes, 'broken') || false,
-      'door-Brokenhinges-1': bi.doorDamaged || arrayIncludes(doorTypes, 'broken hinges', 'hinges') || false,
-      'door-Donotcloseproperly-1': bi.doorWontClose || arrayIncludes(doorTypes, 'do not close', 'close properly') || false,
-      'door-Waterintrusionandorinsects-1': bi.doorWaterIntrusion || arrayIncludes(doorTypes, 'water intrusion', 'insects') || false,
+      'door-Brokenhinges-1': bi.doorBrokenhinges || bi.doorDamaged || arrayIncludes(doorTypes, 'broken hinges', 'hinges') || false,
+      'door-Donotcloseproperly-1': bi.doorDonotcloseproperly || bi.doorWontClose || arrayIncludes(doorTypes, 'do not close', 'close properly') || false,
+      'door-Waterintrusionandorinsects-1': bi.doorWaterintrusionandorinsects || bi.doorWaterIntrusion || arrayIncludes(doorTypes, 'water intrusion', 'insects') || false,
       'door-Knobs-1': bi.doorKnobs || arrayIncludes(doorTypes, 'knobs') || false,
-      'door-Slidingglassdoors-1': bi.doorSlidingGlass || arrayIncludes(doorTypes, 'sliding glass', 'sliding') || false,
-      'door-Ineffectivewaterproofing-1': bi.doorWaterproofing || arrayIncludes(doorTypes, 'waterproofing', 'ineffective waterproofing') || false,
+      'door-Slidingglassdoors-1': bi.doorSlidingglassdoors || bi.doorSlidingGlass || arrayIncludes(doorTypes, 'sliding glass', 'sliding') || false,
+      'door-Ineffectivewaterproofing-1': bi.doorIneffectivewaterproofing || bi.doorWaterproofing || arrayIncludes(doorTypes, 'waterproofing', 'ineffective waterproofing') || false,
 
       // ===== WINDOW ISSUES (6 items) =====
       // Supports BOTH boolean format AND array format (windowTypes: ["Broken", "Leaks", "Do not lock"])
@@ -1402,17 +1284,17 @@ router.get('/:id/doc-gen-format', async (req, res) => {
 
       // ===== FIRE HAZARD ISSUES (5 items) =====
       // Supports BOTH boolean format AND array format (fireHazardTypes: ["Smoke Alarms", "Carbon monoxide detectors"])
-      'fire-hazard-SmokeDetectors-1': bi.fireHazardNoSmokeDetectors || bi.fireHazardBrokenSmokeDetectors || bi.securityNoSmokeDetector || arrayIncludes(fireHazardTypes, 'smoke alarms', 'smoke detectors') || false,
-      'fire-hazard-CarbonMonoxideDetector-1': bi.hvacCarbonMonoxideDetectorMissing || arrayIncludes(fireHazardTypes, 'carbon monoxide') || false,
-      'fire-hazard-FireExtinguisher-1': bi.fireHazardNoFireExtinguisher || arrayIncludes(fireHazardTypes, 'fire extinguisher') || false,
+      // 1:1 field names: fireHazardSmokeAlarms, fireHazardFireExtinguisher, fireHazardNoncompliantelectricity, fireHazardNonGFIoutletsnearwater, fireHazardCarbonmonoxidedetectors
+      'fire-hazard-SmokeDetectors-1': bi.fireHazardSmokeAlarms || bi.fireHazardNoSmokeDetectors || bi.fireHazardBrokenSmokeDetectors || bi.securityNoSmokeDetector || arrayIncludes(fireHazardTypes, 'smoke alarms', 'smoke detectors') || false,
+      'fire-hazard-CarbonMonoxideDetector-1': bi.fireHazardCarbonmonoxidedetectors || bi.hvacCarbonMonoxideDetectorMissing || arrayIncludes(fireHazardTypes, 'carbon monoxide') || false,
+      'fire-hazard-FireExtinguisher-1': bi.fireHazardFireExtinguisher || bi.fireHazardNoFireExtinguisher || arrayIncludes(fireHazardTypes, 'fire extinguisher') || false,
       'fire-hazard-EmergencyExits-1': bi.fireHazardBlockedExits || arrayIncludes(fireHazardTypes, 'emergency exits', 'exit') || false,
       'fire-hazard-Uneffective-1': bi.fireHazardIneffective || arrayIncludes(fireHazardTypes, 'non-compliant', 'non compliant') || false,
-      // Additional fire hazard mappings from doc-gen form
-      'fire-hazard-SmokeAlarms-1': bi.fireHazardNoSmokeDetectors || bi.fireHazardBrokenSmokeDetectors || arrayIncludes(fireHazardTypes, 'smoke alarms') || false,
-      'fire-hazard-Noncompliantelectricity-1': bi.fireHazardExposedWiring || arrayIncludes(fireHazardTypes, 'non-compliant electricity', 'wiring') || false,
-      'fire-hazard-Carbonmonoxidedetectors-1': bi.hvacCarbonMonoxideDetectorMissing || arrayIncludes(fireHazardTypes, 'carbon monoxide detectors') || false,
-      'fire-hazard-FireExtinguisher-1': bi.fireHazardNoFireExtinguisher || arrayIncludes(fireHazardTypes, 'fire extinguisher') || false,
-      'fire-hazard-NonGFIoutletsnearwater-1': bi.fireHazardIneffective || arrayIncludes(fireHazardTypes, 'non-gfi', 'gfi outlets') || false,
+      // Additional fire hazard mappings from doc-gen form (1:1 field names checked first)
+      'fire-hazard-SmokeAlarms-1': bi.fireHazardSmokeAlarms || bi.fireHazardNoSmokeDetectors || bi.fireHazardBrokenSmokeDetectors || arrayIncludes(fireHazardTypes, 'smoke alarms') || false,
+      'fire-hazard-Noncompliantelectricity-1': bi.fireHazardNoncompliantelectricity || bi.fireHazardExposedWiring || arrayIncludes(fireHazardTypes, 'non-compliant electricity', 'wiring') || false,
+      'fire-hazard-Carbonmonoxidedetectors-1': bi.fireHazardCarbonmonoxidedetectors || bi.hvacCarbonMonoxideDetectorMissing || arrayIncludes(fireHazardTypes, 'carbon monoxide detectors') || false,
+      'fire-hazard-NonGFIoutletsnearwater-1': bi.fireHazardNonGFIoutletsnearwater || bi.fireHazardIneffective || arrayIncludes(fireHazardTypes, 'non-gfi', 'gfi outlets') || false,
 
       // ===== GOVERNMENT ENTITIES CONTACTED (7 items) =====
       // Field names must match index.html generateIssueCategories() exactly (line 5275)
@@ -1435,55 +1317,58 @@ router.get('/:id/doc-gen-format', async (req, res) => {
 
       // ===== NUISANCE ISSUES (8 items) =====
       // Supports BOTH boolean format AND array format (nuisanceTypes: ["Noisy neighbors", "Drugs"])
-      'nuisance-Noise-1': bi.nuisanceNoise || arrayIncludes(nuisanceTypes, 'noisy neighbors', 'noise') || false,
+      // 1:1 field names: nuisanceDrugs, nuisanceSmoking, nuisanceNoisyneighbors, nuisanceGangs
+      'nuisance-Noise-1': bi.nuisanceNoisyneighbors || bi.nuisanceNoise || arrayIncludes(nuisanceTypes, 'noisy neighbors', 'noise') || false,
       'nuisance-Odors-1': bi.nuisanceSmell || arrayIncludes(nuisanceTypes, 'odors', 'smell') || false,
       'nuisance-Pests-1': bi.nuisancePests || arrayIncludes(nuisanceTypes, 'pests') || false,
       'nuisance-Vibrations-1': bi.nuisanceVibrations || arrayIncludes(nuisanceTypes, 'vibrations') || false,
-      'nuisance-Smoke-1': bi.nuisanceSmoke || arrayIncludes(nuisanceTypes, 'smoke', 'smoking') || false,
+      'nuisance-Smoke-1': bi.nuisanceSmoking || bi.nuisanceSmoke || arrayIncludes(nuisanceTypes, 'smoke', 'smoking') || false,
       'nuisance-Light-1': bi.nuisanceLight || arrayIncludes(nuisanceTypes, 'light') || false,
       'nuisance-Privacy-1': bi.nuisancePrivacy || arrayIncludes(nuisanceTypes, 'privacy') || false,
       'nuisance-Access-1': bi.nuisanceAccess || arrayIncludes(nuisanceTypes, 'access') || false,
-      // Additional nuisance mappings from doc-gen form
-      'nuisance-Drugs-1': bi.nuisanceOther || arrayIncludes(nuisanceTypes, 'drugs') || false,
-      'nuisance-Smoking-1': bi.nuisanceSmoke || arrayIncludes(nuisanceTypes, 'smoking') || false,
-      'nuisance-Noisyneighbors-1': bi.nuisanceNoise || arrayIncludes(nuisanceTypes, 'noisy neighbors') || false,
-      'nuisance-Gangs-1': bi.nuisanceOther || arrayIncludes(nuisanceTypes, 'gangs') || false,
+      // Additional nuisance mappings from doc-gen form (1:1 field names checked first)
+      'nuisance-Drugs-1': bi.nuisanceDrugs || bi.nuisanceOther || arrayIncludes(nuisanceTypes, 'drugs') || false,
+      'nuisance-Smoking-1': bi.nuisanceSmoking || bi.nuisanceSmoke || arrayIncludes(nuisanceTypes, 'smoking') || false,
+      'nuisance-Noisyneighbors-1': bi.nuisanceNoisyneighbors || bi.nuisanceNoise || arrayIncludes(nuisanceTypes, 'noisy neighbors') || false,
+      'nuisance-Gangs-1': bi.nuisanceGangs || bi.nuisanceOther || arrayIncludes(nuisanceTypes, 'gangs') || false,
 
       // ===== TRASH ISSUES (5 items) =====
       // Supports BOTH boolean format AND array format (trashTypes: ["Collection", "Bins", "Overflowing"])
-      'trash-Collection-1': bi.trashNotCollected || bi.commonAreaGarbageNotCollected || arrayIncludes(trashTypes, 'collection') || false,
-      'trash-Bins-1': bi.trashBinsBroken || arrayIncludes(trashTypes, 'bins') || false,
+      // 1:1 field names: trashInadequatenumberofreceptacles, trashImproperservicingemptying
+      'trash-Collection-1': bi.trashImproperservicingemptying || bi.trashNotCollected || bi.commonAreaGarbageNotCollected || arrayIncludes(trashTypes, 'collection') || false,
+      'trash-Bins-1': bi.trashInadequatenumberofreceptacles || bi.trashBinsBroken || arrayIncludes(trashTypes, 'bins') || false,
       'trash-Disposal-1': bi.trashDisposalBroken || arrayIncludes(trashTypes, 'disposal') || false,
-      'trash-Overflowing-1': bi.trashOverflowing || arrayIncludes(trashTypes, 'overflowing') || false,
+      'trash-Overflowing-1': bi.trashInadequatenumberofreceptacles || bi.trashOverflowing || arrayIncludes(trashTypes, 'overflowing') || false,
       'trash-Pests-1': bi.trashPests || arrayIncludes(trashTypes, 'pests') || false,
-      // Additional trash mappings from doc-gen form
-      'trash-Inadequatenumberofreceptacles-1': bi.trashOverflowing || arrayIncludes(trashTypes, 'inadequate', 'receptacles') || false,
-      'trash-Improperservicingemptying-1': bi.trashNotCollected || arrayIncludes(trashTypes, 'improper', 'servicing', 'emptying') || false,
+      // Additional trash mappings from doc-gen form (1:1 field names checked first)
+      'trash-Inadequatenumberofreceptacles-1': bi.trashInadequatenumberofreceptacles || bi.trashOverflowing || arrayIncludes(trashTypes, 'inadequate', 'receptacles') || false,
+      'trash-Improperservicingemptying-1': bi.trashImproperservicingemptying || bi.trashNotCollected || arrayIncludes(trashTypes, 'improper', 'servicing', 'emptying') || false,
 
       // ===== COMMON AREA ISSUES (9 items) =====
       // Supports BOTH boolean format AND array format (commonAreaTypes: ["Mailbox broken", "Elevator"])
+      // 1:1 field names: commonAreaMailboxbroken, commonAreaElevator, commonAreaLaundryroom, etc.
       'common-areas-Hallways-1': bi.commonAreaHallwayDirty || arrayIncludes(commonAreaTypes, 'hallway') || false,
       'common-areas-Stairwells-1': bi.commonAreaStairsDamaged || arrayIncludes(commonAreaTypes, 'stairwell', 'stairs') || false,
-      'common-areas-Elevators-1': bi.commonAreaElevatorBroken || arrayIncludes(commonAreaTypes, 'elevator') || false,
-      'common-areas-Laundry-1': bi.commonAreaLaundryBroken || arrayIncludes(commonAreaTypes, 'laundry') || false,
-      'common-areas-Parking-1': bi.commonAreaParkingIssue || arrayIncludes(commonAreaTypes, 'parking') || false,
-      'common-areas-Mailboxes-1': bi.commonAreaMailboxBroken || arrayIncludes(commonAreaTypes, 'mailbox') || false,
+      'common-areas-Elevators-1': bi.commonAreaElevator || bi.commonAreaElevatorBroken || arrayIncludes(commonAreaTypes, 'elevator') || false,
+      'common-areas-Laundry-1': bi.commonAreaLaundryroom || bi.commonAreaLaundryBroken || arrayIncludes(commonAreaTypes, 'laundry') || false,
+      'common-areas-Parking-1': bi.commonAreaParkingareaissues || bi.commonAreaParkingIssue || arrayIncludes(commonAreaTypes, 'parking') || false,
+      'common-areas-Mailboxes-1': bi.commonAreaMailboxbroken || bi.commonAreaMailboxBroken || arrayIncludes(commonAreaTypes, 'mailbox') || false,
       'common-areas-Lighting-1': bi.commonAreaLightingBroken || arrayIncludes(commonAreaTypes, 'lighting') || false,
-      'common-areas-Cleanliness-1': bi.commonAreaDirty || arrayIncludes(commonAreaTypes, 'filth', 'rubbish', 'garbage') || false,
-      'common-areas-Security-1': bi.commonAreaNoSecurity || bi.commonAreaDoorsUnlocked || arrayIncludes(commonAreaTypes, 'security', 'gate') || false,
-      // Additional common area mappings from doc-gen form
-      'common-areas-Mailboxbroken-1': bi.commonAreaMailboxBroken || arrayIncludes(commonAreaTypes, 'mailbox broken') || false,
-      'common-areas-Elevator-1': bi.commonAreaElevatorBroken || arrayIncludes(commonAreaTypes, 'elevator') || false,
-      'common-areas-Laundryroom-1': bi.commonAreaLaundryBroken || arrayIncludes(commonAreaTypes, 'laundry room') || false,
-      'common-areas-FilthRubbishGarbage-1': bi.commonAreaDirty || bi.commonAreaGarbageNotCollected || arrayIncludes(commonAreaTypes, 'filth', 'rubbish', 'garbage') || false,
+      'common-areas-Cleanliness-1': bi.commonAreaFilthRubbishGarbage || bi.commonAreaDirty || arrayIncludes(commonAreaTypes, 'filth', 'rubbish', 'garbage') || false,
+      'common-areas-Security-1': bi.commonAreaBrokenGate || bi.commonAreaNoSecurity || bi.commonAreaDoorsUnlocked || arrayIncludes(commonAreaTypes, 'security', 'gate') || false,
+      // Additional common area mappings from doc-gen form (1:1 field names checked first)
+      'common-areas-Mailboxbroken-1': bi.commonAreaMailboxbroken || bi.commonAreaMailboxBroken || arrayIncludes(commonAreaTypes, 'mailbox broken') || false,
+      'common-areas-Elevator-1': bi.commonAreaElevator || bi.commonAreaElevatorBroken || arrayIncludes(commonAreaTypes, 'elevator') || false,
+      'common-areas-Laundryroom-1': bi.commonAreaLaundryroom || bi.commonAreaLaundryBroken || arrayIncludes(commonAreaTypes, 'laundry room') || false,
+      'common-areas-FilthRubbishGarbage-1': bi.commonAreaFilthRubbishGarbage || bi.commonAreaDirty || bi.commonAreaGarbageNotCollected || arrayIncludes(commonAreaTypes, 'filth', 'rubbish', 'garbage') || false,
       'common-areas-Swimmingpool-1': bi.commonAreaSwimmingpool || bi.commonAreaOther || arrayIncludes(commonAreaTypes, 'swimming pool', 'pool') || false,
       'common-areas-Gym-1': bi.commonAreaGym || bi.commonAreaOther || arrayIncludes(commonAreaTypes, 'gym') || false,
       'common-areas-Jacuzzi-1': bi.commonAreaJacuzzi || bi.commonAreaOther || arrayIncludes(commonAreaTypes, 'jacuzzi') || false,
       'common-areas-Recreationroom-1': bi.commonAreaRecreationroom || bi.commonAreaOther || arrayIncludes(commonAreaTypes, 'recreation room', 'recreation') || false,
       'common-areas-BrokenGate-1': bi.commonAreaBrokenGate || bi.securityBrokenGate || arrayIncludes(commonAreaTypes, 'broken gate', 'gate') || false,
-      'common-areas-Parkingareaissues-1': bi.commonAreaParkingIssue || arrayIncludes(commonAreaTypes, 'parking area issues', 'parking') || false,
+      'common-areas-Parkingareaissues-1': bi.commonAreaParkingareaissues || bi.commonAreaParkingIssue || arrayIncludes(commonAreaTypes, 'parking area issues', 'parking') || false,
       'common-areas-Damagetocars-1': bi.commonAreaDamagetocars || bi.commonAreaParkingIssue || arrayIncludes(commonAreaTypes, 'damage to cars') || false,
-      'common-areas-Flooding-1': bi.commonAreaBasementFlooded || arrayIncludes(commonAreaTypes, 'flooding') || false,
+      'common-areas-Flooding-1': bi.commonAreaFlooding || bi.commonAreaBasementFlooded || arrayIncludes(commonAreaTypes, 'flooding') || false,
       'common-areas-Entrancesblocked-1': bi.commonAreaEntrancesblocked || bi.commonAreaDoorsUnlocked || arrayIncludes(commonAreaTypes, 'entrances blocked') || false,
       'common-areas-Blockedareasdoors-1': bi.commonAreaBlockedareasdoors || bi.commonAreaDoorsUnlocked || arrayIncludes(commonAreaTypes, 'blocked areas', 'blocked doors') || false,
       'common-areas-Vermin-1': bi.commonAreaVermin || bi.hasPestIssues || arrayIncludes(commonAreaTypes, 'vermin') || false,
@@ -1502,64 +1387,66 @@ router.get('/:id/doc-gen-format', async (req, res) => {
 
       // ===== UTILITY ISSUES (7 items) =====
       // Supports BOTH boolean format AND array format (utilityTypes: ["Water", "Gas", "Electric"])
-      'utility-Water-1': bi.utilityNoHotWater || bi.plumbingNoWater || arrayIncludes(utilityTypes, 'water') || false,
-      'utility-Gas-1': bi.utilityNoGas || arrayIncludes(utilityTypes, 'gas') || false,
-      'utility-Electric-1': bi.utilityNoElectricity || bi.electricalNoPower || arrayIncludes(utilityTypes, 'electric') || false,
+      // 1:1 field names: utilityGasleak, utilityWatershutoffs, utilityElectricityshutoffs, utilityHeatshutoff, utilityGasshutoff
+      'utility-Water-1': bi.utilityWatershutoffs || bi.utilityNoHotWater || bi.plumbingNoWater || arrayIncludes(utilityTypes, 'water') || false,
+      'utility-Gas-1': bi.utilityGasshutoff || bi.utilityNoGas || arrayIncludes(utilityTypes, 'gas') || false,
+      'utility-Electric-1': bi.utilityElectricityshutoffs || bi.utilityNoElectricity || bi.electricalNoPower || arrayIncludes(utilityTypes, 'electric') || false,
       'utility-Trash-1': bi.utilityTrashIssue || arrayIncludes(utilityTypes, 'trash') || false,
       'utility-Sewer-1': bi.utilitySewer || arrayIncludes(utilityTypes, 'sewer') || false,
       'utility-Internet-1': bi.utilityInternet || arrayIncludes(utilityTypes, 'internet') || false,
       'utility-Billing-1': bi.utilityBillingIssue || arrayIncludes(utilityTypes, 'billing') || false,
-      // Additional utility mappings for doc-gen form field names
+      // Additional utility mappings for doc-gen form field names (1:1 field names checked first)
       'utility-Gasleak-1': bi.utilityGasleak || bi.healthHazardGasLeak || arrayIncludes(utilityTypes, 'gas leak') || false,
-      'utility-Gasshutoff-1': bi.utilityNoGas || arrayIncludes(utilityTypes, 'gas shutoff', 'shutoff') || false,
-      'utility-Electricityshutoffs-1': bi.utilityNoElectricity || arrayIncludes(utilityTypes, 'electricity shutoff', 'shutoff') || false,
-      'utility-Watershutoffs-1': bi.plumbingNoWater || arrayIncludes(utilityTypes, 'water shutoff', 'shutoff') || false,
-      'utility-Heatshutoff-1': bi.hvacNoHeat || arrayIncludes(utilityTypes, 'heat shutoff', 'shutoff') || false,
+      'utility-Gasshutoff-1': bi.utilityGasshutoff || bi.utilityNoGas || arrayIncludes(utilityTypes, 'gas shutoff', 'shutoff') || false,
+      'utility-Electricityshutoffs-1': bi.utilityElectricityshutoffs || bi.utilityNoElectricity || arrayIncludes(utilityTypes, 'electricity shutoff', 'shutoff') || false,
+      'utility-Watershutoffs-1': bi.utilityWatershutoffs || bi.plumbingNoWater || arrayIncludes(utilityTypes, 'water shutoff', 'shutoff') || false,
+      'utility-Heatshutoff-1': bi.utilityHeatshutoff || bi.hvacNoHeat || arrayIncludes(utilityTypes, 'heat shutoff', 'shutoff') || false,
 
       // ===== SAFETY ISSUES (8 items) =====
       // Supports BOTH boolean format AND array format (safetyTypes: ["Railings", "Lighting", "Locks"])
+      // 1:1 field names use lowercase (safetyBrokeninoperablesecuritygate, safetyBrokendoors, etc.)
       'safety-Railings-1': bi.structuralRailingMissing || bi.safetyRailings || arrayIncludes(safetyTypes, 'railings') || false,
       'safety-Lighting-1': bi.securityInadequateLighting || bi.safetyLighting || arrayIncludes(safetyTypes, 'lighting') || false,
-      'safety-Locks-1': bi.securityBrokenLocks || bi.doorNoLock || arrayIncludes(safetyTypes, 'locks') || false,
+      'safety-Locks-1': bi.safetyInoperablelocks || bi.securityBrokenLocks || bi.doorNoLock || arrayIncludes(safetyTypes, 'locks') || false,
       'safety-Security-1': bi.securityNoSecurity || bi.safetySecurity || arrayIncludes(safetyTypes, 'security') || false,
-      'safety-Cameras-1': bi.securityNoCameras || bi.safetyCameras || arrayIncludes(safetyTypes, 'cameras') || false,
-      'safety-Gates-1': bi.securityBrokenGate || bi.safetyGates || arrayIncludes(safetyTypes, 'gates') || false,
+      'safety-Cameras-1': bi.safetySecuritycameras || bi.securityNoCameras || bi.safetyCameras || arrayIncludes(safetyTypes, 'cameras') || false,
+      'safety-Gates-1': bi.safetyBrokeninoperablesecuritygate || bi.securityBrokenGate || bi.safetyGates || arrayIncludes(safetyTypes, 'gates') || false,
       'safety-Fencing-1': bi.safetyFencing || arrayIncludes(safetyTypes, 'fencing') || false,
       'safety-Pool-1': bi.safetyPoolUnsafe || arrayIncludes(safetyTypes, 'pool') || false,
-      // Additional safety mappings for doc-gen form field names
-      'safety-Brokeninoperablesecuritygate-1': bi.securityBrokenGate || arrayIncludes(safetyTypes, 'security gate', 'gate', 'broken') || false,
-      'safety-Unauthorizedentries-1': bi.hasUnauthorizedIssues || arrayIncludes(safetyTypes, 'unauthorized') || false,
+      // Additional safety mappings for doc-gen form field names (1:1 field names checked first)
+      'safety-Brokeninoperablesecuritygate-1': bi.safetyBrokeninoperablesecuritygate || bi.securityBrokenGate || arrayIncludes(safetyTypes, 'security gate', 'gate', 'broken') || false,
+      'safety-Unauthorizedentries-1': bi.safetyUnauthorizedentries || bi.hasUnauthorizedIssues || arrayIncludes(safetyTypes, 'unauthorized') || false,
       'safety-Securitycameras-1': bi.safetySecuritycameras || bi.securityNoCameras || arrayIncludes(safetyTypes, 'security cameras', 'cameras') || false,
-      'safety-Brokendoors-1': bi.doorBroken || arrayIncludes(safetyTypes, 'broken doors', 'doors') || false,
+      'safety-Brokendoors-1': bi.safetyBrokendoors || bi.doorBroken || arrayIncludes(safetyTypes, 'broken doors', 'doors') || false,
       'safety-Brokenbuzzertogetin-1': bi.safetyBrokenbuzzertogetin || bi.commonAreaIntercomBroken || arrayIncludes(safetyTypes, 'buzzer') || false,
-      'safety-Inoperablelocks-1': bi.securityBrokenLocks || arrayIncludes(safetyTypes, 'inoperable locks', 'locks') || false,
+      'safety-Inoperablelocks-1': bi.safetyInoperablelocks || bi.securityBrokenLocks || arrayIncludes(safetyTypes, 'inoperable locks', 'locks') || false,
 
       // ===== HARASSMENT ISSUES (7 items) =====
       // Supports BOTH boolean format AND array format (harassmentTypes: ["Eviction threats", "Aggressive/inappropriate language"])
-      // Also supports stored field names like harassmentByOwner, harassmentByDefendant, etc.
-      'harassment-Verbal-1': bi.harassmentAggressiveLanguage || bi.harassmentVerbalAbuse || arrayIncludes(harassmentTypes, 'verbal', 'aggressive', 'inappropriate language') || false,
-      'harassment-Physical-1': bi.harassmentPhysicalThreats || arrayIncludes(harassmentTypes, 'physical') || false,
+      // Also supports stored field names like harassmentByowner, harassmentBydefendant, etc. (1:1 mapping uses lowercase)
+      'harassment-Verbal-1': bi.harassmentAggressiveinappropriatelanguage || bi.harassmentAggressiveLanguage || bi.harassmentVerbalAbuse || arrayIncludes(harassmentTypes, 'verbal', 'aggressive', 'inappropriate language') || false,
+      'harassment-Physical-1': bi.harassmentPhysicalthreatsortouching || bi.harassmentPhysicalThreats || arrayIncludes(harassmentTypes, 'physical') || false,
       'harassment-Sexual-1': bi.harassmentSexual || arrayIncludes(harassmentTypes, 'sexual') || false,
-      'harassment-Discrimination-1': bi.harassmentSinglingOut || bi.harassmentDiscrimination || arrayIncludes(harassmentTypes, 'discrimination') || false,
+      'harassment-Discrimination-1': bi.harassmentNoticessinglingoutonetenantbutnotuniformlygiventoalltenants || bi.harassmentSinglingOut || bi.harassmentDiscrimination || arrayIncludes(harassmentTypes, 'discrimination') || false,
       'harassment-Retaliation-1': bi.harassmentRetaliation || arrayIncludes(harassmentTypes, 'retaliation') || false,
       'harassment-Intimidation-1': bi.harassmentIntimidation || arrayIncludes(harassmentTypes, 'intimidation') || false,
-      'harassment-Threats-1': bi.harassmentEvictionThreats || bi.harassmentPhysicalThreats || bi.harassmentWrittenThreats || arrayIncludes(harassmentTypes, 'threats', 'eviction') || false,
-      // Additional harassment mappings from doc-gen form - check stored boolean fields
+      'harassment-Threats-1': bi.harassmentEvictionthreats || bi.harassmentEvictionThreats || bi.harassmentPhysicalthreatsortouching || bi.harassmentPhysicalThreats || bi.harassmentWrittenthreats || bi.harassmentWrittenThreats || arrayIncludes(harassmentTypes, 'threats', 'eviction') || false,
+      // Additional harassment mappings from doc-gen form - check stored boolean fields (1:1 field names are lowercase)
       'harassment-UnlawfulDetainer-1': bi.harassmentUnlawfulDetainer || arrayIncludes(harassmentTypes, 'unlawful detainer') || false,
-      'harassment-Evictionthreats-1': bi.harassmentEvictionThreats || arrayIncludes(harassmentTypes, 'eviction threats') || false,
-      'harassment-Bydefendant-1': bi.harassmentByDefendant || arrayIncludes(harassmentTypes, 'by defendant') || false,
-      'harassment-Bymaintenancemanworkers-1': bi.harassmentByMaintenance || arrayIncludes(harassmentTypes, 'maintenance man', 'workers') || false,
-      'harassment-Bymanagerbuildingstaff-1': bi.harassmentByManager || arrayIncludes(harassmentTypes, 'manager', 'building staff') || false,
-      'harassment-Byowner-1': bi.harassmentByOwner || arrayIncludes(harassmentTypes, 'by owner') || false,
-      'harassment-Othertenants-1': bi.harassmentByOtherTenants || arrayIncludes(harassmentTypes, 'other tenants') || false,
-      'harassment-Illegitimatenotices-1': bi.harassmentIllegitimateNotices || arrayIncludes(harassmentTypes, 'illegitimate notices') || false,
-      'harassment-Refusaltomaketimelyrepairs-1': bi.harassmentRefusalToRepair || arrayIncludes(harassmentTypes, 'refusal to make timely repairs', 'timely repairs') || false,
-      'harassment-Writtenthreats-1': bi.harassmentWrittenThreats || arrayIncludes(harassmentTypes, 'written threats') || false,
-      'harassment-Aggressiveinappropriatelanguage-1': bi.harassmentAggressiveLanguage || arrayIncludes(harassmentTypes, 'aggressive', 'inappropriate language') || false,
-      'harassment-Physicalthreatsortouching-1': bi.harassmentPhysicalThreats || arrayIncludes(harassmentTypes, 'physical threats', 'touching') || false,
-      'harassment-Noticessinglingoutonetenantbutnotuniformlygiventoalltenants-1': bi.harassmentSinglingOut || arrayIncludes(harassmentTypes, 'singling out') || false,
-      'harassment-Duplicativenotices-1': bi.harassmentDuplicativeNotices || arrayIncludes(harassmentTypes, 'duplicative notices') || false,
-      'harassment-UntimelyResponsefromLandlord-1': bi.harassmentUntimelyResponse || arrayIncludes(harassmentTypes, 'untimely response') || false,
+      'harassment-Evictionthreats-1': bi.harassmentEvictionthreats || bi.harassmentEvictionThreats || arrayIncludes(harassmentTypes, 'eviction threats') || false,
+      'harassment-Bydefendant-1': bi.harassmentBydefendant || bi.harassmentByDefendant || arrayIncludes(harassmentTypes, 'by defendant') || false,
+      'harassment-Bymaintenancemanworkers-1': bi.harassmentBymaintenancemanworkers || bi.harassmentByMaintenance || arrayIncludes(harassmentTypes, 'maintenance man', 'workers') || false,
+      'harassment-Bymanagerbuildingstaff-1': bi.harassmentBymanagerbuildingstaff || bi.harassmentByManager || arrayIncludes(harassmentTypes, 'manager', 'building staff') || false,
+      'harassment-Byowner-1': bi.harassmentByowner || bi.harassmentByOwner || arrayIncludes(harassmentTypes, 'by owner') || false,
+      'harassment-Othertenants-1': bi.harassmentOthertenants || bi.harassmentByOtherTenants || arrayIncludes(harassmentTypes, 'other tenants') || false,
+      'harassment-Illegitimatenotices-1': bi.harassmentIllegitimatenotices || bi.harassmentIllegitimateNotices || arrayIncludes(harassmentTypes, 'illegitimate notices') || false,
+      'harassment-Refusaltomaketimelyrepairs-1': bi.harassmentRefusaltomaketimelyrepairs || bi.harassmentRefusalToRepair || arrayIncludes(harassmentTypes, 'refusal to make timely repairs', 'timely repairs') || false,
+      'harassment-Writtenthreats-1': bi.harassmentWrittenthreats || bi.harassmentWrittenThreats || arrayIncludes(harassmentTypes, 'written threats') || false,
+      'harassment-Aggressiveinappropriatelanguage-1': bi.harassmentAggressiveinappropriatelanguage || bi.harassmentAggressiveLanguage || arrayIncludes(harassmentTypes, 'aggressive', 'inappropriate language') || false,
+      'harassment-Physicalthreatsortouching-1': bi.harassmentPhysicalthreatsortouching || bi.harassmentPhysicalThreats || arrayIncludes(harassmentTypes, 'physical threats', 'touching') || false,
+      'harassment-Noticessinglingoutonetenantbutnotuniformlygiventoalltenants-1': bi.harassmentNoticessinglingoutonetenantbutnotuniformlygiventoalltenants || bi.harassmentSinglingOut || arrayIncludes(harassmentTypes, 'singling out') || false,
+      'harassment-Duplicativenotices-1': bi.harassmentDuplicativenotices || bi.harassmentDuplicativeNotices || arrayIncludes(harassmentTypes, 'duplicative notices') || false,
+      'harassment-UntimelyResponsefromLandlord-1': bi.harassmentUntimelyResponsefromLandlord || bi.harassmentUntimelyResponse || arrayIncludes(harassmentTypes, 'untimely response') || false,
 
       // ===== MASTER CHECKBOX ONLY CATEGORIES (9 items) =====
       // These categories only have a yes/no toggle, no individual checkboxes

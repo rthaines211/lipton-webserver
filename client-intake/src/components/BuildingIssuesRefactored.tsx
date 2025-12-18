@@ -20,25 +20,25 @@ interface BuildingIssuesRefactoredProps {
 }
 
 /**
- * Maps database option codes to actual form field names
- * This handles the mismatch between what the database has and what the form uses
+ * Maps doc-gen option codes to form field names (1:1 mapping)
+ * Each doc-gen checkbox maps to exactly one form field
  *
- * Format: { 'categoryCode': { 'OptionCode': 'actualFormFieldName' } }
+ * Format: { 'categoryCode': { 'OptionCode': 'formFieldName' } }
  */
 const OPTION_TO_FIELD_MAP: Record<string, Record<string, string>> = {
-  // Vermin - maps ISSUE_CATEGORIES option codes to IntakeFormExpanded formData field names
+  // Vermin - 1:1 mapping with exact doc-gen codes
   'vermin': {
-    'RatsMice': 'pestRats',     // Combined in config, use rats field
+    'RatsMice': 'pestRatsMice',
     'Skunks': 'pestSkunks',
     'Bats': 'pestBats',
     'Raccoons': 'pestRaccoons',
-    'Pigeons': 'pestBirds',     // Config says Pigeons, form says Birds
+    'Pigeons': 'pestPigeons',
     'Opossums': 'pestOpossums'
   },
-  // Insects - maps ISSUE_CATEGORIES option codes to IntakeFormExpanded formData field names
+  // Insects - 1:1 mapping with exact doc-gen codes
   'insects': {
     'Ants': 'pestAnts',
-    'Roaches': 'pestCockroaches',  // Config says Roaches, form says Cockroaches
+    'Roaches': 'pestRoaches',
     'Flies': 'pestFlies',
     'Bedbugs': 'pestBedbugs',
     'Wasps': 'pestWasps',
@@ -48,65 +48,65 @@ const OPTION_TO_FIELD_MAP: Record<string, Record<string, string>> = {
     'Mosquitos': 'pestMosquitos',
     'Bees': 'pestBees'
   },
-  // HVAC - maps to form field names
+  // HVAC - 1:1 mapping with exact doc-gen codes
   'hvac': {
-    'AirConditioner': 'hvacNoAirConditioning',
-    'Heater': 'hvacNoHeat',
-    'Ventilation': 'hvacVentilationPoor'
+    'AirConditioner': 'hvacAirConditioner',
+    'Heater': 'hvacHeater',
+    'Ventilation': 'hvacVentilation'
   },
-  // Electrical - maps to form field names
+  // Electrical - 1:1 mapping with exact doc-gen codes
   'electrical': {
-    'Outlets': 'electricalBrokenOutlets',
-    'Panel': 'electricalCircuitBreakerIssues',
-    'WallSwitches': 'electricalBrokenSwitches',
+    'Outlets': 'electricalOutlets',
+    'Panel': 'electricalPanel',
+    'WallSwitches': 'electricalWallSwitches',
     'ExteriorLighting': 'electricalExteriorLighting',
-    'InteriorLighting': 'electricalFlickeringLights',
-    'LightFixtures': 'electricalBrokenLightFixtures',
-    'Fans': 'electricalBrokenFans'
+    'InteriorLighting': 'electricalInteriorLighting',
+    'LightFixtures': 'electricalLightFixtures',
+    'Fans': 'electricalFans'
   },
-  // Fire Hazard - maps to form field names
+  // Fire Hazard - 1:1 mapping with exact doc-gen codes
   'fireHazard': {
-    'SmokeAlarms': 'fireHazardNoSmokeDetectors',
-    'FireExtinguisher': 'fireHazardNoFireExtinguisher',
-    'Noncompliantelectricity': 'fireHazardExposedWiring',
-    'NonGFIoutletsnearwater': 'fireHazardIneffective',
-    'Carbonmonoxidedetectors': 'hvacCarbonMonoxideDetectorMissing'  // CO detectors stored in HVAC section
+    'SmokeAlarms': 'fireHazardSmokeAlarms',
+    'FireExtinguisher': 'fireHazardFireExtinguisher',
+    'Noncompliantelectricity': 'fireHazardNoncompliantelectricity',
+    'NonGFIoutletsnearwater': 'fireHazardNonGFIoutletsnearwater',
+    'Carbonmonoxidedetectors': 'fireHazardCarbonmonoxidedetectors'
   },
-  // Flooring - maps to form field names (each checkbox saves its own field)
+  // Flooring - 1:1 mapping with exact doc-gen codes
   'flooring': {
     'Uneven': 'flooringUneven',
-    'Carpet': 'flooringCarpetDamaged',
+    'Carpet': 'flooringCarpet',
     'Nailsstickingout': 'flooringNailsstickingout',
-    'Tiles': 'flooringTileBroken',
-    'Hardwood': 'flooringHardwoodDamaged',
-    'Linoleum': 'flooringLinoleumDamaged',
-    'Damage': 'flooringDamaged',
-    'Subfloor': 'flooringSubfloorDamaged'
+    'Tiles': 'flooringTiles',
+    'Hardwood': 'flooringHardwood',
+    'Linoleum': 'flooringLinoleum',
+    'Damage': 'flooringDamage',
+    'Subfloor': 'flooringSubfloor'
   },
-  // Doors - maps to form field names (each checkbox saves its own field)
+  // Doors - 1:1 mapping with exact doc-gen codes
   'doors': {
     'Broken': 'doorBroken',
     'Knobs': 'doorKnobs',
-    'Locks': 'doorNoLock',
-    'Brokenhinges': 'doorDamaged',
-    'Slidingglassdoors': 'doorSlidingGlass',
-    'Ineffectivewaterproofing': 'doorWaterproofing',
-    'Waterintrusionandorinsects': 'doorWaterIntrusion',
-    'Donotcloseproperly': 'doorWontClose'
+    'Locks': 'doorLocks',
+    'Brokenhinges': 'doorBrokenhinges',
+    'Slidingglassdoors': 'doorSlidingglassdoors',
+    'Ineffectivewaterproofing': 'doorIneffectivewaterproofing',
+    'Waterintrusionandorinsects': 'doorWaterintrusionandorinsects',
+    'Donotcloseproperly': 'doorDonotcloseproperly'
   },
-  // Trash - maps to form field names
+  // Trash - 1:1 mapping with exact doc-gen codes
   'trash': {
-    'Inadequatenumberofreceptacles': 'trashOverflowing',
-    'Improperservicingemptying': 'trashNotCollected'
+    'Inadequatenumberofreceptacles': 'trashInadequatenumberofreceptacles',
+    'Improperservicingemptying': 'trashImproperservicingemptying'
   },
-  // Nuisance - maps to form field names
+  // Nuisance - 1:1 mapping with exact doc-gen codes
   'nuisance': {
-    'Drugs': 'nuisanceOther',
-    'Smoking': 'nuisanceSmoke',
-    'Noisyneighbors': 'nuisanceNoise',
-    'Gangs': 'nuisanceOther'
+    'Drugs': 'nuisanceDrugs',
+    'Smoking': 'nuisanceSmoking',
+    'Noisyneighbors': 'nuisanceNoisyneighbors',
+    'Gangs': 'nuisanceGangs'
   },
-  // Health Hazard - maps to form field names (each checkbox saves its own field)
+  // Health Hazard - 1:1 mapping with exact doc-gen codes
   'healthHazard': {
     'Mold': 'healthHazardMold',
     'Mildew': 'healthHazardMildew',
@@ -115,102 +115,107 @@ const OPTION_TO_FIELD_MAP: Record<string, Record<string, string>> = {
     'Noxiousfumes': 'healthHazardNoxiousfumes',
     'Chemicalpaintcontamination': 'healthHazardChemicalpaintcontamination',
     'Toxicwaterpollution': 'healthHazardToxicwaterpollution',
-    'Offensiveodors': 'healthHazardOffensiveodors',
-    'Asbestos': 'healthHazardAsbestos',
-    'SewageBackup': 'healthHazardSewageBackup',
-    'WaterDamage': 'healthHazardWaterDamage',
-    'Flooding': 'healthHazardFlooding',
-    'GasLeak': 'healthHazardGasLeak',
-    'CarbonMonoxide': 'healthHazardCarbonMonoxide',
-    'AirQuality': 'healthHazardAirQuality'
+    'Offensiveodors': 'healthHazardOffensiveodors'
   },
-  // Harassment - no direct mapping (uses master checkbox + details)
-  'harassment': {},
-  // Utility - maps to form field names (each checkbox saves its own field)
+  // Harassment - 1:1 mapping with exact doc-gen codes
+  'harassment': {
+    'UnlawfulDetainer': 'harassmentUnlawfulDetainer',
+    'Evictionthreats': 'harassmentEvictionthreats',
+    'Bydefendant': 'harassmentBydefendant',
+    'Bymaintenancemanworkers': 'harassmentBymaintenancemanworkers',
+    'Bymanagerbuildingstaff': 'harassmentBymanagerbuildingstaff',
+    'Byowner': 'harassmentByowner',
+    'Othertenants': 'harassmentOthertenants',
+    'Illegitimatenotices': 'harassmentIllegitimatenotices',
+    'Refusaltomaketimelyrepairs': 'harassmentRefusaltomaketimelyrepairs',
+    'Writtenthreats': 'harassmentWrittenthreats',
+    'Aggressiveinappropriatelanguage': 'harassmentAggressiveinappropriatelanguage',
+    'Physicalthreatsortouching': 'harassmentPhysicalthreatsortouching',
+    'Noticessinglingoutonetenantbutnotuniformlygiventoalltenants': 'harassmentNoticessinglingoutonetenantbutnotuniformlygiventoalltenants',
+    'Duplicativenotices': 'harassmentDuplicativenotices',
+    'UntimelyResponsefromLandlord': 'harassmentUntimelyResponsefromLandlord'
+  },
+  // Utility - 1:1 mapping with exact doc-gen codes
   'utility': {
     'Gasleak': 'utilityGasleak',
-    'Watershutoffs': 'utilityNoHotWater',
-    'Electricityshutoffs': 'utilityNoElectricity',
-    'Heatshutoff': 'utilityNoHeat',
-    'Gasshutoff': 'utilityNoGas'
+    'Watershutoffs': 'utilityWatershutoffs',
+    'Electricityshutoffs': 'utilityElectricityshutoffs',
+    'Heatshutoff': 'utilityHeatshutoff',
+    'Gasshutoff': 'utilityGasshutoff'
   },
-  // Safety - maps to form field names (each checkbox saves its own field)
+  // Safety - 1:1 mapping with exact doc-gen codes
   'safety': {
-    'Brokeninoperablesecuritygate': 'securityBrokenGate',
-    'Brokendoors': 'securityBrokenDoors',
-    'Unauthorizedentries': 'securityBreakIns',
+    'Brokeninoperablesecuritygate': 'safetyBrokeninoperablesecuritygate',
+    'Brokendoors': 'safetyBrokendoors',
+    'Unauthorizedentries': 'safetyUnauthorizedentries',
     'Brokenbuzzertogetin': 'safetyBrokenbuzzertogetin',
     'Securitycameras': 'safetySecuritycameras',
-    'Inoperablelocks': 'securityBrokenLocks'
+    'Inoperablelocks': 'safetyInoperablelocks'
   },
-  // Common Areas - maps to form field names (each checkbox saves its own field)
+  // Common Areas - 1:1 mapping with exact doc-gen codes
   'commonAreas': {
-    'Mailboxbroken': 'commonAreaMailboxBroken',
-    'Parkingareaissues': 'commonAreaParkingIssue',
+    'Mailboxbroken': 'commonAreaMailboxbroken',
+    'Parkingareaissues': 'commonAreaParkingareaissues',
     'Damagetocars': 'commonAreaDamagetocars',
-    'Flooding': 'commonAreaBasementFlooded',
+    'Flooding': 'commonAreaFlooding',
     'Entrancesblocked': 'commonAreaEntrancesblocked',
     'Swimmingpool': 'commonAreaSwimmingpool',
     'Jacuzzi': 'commonAreaJacuzzi',
-    'Laundryroom': 'commonAreaLaundryBroken',
+    'Laundryroom': 'commonAreaLaundryroom',
     'Recreationroom': 'commonAreaRecreationroom',
     'Gym': 'commonAreaGym',
-    'Elevator': 'commonAreaElevatorBroken',
-    'FilthRubbishGarbage': 'commonAreaGarbageNotCollected',
+    'Elevator': 'commonAreaElevator',
+    'FilthRubbishGarbage': 'commonAreaFilthRubbishGarbage',
     'Vermin': 'commonAreaVermin',
     'Insects': 'commonAreaInsects',
     'BrokenGate': 'commonAreaBrokenGate',
     'Blockedareasdoors': 'commonAreaBlockedareasdoors'
   },
-
-  // Categories with explicit field name mismatches (already working)
-  // Appliances - map to IntakeFormExpanded field names
+  // Appliances - 1:1 mapping with exact doc-gen codes
   'appliances': {
-    'Stove': 'applianceStoveBroken',
-    'Dishwasher': 'applianceDishwasherBroken',
-    'Washerdryer': 'applianceWasherBroken',  // IntakeFormExpanded uses separate washer/dryer
-    'Oven': 'applianceOvenBroken',
-    'Microwave': 'applianceOther',  // No microwave field, use other
-    'Garbagedisposal': 'applianceGarbageDisposalBroken',
-    'Refrigerator': 'applianceRefrigeratorBroken'
+    'Stove': 'applianceStove',
+    'Dishwasher': 'applianceDishwasher',
+    'Washerdryer': 'applianceWasherdryer',
+    'Oven': 'applianceOven',
+    'Microwave': 'applianceMicrowave',
+    'Garbagedisposal': 'applianceGarbagedisposal',
+    'Refrigerator': 'applianceRefrigerator'
   },
-
-  // Government - map to IntakeFormExpanded field names (uses abbreviations)
+  // Government - 1:1 mapping with exact doc-gen codes
   'government': {
-    'HealthDepartment': 'govEntityDHS',  // Dept of Health Services
-    'HousingAuthority': 'govEntityHPD',  // Housing Preservation & Development
-    'CodeEnforcement': 'govEntityDOB',   // Dept of Buildings
-    'FireDepartment': 'govEntityOther',  // No specific fire dept field
-    'PoliceDepartment': 'govEntity311',  // Use 311 as proxy
-    'DepartmentofEnvironmentalHealth': 'govEntityDHS',
-    'DepartmentofHealthServices': 'govEntityDHS'
+    'HealthDepartment': 'govEntityHealthDepartment',
+    'HousingAuthority': 'govEntityHousingAuthority',
+    'CodeEnforcement': 'govEntityCodeEnforcement',
+    'FireDepartment': 'govEntityFireDepartment',
+    'PoliceDepartment': 'govEntityPoliceDepartment',
+    'DepartmentofEnvironmentalHealth': 'govEntityDepartmentofEnvironmentalHealth',
+    'DepartmentofHealthServices': 'govEntityDepartmentofHealthServices'
   },
-
-  // Plumbing - map to IntakeFormExpanded field names
+  // Plumbing - 1:1 mapping with exact doc-gen codes
   'plumbing': {
-    'Toilet': 'plumbingToiletNotWorking',
-    'Insufficientwaterpressure': 'plumbingLowPressure',
-    'Cloggedbath': 'plumbingCloggedDrains',  // No specific cloggedbath field
-    'Shower': 'plumbingShowerNotWorking',
-    'Nohotwater': 'plumbingNoHotWater',
-    'Cloggedsinks': 'plumbingCloggedDrains',  // Grouped into cloggedDrains
-    'Bath': 'plumbingOther',  // No specific bath field
-    'Nocoldwater': 'plumbingNoWater',  // No specific cold water field
-    'Cloggedshower': 'plumbingCloggedDrains',  // Grouped into cloggedDrains
-    'Fixtures': 'plumbingOther',  // No specific fixtures field
-    'Sewagecomingout': 'plumbingSewerBackup',
-    'NoCleanWaterSupply': 'plumbingWaterDiscoloration',
+    'Toilet': 'plumbingToilet',
+    'Insufficientwaterpressure': 'plumbingInsufficientwaterpressure',
+    'Cloggedbath': 'plumbingCloggedbath',
+    'Shower': 'plumbingShower',
+    'Nohotwater': 'plumbingNohotwater',
+    'Cloggedsinks': 'plumbingCloggedsinks',
+    'Bath': 'plumbingBath',
+    'Nocoldwater': 'plumbingNocoldwater',
+    'Cloggedshower': 'plumbingCloggedshower',
+    'Fixtures': 'plumbingFixtures',
+    'Sewagecomingout': 'plumbingSewagecomingout',
+    'NoCleanWaterSupply': 'plumbingNoCleanWaterSupply',
     'Leaks': 'plumbingLeaks',
-    'Cloggedtoilets': 'plumbingCloggedDrains',  // Grouped into cloggedDrains
-    'Unsanitarywater': 'plumbingWaterDiscoloration'
+    'Cloggedtoilets': 'plumbingCloggedtoilets',
+    'Unsanitarywater': 'plumbingUnsanitarywater'
   },
-
+  // Cabinets - 1:1 mapping with exact doc-gen codes
   'cabinets': {
     'Broken': 'cabinetBroken',
     'Hinges': 'cabinetHinges',
     'Alignment': 'cabinetAlignment'
   },
-
+  // Windows - 1:1 mapping with exact doc-gen codes
   'windows': {
     'Broken': 'windowBroken',
     'Screens': 'windowScreens',
@@ -219,34 +224,32 @@ const OPTION_TO_FIELD_MAP: Record<string, Record<string, string>> = {
     'Missingwindows': 'windowMissingwindows',
     'Brokenormissingscreens': 'windowBrokenormissingscreens'
   },
-
-  // Structure - map to IntakeFormExpanded field names
+  // Structure - 1:1 mapping with exact doc-gen codes
   'structure': {
-    'Bumpsinceiling': 'structuralCeilingDamage',
-    'Holeinceiling': 'structuralCeilingDamage',
-    'Waterstainsonceiling': 'structuralCeilingDamage',
-    'Waterstainsonwall': 'structuralWallCracks',
-    'Holeinwall': 'structuralWallCracks',
-    'Paint': 'structuralOther',  // No specific paint field
-    'Exteriordeckporch': 'structuralBalconyUnsafe',
-    'Waterprooftoilet': 'structuralOther',
-    'Waterprooftub': 'structuralOther',
-    'Staircase': 'structuralStairsUnsafe',
-    'Basementflood': 'structuralFoundationIssues',
-    'Leaksingarage': 'structuralRoofLeaks',  // Use roof leaks as proxy
-    'SoftSpotsduetoLeaks': 'structuralFloorDamage',
-    'UneffectiveWaterproofingofthetubsortoilet': 'structuralOther',
-    'IneffectiveWeatherproofingofanywindows': 'structuralWindowDamage'
+    'Bumpsinceiling': 'structuralBumpsinceiling',
+    'Holeinceiling': 'structuralHoleinceiling',
+    'Waterstainsonceiling': 'structuralWaterstainsonceiling',
+    'Waterstainsonwall': 'structuralWaterstainsonwall',
+    'Holeinwall': 'structuralHoleinwall',
+    'Paint': 'structuralPaint',
+    'Exteriordeckporch': 'structuralExteriordeckporch',
+    'Waterprooftoilet': 'structuralWaterprooftoilet',
+    'Waterprooftub': 'structuralWaterprooftub',
+    'Staircase': 'structuralStaircase',
+    'Basementflood': 'structuralBasementflood',
+    'Leaksingarage': 'structuralLeaksingarage',
+    'SoftSpotsduetoLeaks': 'structuralSoftSpotsduetoLeaks',
+    'UneffectiveWaterproofingofthetubsortoilet': 'structuralUneffectiveWaterproofingofthetubsortoilet',
+    'IneffectiveWeatherproofingofanywindows': 'structuralIneffectiveWeatherproofingofanywindows'
   },
-
-  // Notices - map to IntakeFormExpanded field names
+  // Notices - 1:1 mapping with exact doc-gen codes
   'notices': {
-    '3day': 'noticeEviction',  // 3-day is typically eviction notice
-    '24hour': 'noticeEntry',   // 24-hour typically for entry
-    '30day': 'noticeLeaseTerm',
-    '60day': 'noticeLeaseTerm',
-    'Toquit': 'noticeEviction',
-    'Performorquit': 'noticeRepair'
+    '3day': 'notice3day',
+    '24hour': 'notice24hour',
+    '30day': 'notice30day',
+    '60day': 'notice60day',
+    'Toquit': 'noticeToquit',
+    'Performorquit': 'noticePerformorquit'
   }
 };
 
