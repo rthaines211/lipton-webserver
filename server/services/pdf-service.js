@@ -26,33 +26,111 @@
 const { PDFDocument } = require('pdf-lib');
 const fs = require('fs').promises;
 const path = require('path');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const execAsync = promisify(exec);
 const logger = require('../../monitoring/logger');
-const { loadTemplate } = require('../utils/pdf-templates');
-const { mapFormDataToPdfFields } = require('../utils/pdf-field-mapper');
+const { loadTemplate, getTemplatePath } = require('../utils/pdf-templates');
+const { mapFormDataToPdfFields, mapFieldsForDocumentType } = require('../utils/pdf-field-mapper');
 const { updateStatus } = require('./sse-service');
 const storageService = require('./storage-service');
 const PdfGenerationJob = require('../models/pdf-generation-job');
 const dropboxService = require('../../dropbox-service');
 
+// Document types that require pdftk instead of pdf-lib (due to XFA/complex structure)
+const PDFTK_DOCUMENT_TYPES = ['cm010'];
+
 /**
- * Generate a filled CM-110 PDF from form submission data
+ * Generate FDF content for pdftk fill_form
+ * @param {Object} fieldValues - Field name/value pairs
+ * @returns {string} FDF file content
+ */
+function generateFdfContent(fieldValues) {
+  let fields = '';
+  for (const [fieldName, value] of Object.entries(fieldValues)) {
+    // Escape special characters in value
+    const escapedValue = String(value).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+    fields += `<< /T (${fieldName}) /V (${escapedValue}) >>\n`;
+  }
+
+  return `%FDF-1.2
+1 0 obj
+<<
+/FDF
+<<
+/Fields [
+${fields}]
+>>
+>>
+endobj
+trailer
+<< /Root 1 0 R >>
+%%EOF`;
+}
+
+/**
+ * Generate PDF using pdftk fill_form (for complex PDFs that pdf-lib can't handle)
+ * @param {string} templatePath - Path to PDF template
+ * @param {Object} fieldValues - Field name/value pairs
+ * @param {string} jobId - Job ID for logging
+ * @returns {Promise<Buffer>} Filled PDF as buffer
+ */
+async function generatePdfWithPdftk(templatePath, fieldValues, jobId) {
+  const tempDir = '/tmp';
+  const fdfPath = path.join(tempDir, `${jobId}.fdf`);
+  const outputPath = path.join(tempDir, `${jobId}-output.pdf`);
+
+  try {
+    // Write FDF file
+    const fdfContent = generateFdfContent(fieldValues);
+    await fs.writeFile(fdfPath, fdfContent);
+
+    logger.info('FDF file created for pdftk', { jobId, fieldCount: Object.keys(fieldValues).length });
+
+    // Run pdftk fill_form
+    const command = `pdftk "${templatePath}" fill_form "${fdfPath}" output "${outputPath}"`;
+    await execAsync(command);
+
+    logger.info('pdftk fill_form completed', { jobId });
+
+    // Read output PDF
+    const pdfBuffer = await fs.readFile(outputPath);
+
+    // Cleanup temp files
+    await fs.unlink(fdfPath).catch(() => {});
+    await fs.unlink(outputPath).catch(() => {});
+
+    return pdfBuffer;
+  } catch (error) {
+    // Cleanup on error
+    await fs.unlink(fdfPath).catch(() => {});
+    await fs.unlink(outputPath).catch(() => {});
+    throw error;
+  }
+}
+
+/**
+ * Generate a filled PDF from form submission data
  *
  * @param {Object} formData - Form submission data
  * @param {string} jobId - Job ID for SSE progress tracking
  * @param {Object} options - Generation options
  * @param {string} [options.template='cm110-decrypted'] - Template name
+ * @param {string} [options.documentType] - Document type for field mapping (defaults to template name)
  * @param {Function} [options.progressCallback] - Optional progress callback
  * @returns {Promise<Buffer>} Filled PDF as buffer
  * @throws {Error} If PDF generation fails
  */
 async function generatePDF(formData, jobId, options = {}) {
   const templateName = options.template || 'cm110-decrypted';
+  const documentType = options.documentType || templateName;
   const startTime = Date.now();
 
   try {
     logger.info('Starting PDF generation', {
       jobId,
       templateName,
+      documentType,
       hasFormData: !!formData
     });
 
@@ -64,8 +142,51 @@ async function generatePDF(formData, jobId, options = {}) {
       message: 'Starting PDF generation...'
     });
 
-    // Phase 1: Load PDF template (10% progress)
-    updateProgress(jobId, 'loading_template', 10, 'Loading PDF template...', options.progressCallback);
+    // Phase 1: Map form data to PDF fields (20% progress)
+    updateProgress(jobId, 'mapping_fields', 20, 'Mapping form data to PDF fields...', options.progressCallback);
+
+    const pdfFieldValues = mapFieldsForDocumentType(formData, documentType);
+
+    logger.info('Field mapping complete', {
+      jobId,
+      mappedFieldCount: Object.keys(pdfFieldValues).length
+    });
+
+    // Check if this document type requires pdftk (for complex PDFs that pdf-lib can't handle)
+    if (PDFTK_DOCUMENT_TYPES.includes(documentType)) {
+      logger.info('Using pdftk for PDF generation', { jobId, documentType });
+
+      updateProgress(jobId, 'filling_fields', 50, 'Filling PDF fields with pdftk...', options.progressCallback);
+
+      const templatePath = getTemplatePath(templateName);
+      const pdfBuffer = await generatePdfWithPdftk(templatePath, pdfFieldValues, jobId);
+
+      const executionTime = Date.now() - startTime;
+
+      logger.info('PDF generation complete (pdftk)', {
+        jobId,
+        sizeBytes: pdfBuffer.length,
+        executionTimeMs: executionTime
+      });
+
+      updateStatus('pdf', jobId, {
+        status: 'success',
+        phase: 'complete',
+        progress: 100,
+        message: 'PDF generated successfully',
+        result: {
+          sizeBytes: pdfBuffer.length,
+          fieldsFilled: Object.keys(pdfFieldValues).length,
+          executionTimeMs: executionTime
+        }
+      });
+
+      return pdfBuffer;
+    }
+
+    // Standard pdf-lib path for other document types
+    // Phase 2: Load PDF template (30% progress)
+    updateProgress(jobId, 'loading_template', 30, 'Loading PDF template...', options.progressCallback);
 
     const templateBytes = await loadTemplate(templateName);
 
@@ -74,8 +195,8 @@ async function generatePDF(formData, jobId, options = {}) {
       sizeBytes: templateBytes.length
     });
 
-    // Phase 2: Load PDF document with pdf-lib (20% progress)
-    updateProgress(jobId, 'parsing_pdf', 20, 'Parsing PDF structure...', options.progressCallback);
+    // Phase 3: Load PDF document with pdf-lib (40% progress)
+    updateProgress(jobId, 'parsing_pdf', 40, 'Parsing PDF structure...', options.progressCallback);
 
     const pdfDoc = await PDFDocument.load(templateBytes, {
       ignoreEncryption: true,
@@ -88,16 +209,6 @@ async function generatePDF(formData, jobId, options = {}) {
     logger.debug('PDF form loaded', {
       jobId,
       fieldCount: formFields.length
-    });
-
-    // Phase 3: Map form data to PDF fields (40% progress)
-    updateProgress(jobId, 'mapping_fields', 40, 'Mapping form data to PDF fields...', options.progressCallback);
-
-    const pdfFieldValues = mapFormDataToPdfFields(formData);
-
-    logger.info('Field mapping complete', {
-      jobId,
-      mappedFieldCount: Object.keys(pdfFieldValues).length
     });
 
     // Phase 4: Fill PDF fields (60% progress)
@@ -348,6 +459,7 @@ async function generatePDFWithValidation(formData, jobId, options = {}) {
  * @param {string} jobId - Job ID for SSE progress tracking
  * @param {Object} options - Generation and upload options
  * @param {string} [options.template='cm110-decrypted'] - Template name
+ * @param {string} [options.documentType] - Document type for field mapping (defaults to template name)
  * @param {string} [options.filename] - Custom filename (optional)
  * @param {string} [options.dropboxPath] - Custom Dropbox path (optional)
  * @param {Function} [options.progressCallback] - Optional progress callback
@@ -356,10 +468,14 @@ async function generatePDFWithValidation(formData, jobId, options = {}) {
  */
 async function generateAndUploadPDF(formData, jobId, options = {}) {
   const startTime = Date.now();
+  const documentType = options.documentType || options.template || 'cm110-decrypted';
+  // Convert documentType to display name for filename (e.g., 'civ109' -> 'CIV-109')
+  const documentDisplayName = documentType.replace(/([a-z])(\d)/i, '$1-$2').toUpperCase();
 
   try {
     logger.info('Starting PDF generation and Dropbox upload', {
       jobId,
+      documentType,
       dropboxEnabled: dropboxService.isEnabled()
     });
 
@@ -424,8 +540,8 @@ async function generateAndUploadPDF(formData, jobId, options = {}) {
       }
     }
 
-    // Generate filename with head of household name
-    const filename = options.filename || `CM-110-${headOfHouseholdName}.pdf`;
+    // Generate filename with document type and head of household name
+    const filename = options.filename || `${documentDisplayName}-${headOfHouseholdName}.pdf`;
 
     // Use webhook_documents base path to match Python pipeline structure exactly
     // Python pipeline: webhook_documents/<street>/<name>/Discovery Propounded/<type>/file.docx

@@ -72,9 +72,23 @@ router.post('/generate', async (req, res) => {
 
     logger.info('PDF generation requested', { jobId });
 
+    // Get document type from request (default to cm110-decrypted for backward compatibility)
+    const documentType = req.body.documentType || 'cm110-decrypted';
+    // Map document type to template name
+    const templateMap = {
+      'civ109': 'civ109',
+      'cm010': 'cm010',
+      'cm110': 'cm110-decrypted',
+      'cm110-decrypted': 'cm110-decrypted'
+    };
+    const templateName = templateMap[documentType] || 'cm110-decrypted';
+
+    logger.info('Starting PDF generation', { jobId, documentType, templateName });
+
     // Start PDF generation asynchronously (don't await)
     generateAndUploadPDF(formData, jobId, {
-      template: 'cm110-decrypted',
+      template: templateName,
+      documentType: documentType,
       progressCallback: (phase, progress, message) => {
         // Update job progress in real-time for polling clients
         const currentJob = jobs.get(jobId);

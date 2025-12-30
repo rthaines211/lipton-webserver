@@ -437,52 +437,65 @@ async function handleSubmissionSuccess(result) {
                 updateSubmissionProgressUI(30, 'Preparing document generation...');
             }, 800);
 
-            // Trigger CM-110 PDF generation in parallel with DOCX generation (only if selected)
+            // Trigger PDF generation in parallel with DOCX generation (for each selected PDF type)
             setTimeout(async () => {
                 try {
                     // Get the full form data from session storage
                     const fullFormData = JSON.parse(sessionStorage.getItem('lastSubmissionFormData') || '{}');
                     const selectedDocuments = fullFormData.documentTypesToGenerate || [];
 
-                    // Check if CM-110 is selected
-                    if (!selectedDocuments.includes('cm110')) {
-                        console.log('ℹ️  CM-110 PDF not selected, skipping generation');
-                        addDebugLog('ℹ️  CM-110 PDF not selected', 'info');
-                        return;
-                    }
+                    // Define PDF document types and their display names
+                    const pdfDocumentTypes = {
+                        'cm110': 'CM-110',
+                        'civ109': 'CIV-109',
+                        'cm010': 'CM-010'
+                    };
 
-                    console.log('📄 Triggering CM-110 PDF generation...');
-                    addDebugLog('📄 Starting CM-110 PDF generation...', 'info');
+                    // Generate each selected PDF document type
+                    for (const [docType, displayName] of Object.entries(pdfDocumentTypes)) {
+                        // Check if this PDF type is selected
+                        if (!selectedDocuments.includes(docType)) {
+                            console.log(`ℹ️  ${displayName} PDF not selected, skipping generation`);
+                            addDebugLog(`ℹ️  ${displayName} PDF not selected`, 'info');
+                            continue;
+                        }
 
-                    // Update document status UI
-                    updateDocumentStatus('cm110', 'processing', 'Starting generation...');
+                        console.log(`📄 Triggering ${displayName} PDF generation...`);
+                        addDebugLog(`📄 Starting ${displayName} PDF generation...`, 'info');
 
-                    // Trigger PDF generation
-                    const pdfResponse = await fetch('/api/pdf/generate', {
-                        method: 'POST',
-                        headers: getAuthHeaders(),
-                        body: JSON.stringify({
-                            formData: fullFormData
-                        })
-                    });
+                        // Update document status UI
+                        updateDocumentStatus(docType, 'processing', 'Starting generation...');
 
-                    if (pdfResponse.ok) {
-                        const pdfResult = await pdfResponse.json();
-                        console.log('✅ CM-110 PDF generation started:', pdfResult);
-                        addDebugLog(`✅ CM-110 PDF job started: ${pdfResult.jobId}`, 'success');
+                        // Trigger PDF generation with document type
+                        const pdfResponse = await fetch('/api/pdf/generate', {
+                            method: 'POST',
+                            headers: getAuthHeaders(),
+                            body: JSON.stringify({
+                                formData: fullFormData,
+                                documentType: docType
+                            })
+                        });
 
-                        // Store PDF job ID for status tracking
-                        window.currentPdfJobId = pdfResult.jobId;
+                        if (pdfResponse.ok) {
+                            const pdfResult = await pdfResponse.json();
+                            console.log(`✅ ${displayName} PDF generation started:`, pdfResult);
+                            addDebugLog(`✅ ${displayName} PDF job started: ${pdfResult.jobId}`, 'success');
 
-                        // Start polling PDF status
-                        pollPdfStatus(pdfResult.jobId);
-                    } else {
-                        console.error('❌ Failed to trigger PDF generation:', pdfResponse.status);
-                        addDebugLog('⚠️  CM-110 PDF generation failed to start', 'warning');
+                            // Store PDF job ID for status tracking (use first PDF job ID)
+                            if (!window.currentPdfJobId) {
+                                window.currentPdfJobId = pdfResult.jobId;
+                            }
+
+                            // Start polling PDF status
+                            pollPdfStatus(pdfResult.jobId, docType);
+                        } else {
+                            console.error(`❌ Failed to trigger ${displayName} PDF generation:`, pdfResponse.status);
+                            addDebugLog(`⚠️  ${displayName} PDF generation failed to start`, 'warning');
+                        }
                     }
                 } catch (error) {
                     console.error('❌ Error triggering PDF generation:', error);
-                    addDebugLog('⚠️  CM-110 PDF generation error', 'warning');
+                    addDebugLog('⚠️  PDF generation error', 'warning');
                 }
             }, 900); // Trigger PDF slightly after preparing message
 

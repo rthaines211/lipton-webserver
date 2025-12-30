@@ -1,0 +1,66 @@
+{
+  "documentType": "cm010",
+  "documentName": "Civil Case Cover Sheet (CM-010)",
+  "description": "California Judicial Council form for case classification",
+  "version": "1.0.0",
+  "textFields": [
+    {
+      "pdfFieldName": "CM-010[0].Page1[0].P1Caption[0].CourtInfo[0].CrtCounty[0]",
+      "sourceField": "FilingCounty",
+      "description": "Court county name",
+      "required": true
+    },
+    {
+      "pdfFieldName": "CM-010[0].Page1[0].P1Caption[0].TitlePartyName[0].Party1[0]",
+      "sourceField": "ShortTitle",
+      "description": "Short case title (PLAINTIFF VS DEFENDANT)",
+      "transform": "uppercase",
+      "required": true
+    }
+  ],
+  "autoCheckedCheckboxes": [
+    {
+      "pdfFieldName": "CM-010[0].Page1[0].P1Caption[0].FormTitle[0].Civil[0].limited1[1]",
+      "description": "Unlimited civil case (>$25,000)",
+      "reason": "Habitability cases typically exceed $25,000"
+    },
+    {
+      "pdfFieldName": "CM-010[0].Page1[0].P1Caption[0].FormTitle[0].Complex[0].CheckBox1[1]",
+      "description": "Case is NOT complex",
+      "reason": "Standard habitability cases are not complex"
+    },
+    {
+      "pdfFieldName": "CM-010[0].Page1[0].List1[0].Li3[0].CheckBox2[6]",
+      "description": "Other Real Property (case type)",
+      "reason": "Habitability falls under real property"
+    },
+    {
+      "pdfFieldName": "CM-010[0].Page1[0].List2[0].is1[1]",
+      "description": "Case is NOT a collections case",
+      "reason": "Habitability is not collections"
+    },
+    {
+      "pdfFieldName": "CM-010[0].Page1[0].List5[0].item5[0].is[1]",
+      "description": "NOT a class action",
+      "reason": "Individual habitability case"
+    }
+  ],
+  "skippedFields": [
+    {
+      "pdfFieldName": "CM-010[0].Page1[0].P1Caption[0].FormTitle[0].Civil[0].limited1[0]",
+      "description": "Limited civil case checkbox - skipped",
+      "reason": "Using unlimited civil instead"
+    },
+    {
+      "pdfFieldName": "CM-010[0].Page1[0].P1Caption[0].FormTitle[0].Complex[0].CheckBox1[0]",
+      "description": "Complex case YES checkbox - skipped",
+      "reason": "Using NOT complex instead"
+    }
+  ],
+  "notes": [
+    "CM-010 is used to classify civil cases in California courts",
+    "For habitability cases, we auto-select: Unlimited civil, Not complex, Other Real Property",
+    "Total PDF fields: 60 (2 text, 58 checkboxes)",
+    "Most checkboxes relate to other case types (PI, Employment, etc.) and are skipped"
+  ]
+}

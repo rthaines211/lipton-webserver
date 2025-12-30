@@ -6,7 +6,152 @@
  */
 
 const logger = require('../../monitoring/logger');
+const path = require('path');
+const fs = require('fs');
+
+// Load default CM-110 config
 const fieldMappingConfig = require('../config/cm110-field-mapping.json');
+
+// Cache for loaded field mapping configs
+const fieldMappingCache = {
+  'cm110': fieldMappingConfig,
+  'cm110-decrypted': fieldMappingConfig
+};
+
+/**
+ * Load field mapping configuration for a document type
+ * @param {string} documentType - Document type (e.g., 'cm110', 'civ109')
+ * @returns {Object} Field mapping configuration
+ */
+function loadFieldMapping(documentType) {
+  // Return cached config if available
+  if (fieldMappingCache[documentType]) {
+    return fieldMappingCache[documentType];
+  }
+
+  // Try to load config from file
+  const configPath = path.join(__dirname, `../config/${documentType}-field-mapping.json`);
+
+  try {
+    if (fs.existsSync(configPath)) {
+      const config = require(configPath);
+      fieldMappingCache[documentType] = config;
+      logger.info(`Loaded field mapping config for ${documentType}`);
+      return config;
+    }
+  } catch (error) {
+    logger.warn(`Could not load field mapping for ${documentType}`, { error: error.message });
+  }
+
+  // Fall back to default CM-110 config
+  logger.warn(`No field mapping found for ${documentType}, using CM-110 default`);
+  return fieldMappingConfig;
+}
+
+/**
+ * Map form data to PDF fields for CIV-109 (Civil Case Addendum)
+ * @param {Object} formData - Form submission data
+ * @returns {Object} Mapped PDF field values
+ */
+function mapCiv109Fields(formData) {
+  const pdfFields = {};
+
+  try {
+    logger.info('Starting CIV-109 field mapping');
+
+    // 1. SHORT TITLE - Plaintiff vs Defendant (UPPERCASE)
+    const plaintiffName = formData.PlaintiffDetails?.[0]?.PlaintiffItemNumberName?.FirstAndLast || 'PLAINTIFF';
+    const defendantName = formData.DefendantDetails2?.[0]?.DefendantItemNumberName?.FirstAndLast || 'DEFENDANT';
+    pdfFields['SHORT TITLE'] = `${plaintiffName} VS ${defendantName}`.toUpperCase();
+
+    // 2. CITY
+    if (formData.Full_Address?.City) {
+      pdfFields['CITY'] = formData.Full_Address.City;
+    }
+
+    // 3. STATE
+    pdfFields['STATE'] = formData.Full_Address?.State || 'CA';
+
+    // 4. ZIP
+    if (formData.Full_Address?.PostalCode) {
+      pdfFields['ZIP'] = formData.Full_Address.PostalCode;
+    }
+
+    // 5. ADDRESSZIP CODE (actually street address)
+    if (formData.Full_Address?.Line1) {
+      pdfFields['ADDRESSZIP CODE'] = formData.Full_Address.Line1;
+    }
+
+    // 6. County/Court field
+    const county = formData.FilingCounty || formData['Filing county'];
+    if (county) {
+      pdfFields['the Superior Court of California County of Los Angeles Code Civ Proc 392 et seq and Local Rule 23a1E'] = county;
+    }
+
+    // Skipped fields: CASE NUMBER, Dated, PARCELS1
+
+    logger.info('CIV-109 field mapping complete', { fieldCount: Object.keys(pdfFields).length });
+    return pdfFields;
+  } catch (error) {
+    logger.error('Error mapping CIV-109 fields', { error: error.message });
+    throw new Error(`CIV-109 field mapping failed: ${error.message}`);
+  }
+}
+
+/**
+ * Map form data to PDF fields for CM-010 (Civil Case Cover Sheet)
+ * @param {Object} formData - Form submission data
+ * @returns {Object} Mapped PDF field values
+ */
+function mapCm010Fields(formData) {
+  const pdfFields = {};
+
+  try {
+    logger.info('Starting CM-010 field mapping');
+
+    // 1. Court County
+    const county = formData.FilingCounty || formData['Filing county'] || '';
+    if (county) {
+      pdfFields['CM-010[0].Page1[0].P1Caption[0].CourtInfo[0].CrtCounty[0]'] = county;
+    }
+
+    // 2. Case Name (PLAINTIFF VS DEFENDANT) - all caps
+    const plaintiffName = formData.PlaintiffDetails?.[0]?.PlaintiffItemNumberName?.FirstAndLast || 'PLAINTIFF';
+    const defendantName = formData.DefendantDetails2?.[0]?.DefendantItemNumberName?.FirstAndLast || 'DEFENDANT';
+    pdfFields['CM-010[0].Page1[0].P1Caption[0].TitlePartyName[0].Party1[0]'] =
+      `${plaintiffName} v. ${defendantName}`.toUpperCase();
+
+    logger.info('CM-010 field mapping complete', { fieldCount: Object.keys(pdfFields).length });
+    return pdfFields;
+  } catch (error) {
+    logger.error('Error mapping CM-010 fields', { error: error.message });
+    throw new Error(`CM-010 field mapping failed: ${error.message}`);
+  }
+}
+
+/**
+ * Map form data to PDF fields based on document type
+ * @param {Object} formData - Form submission data
+ * @param {string} documentType - Document type (e.g., 'cm110', 'civ109')
+ * @returns {Object} Mapped PDF field values
+ */
+function mapFieldsForDocumentType(formData, documentType) {
+  logger.info(`Mapping fields for document type: ${documentType}`);
+
+  switch (documentType) {
+    case 'civ109':
+      return mapCiv109Fields(formData);
+    case 'cm010':
+      return mapCm010Fields(formData);
+    case 'cm110':
+    case 'cm110-decrypted':
+      return mapFormDataToPdfFields(formData, fieldMappingConfig);
+    default:
+      // Try to load custom mapping, fall back to CM-110
+      const fieldMapping = loadFieldMapping(documentType);
+      return mapFormDataToPdfFields(formData, fieldMapping);
+  }
+}
 
 /**
  * Map form data to PDF fields based on configuration
@@ -343,6 +488,10 @@ function getNestedValue(obj, path) {
 
 module.exports = {
   mapFormDataToPdfFields,
+  mapFieldsForDocumentType,
+  mapCiv109Fields,
+  mapCm010Fields,
+  loadFieldMapping,
   truncateText,
   mapDiscoveryIssuesToCheckboxes,
   mapDiscoveryIssuesToTextFields,

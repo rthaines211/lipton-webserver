@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CIV-109 PDF Field Mapping Configuration",
+  "description": "Maps form submission JSON fields to CIV-109 (Civil Case Addendum) PDF form field names",
+  "version": "1.0.0",
+  "lastUpdated": "2025-12-29",
+  "note": "Field names extracted using pdftk dump_data_fields. Only 6 text fields mapped (3 skipped).",
+
+  "textFields": {
+    "shortTitle": {
+      "pdfField": "SHORT TITLE",
+      "type": "text",
+      "source": "computed",
+      "computation": "plaintiffVsDefendant",
+      "transform": "toUpperCase",
+      "description": "Case short title - PLAINTIFF VS DEFENDANT format"
+    },
+    "city": {
+      "pdfField": "CITY",
+      "type": "text",
+      "source": "Full_Address.City",
+      "maxLength": 50
+    },
+    "state": {
+      "pdfField": "STATE",
+      "type": "text",
+      "source": "Full_Address.State",
+      "maxLength": 2,
+      "defaultValue": "CA"
+    },
+    "zip": {
+      "pdfField": "ZIP",
+      "type": "text",
+      "source": "Full_Address.PostalCode",
+      "maxLength": 10
+    },
+    "streetAddress": {
+      "pdfField": "ADDRESSZIP CODE",
+      "type": "text",
+      "source": "Full_Address.Line1",
+      "maxLength": 100,
+      "description": "Street address (field name is misleading in PDF)"
+    },
+    "county": {
+      "pdfField": "the Superior Court of California County of Los Angeles Code Civ Proc 392 et seq and Local Rule 23a1E",
+      "type": "text",
+      "source": "FilingCounty",
+      "maxLength": 50,
+      "description": "Filing county/court"
+    }
+  },
+
+  "skippedFields": {
+    "caseNumber": {
+      "pdfField": "CASE NUMBER",
+      "reason": "Leave blank per user decision"
+    },
+    "dated": {
+      "pdfField": "Dated",
+      "reason": "Skip per user decision"
+    },
+    "parcels1": {
+      "pdfField": "PARCELS1",
+      "reason": "Unknown purpose - skip per user decision"
+    }
+  },
+
+  "checkboxFields": {
+    "description": "No checkboxes auto-checked per user decision",
+    "autoChecked": []
+  },
+
+  "transforms": {
+    "toUpperCase": {
+      "description": "Convert text to uppercase",
+      "function": "value => value.toUpperCase()"
+    },
+    "plaintiffVsDefendant": {
+      "description": "Combine first plaintiff and defendant names with 'vs'",
+      "computation": "PlaintiffDetails[0].PlaintiffItemNumberName.FirstAndLast + ' VS ' + DefendantDetails2[0].DefendantItemNumberName.FirstAndLast"
+    }
+  }
+}
