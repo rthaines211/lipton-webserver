@@ -4,6 +4,9 @@
 
 FROM node:20-alpine
 
+# Install pdftk for PDF form filling (CM-010 and other XFA forms)
+RUN apk add --no-cache pdftk
+
 # Set working directory for application
 WORKDIR /app
 
