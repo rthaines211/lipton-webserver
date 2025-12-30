@@ -2,10 +2,10 @@
 # Optimized for Google Cloud Run deployment
 # Production-ready configuration with minimal attack surface
 
-FROM node:20-alpine
+FROM node:20-slim
 
 # Install pdftk for PDF form filling (CM-010 and other XFA forms)
-RUN apk add --no-cache pdftk
+RUN apt-get update && apt-get install -y --no-install-recommends pdftk && rm -rf /var/lib/apt/lists/*
 
 # Set working directory for application
 WORKDIR /app
