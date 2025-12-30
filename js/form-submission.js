@@ -448,7 +448,9 @@ async function handleSubmissionSuccess(result) {
                     const pdfDocumentTypes = {
                         'cm110': 'CM-110',
                         'civ109': 'CIV-109',
-                        'cm010': 'CM-010'
+                        'cm010': 'CM-010',
+                        'sum100': 'SUM-100',
+                        'sum200a': 'SUM-200A'
                     };
 
                     // Generate each selected PDF document type
