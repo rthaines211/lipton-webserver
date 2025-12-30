@@ -59,10 +59,20 @@ function mapCiv109Fields(formData) {
   try {
     logger.info('Starting CIV-109 field mapping');
 
-    // 1. SHORT TITLE - Plaintiff vs Defendant (UPPERCASE)
-    const plaintiffName = formData.PlaintiffDetails?.[0]?.PlaintiffItemNumberName?.FirstAndLast || 'PLAINTIFF';
-    const defendantName = formData.DefendantDetails2?.[0]?.DefendantItemNumberName?.FirstAndLast || 'DEFENDANT';
-    pdfFields['SHORT TITLE'] = `${plaintiffName} VS ${defendantName}`.toUpperCase();
+    // 1. SHORT TITLE - Format: SMITH v. JONES (with et al. for multiple parties)
+    const plaintiffs = formData.PlaintiffDetails || [];
+    const defendants = formData.DefendantDetails2 || [];
+    const plaintiffLastNames = plaintiffs.map(p => p.PlaintiffItemNumberName?.Last).filter(n => n);
+    const defendantLastNames = defendants.map(d => d.DefendantItemNumberName?.Last).filter(n => n);
+    const firstPlaintiffLast = plaintiffLastNames[0] || 'PLAINTIFF';
+    const firstDefendantLast = defendantLastNames[0] || 'DEFENDANT';
+    const plaintiffPart = plaintiffLastNames.length > 1
+      ? `${firstPlaintiffLast.toUpperCase()}, et al.`
+      : firstPlaintiffLast.toUpperCase();
+    const defendantPart = defendantLastNames.length > 1
+      ? `${firstDefendantLast.toUpperCase()}, et al.`
+      : firstDefendantLast.toUpperCase();
+    pdfFields['SHORT TITLE'] = `${plaintiffPart} v. ${defendantPart}`;
 
     // 2. CITY
     if (formData.Full_Address?.City) {
@@ -115,11 +125,21 @@ function mapCm010Fields(formData) {
       pdfFields['CM-010[0].Page1[0].P1Caption[0].CourtInfo[0].CrtCounty[0]'] = county;
     }
 
-    // 2. Case Name (PLAINTIFF VS DEFENDANT) - all caps
-    const plaintiffName = formData.PlaintiffDetails?.[0]?.PlaintiffItemNumberName?.FirstAndLast || 'PLAINTIFF';
-    const defendantName = formData.DefendantDetails2?.[0]?.DefendantItemNumberName?.FirstAndLast || 'DEFENDANT';
+    // 2. Case Name - Format: SMITH v. JONES (with et al. for multiple parties)
+    const plaintiffs = formData.PlaintiffDetails || [];
+    const defendants = formData.DefendantDetails2 || [];
+    const plaintiffLastNames = plaintiffs.map(p => p.PlaintiffItemNumberName?.Last).filter(n => n);
+    const defendantLastNames = defendants.map(d => d.DefendantItemNumberName?.Last).filter(n => n);
+    const firstPlaintiffLast = plaintiffLastNames[0] || 'PLAINTIFF';
+    const firstDefendantLast = defendantLastNames[0] || 'DEFENDANT';
+    const plaintiffPart = plaintiffLastNames.length > 1
+      ? `${firstPlaintiffLast.toUpperCase()}, et al.`
+      : firstPlaintiffLast.toUpperCase();
+    const defendantPart = defendantLastNames.length > 1
+      ? `${firstDefendantLast.toUpperCase()}, et al.`
+      : firstDefendantLast.toUpperCase();
     pdfFields['CM-010[0].Page1[0].P1Caption[0].TitlePartyName[0].Party1[0]'] =
-      `${plaintiffName} v. ${defendantName}`.toUpperCase();
+      `${plaintiffPart} v. ${defendantPart}`;
 
     logger.info('CM-010 field mapping complete', { fieldCount: Object.keys(pdfFields).length });
     return pdfFields;
@@ -205,6 +225,16 @@ function mapSum200aFields(formData) {
     const plaintiffs = formData.PlaintiffDetails || [];
     const defendants = formData.DefendantDetails2 || [];
 
+    // Get last names for short title
+    const plaintiffLastNames = plaintiffs
+      .map(p => p.PlaintiffItemNumberName?.Last)
+      .filter(name => name && name.length > 0);
+
+    const defendantLastNames = defendants
+      .map(d => d.DefendantItemNumberName?.Last)
+      .filter(name => name && name.length > 0);
+
+    // Get full names for additional parties list
     const plaintiffNames = plaintiffs
       .map(p => p.PlaintiffItemNumberName?.FirstAndLast)
       .filter(name => name && name.length > 0);
@@ -213,11 +243,21 @@ function mapSum200aFields(formData) {
       .map(d => d.DefendantItemNumberName?.FirstAndLast)
       .filter(name => name && name.length > 0);
 
-    // 1. SHORT TITLE - First plaintiff v. First defendant (uppercase)
-    const firstPlaintiff = plaintiffNames[0] || 'PLAINTIFF';
-    const firstDefendant = defendantNames[0] || 'DEFENDANT';
+    // 1. SHORT TITLE - Format: SMITH v. JONES (with et al. for multiple parties)
+    // Single v Single: SMITH v. JONES
+    // Multiple v Single: SMITH, et al. v. JONES
+    // Single v Multiple: SMITH v. JONES, et al.
+    // Multiple v Multiple: SMITH, et al. v. JONES, et al.
+    const firstPlaintiffLast = plaintiffLastNames[0] || 'PLAINTIFF';
+    const firstDefendantLast = defendantLastNames[0] || 'DEFENDANT';
+    const plaintiffPart = plaintiffLastNames.length > 1
+      ? `${firstPlaintiffLast.toUpperCase()}, et al.`
+      : firstPlaintiffLast.toUpperCase();
+    const defendantPart = defendantLastNames.length > 1
+      ? `${firstDefendantLast.toUpperCase()}, et al.`
+      : firstDefendantLast.toUpperCase();
     pdfFields['SUM-200A[0].Page1[0].pxCaption[0].TitlePartyName[0].ShortTitle[0]'] =
-      `${firstPlaintiff.toUpperCase()} v. ${firstDefendant.toUpperCase()}`;
+      `${plaintiffPart} v. ${defendantPart}`;
 
     // 2. CASE NUMBER - Leave blank for pre-filing
     // pdfFields['SUM-200A[0].Page1[0].pxCaption[0].CaseNumber[0].CaseNumber[0]'] = '';
