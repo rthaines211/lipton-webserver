@@ -107,6 +107,7 @@ backups/
 *.pdf
 !docs/*.pdf  # Allow PDFs in docs folder
 !normalization work/pdf_templates/*.pdf  # Allow PDF templates for CM-110 generation
+!new templates/*.pdf  # Allow PDF templates for CIV-109, CM-010, etc.
 
 # ============================================
 # Temporary Files
