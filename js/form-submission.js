@@ -361,8 +361,8 @@ async function handleSubmissionSuccess(result) {
 
     // Check if ANY documents are selected (DOCX or PDF)
     const hasDocxDocuments = selectedDocuments.some(doc => ['srogs', 'pods', 'admissions'].includes(doc));
-    const hasCm110 = selectedDocuments.includes('cm110');
-    const hasAnyDocuments = hasDocxDocuments || hasCm110;
+    const hasPdfDocuments = selectedDocuments.some(doc => ['cm110', 'civ109', 'cm010'].includes(doc));
+    const hasAnyDocuments = hasDocxDocuments || hasPdfDocuments;
 
     // Only show progress tracking if document generation is enabled
     // Check if the server indicated that document generation is happening
@@ -371,24 +371,24 @@ async function handleSubmissionSuccess(result) {
     console.log(`🔍 Progress modal check:`, {
         pipelineEnabled,
         hasDocxDocuments,
-        hasCm110,
+        hasPdfDocuments,
         hasAnyDocuments,
         caseId,
         createJobStreamExists: typeof createJobStream !== 'undefined'
     });
 
-    // Show progress modal if EITHER pipeline is enabled (DOCX) OR CM-110 is selected
-    // Note: Only require createJobStream for DOCX documents (SSE), not for CM-110 (polling)
+    // Show progress modal if EITHER pipeline is enabled (DOCX) OR any PDF is selected
+    // Note: Only require createJobStream for DOCX documents (SSE), not for PDFs (polling)
     const shouldShowModal = caseId && (
         (pipelineEnabled && hasDocxDocuments && typeof createJobStream !== 'undefined') || // DOCX with SSE
-        (!hasDocxDocuments && hasCm110) // CM-110 only (no SSE needed)
+        (!hasDocxDocuments && hasPdfDocuments) // PDF only (no SSE needed)
     );
 
-    console.log(`🔍 Should show modal: ${shouldShowModal} (caseId: ${caseId}, DOCX: ${hasDocxDocuments}, CM-110: ${hasCm110})`);
+    console.log(`🔍 Should show modal: ${shouldShowModal} (caseId: ${caseId}, DOCX: ${hasDocxDocuments}, PDF: ${hasPdfDocuments})`);
     console.log(`🔍 Modal decision breakdown:`, {
         hasCaseId: !!caseId,
         firstCondition: pipelineEnabled && hasDocxDocuments && typeof createJobStream !== 'undefined',
-        secondCondition: !hasDocxDocuments && hasCm110,
+        secondCondition: !hasDocxDocuments && hasPdfDocuments,
         shouldShow: shouldShowModal
     });
 
@@ -561,9 +561,9 @@ async function handleSubmissionSuccess(result) {
                     window.currentJobStream = jobStream;
                 }, 1200); // Wait 1.2s before connecting to SSE
             } else {
-                // Only CM-110 selected - no DOCX pipeline to track via SSE
-                console.log('ℹ️  Only CM-110 selected - skipping SSE connection');
-                addDebugLog('ℹ️  Only CM-110 PDF generation (no DOCX)', 'info');
+                // Only PDF documents selected - no DOCX pipeline to track via SSE
+                console.log('ℹ️  Only PDF documents selected - skipping SSE connection');
+                addDebugLog('ℹ️  Only PDF generation (no DOCX)', 'info');
             }
 
         } catch (error) {
@@ -755,17 +755,21 @@ function initializeDocumentStatusUI() {
 
     const documentList = document.getElementById('submission-document-list');
     const cm110Status = document.getElementById('doc-status-cm110');
+    const civ109Status = document.getElementById('doc-status-civ109');
+    const cm010Status = document.getElementById('doc-status-cm010');
     const docxStatus = document.getElementById('doc-status-docx');
 
     if (!documentList) return;
 
-    // Check if CM-110 is selected
+    // Check which PDF types are selected
     const hasCm110 = selectedDocuments.includes('cm110');
+    const hasCiv109 = selectedDocuments.includes('civ109');
+    const hasCm010 = selectedDocuments.includes('cm010');
     // Check if any DOCX documents are selected
     const hasDocx = selectedDocuments.some(doc => ['srogs', 'pods', 'admissions'].includes(doc));
 
     // Show document list if any documents are selected
-    if (hasCm110 || hasDocx) {
+    if (hasCm110 || hasCiv109 || hasCm010 || hasDocx) {
         documentList.style.display = 'block';
     }
 
@@ -774,11 +778,19 @@ function initializeDocumentStatusUI() {
         cm110Status.style.display = hasCm110 ? 'flex' : 'none';
     }
 
+    if (civ109Status) {
+        civ109Status.style.display = hasCiv109 ? 'flex' : 'none';
+    }
+
+    if (cm010Status) {
+        cm010Status.style.display = hasCm010 ? 'flex' : 'none';
+    }
+
     if (docxStatus) {
         docxStatus.style.display = hasDocx ? 'flex' : 'none';
     }
 
-    console.log('📄 Document status UI initialized:', { hasCm110, hasDocx });
+    console.log('📄 Document status UI initialized:', { hasCm110, hasCiv109, hasCm010, hasDocx });
 }
 
 /**
@@ -1217,10 +1229,15 @@ function handleSubmissionError(data) {
 /**
  * Poll PDF generation status
  * @param {string} jobId - PDF generation job ID
+ * @param {string} docType - Document type (cm110, civ109, cm010)
  */
-function pollPdfStatus(jobId) {
+function pollPdfStatus(jobId, docType = 'cm110') {
     let attempts = 0;
     const maxAttempts = 30; // 30 seconds max (poll every 1 second)
+
+    // Get display name for logging
+    const displayNames = { 'cm110': 'CM-110', 'civ109': 'CIV-109', 'cm010': 'CM-010' };
+    const displayName = displayNames[docType] || docType.toUpperCase();
 
     const pollInterval = setInterval(async () => {
         attempts++;
@@ -1233,8 +1250,8 @@ function pollPdfStatus(jobId) {
             if (!response.ok) {
                 if (attempts >= maxAttempts) {
                     clearInterval(pollInterval);
-                    console.error('❌ PDF status polling timed out');
-                    addDebugLog('⚠️  CM-110 PDF status check timed out', 'warning');
+                    console.error(`❌ ${displayName} PDF status polling timed out`);
+                    addDebugLog(`⚠️  ${displayName} PDF status check timed out`, 'warning');
                 }
                 return;
             }
@@ -1242,76 +1259,106 @@ function pollPdfStatus(jobId) {
             const data = await response.json();
             const job = data.job;
 
-            console.log(`📊 CM-110 PDF status [${attempts}s]:`, job.status, job.progress);
+            console.log(`📊 ${displayName} PDF status [${attempts}s]:`, job.status, job.progress);
 
             // Update UI with progress
             if (job.status === 'processing') {
-                updateDocumentStatus('cm110', 'processing', `Generating... ${job.progress}%`);
+                updateDocumentStatus(docType, 'processing', `Generating... ${job.progress}%`);
             }
 
             if (job.status === 'completed') {
                 clearInterval(pollInterval);
-                console.log('✅ CM-110 PDF generation completed:', job);
-                addDebugLog('✅ CM-110 PDF generated successfully!', 'success');
+                console.log(`✅ ${displayName} PDF generation completed:`, job);
+                addDebugLog(`✅ ${displayName} PDF generated successfully!`, 'success');
 
                 // Update UI
-                updateDocumentStatus('cm110', 'completed', 'Generated successfully ✓');
+                updateDocumentStatus(docType, 'completed', 'Generated successfully ✓');
 
-                // Store PDF information for display
-                window.currentPdfInfo = {
-                    jobId: job.jobId,
-                    filename: job.filename,
-                    dropboxUrl: job.dropboxUrl,
-                    dropboxPath: job.dropboxPath,
-                    sizeBytes: job.sizeBytes
-                };
+                // Store PDF information for display (use first completed PDF)
+                if (!window.currentPdfInfo) {
+                    window.currentPdfInfo = {
+                        jobId: job.jobId,
+                        filename: job.filename,
+                        dropboxUrl: job.dropboxUrl,
+                        dropboxPath: job.dropboxPath,
+                        sizeBytes: job.sizeBytes
+                    };
+                }
 
                 // Log Dropbox upload status
                 if (job.dropboxUrl) {
-                    addDebugLog(`📦 CM-110 PDF uploaded to Dropbox`, 'success');
+                    addDebugLog(`📦 ${displayName} PDF uploaded to Dropbox`, 'success');
                     console.log('📦 Dropbox URL:', job.dropboxUrl);
                 } else {
-                    addDebugLog('ℹ️  CM-110 PDF saved locally (Dropbox disabled)', 'info');
+                    addDebugLog(`ℹ️  ${displayName} PDF saved locally (Dropbox disabled)`, 'info');
                 }
 
-                // If ONLY CM-110 was selected (no DOCX documents), mark completion now
-                // since there's no SSE stream to trigger handleSubmissionComplete
-                const storedFormData = JSON.parse(sessionStorage.getItem('lastSubmissionFormData') || '{}');
-                const selectedDocuments = storedFormData.documentTypesToGenerate || [];
-                const hasDocxDocuments = selectedDocuments.some(doc => ['srogs', 'pods', 'admissions'].includes(doc));
-
-                if (!hasDocxDocuments && !window.submissionCompleted) {
-                    console.log('ℹ️  Only CM-110 selected - marking generation as complete');
-                    handleSubmissionComplete({ outputUrl: job.dropboxUrl });
-                }
+                // Check if all PDF generation is complete (no DOCX documents)
+                checkAllPdfComplete();
 
             } else if (job.status === 'failed') {
                 clearInterval(pollInterval);
-                console.error('❌ CM-110 PDF generation failed:', job.error);
-                addDebugLog(`❌ CM-110 PDF failed: ${job.error}`, 'error');
+                console.error(`❌ ${displayName} PDF generation failed:`, job.error);
+                addDebugLog(`❌ ${displayName} PDF failed: ${job.error}`, 'error');
 
                 // Update UI
-                updateDocumentStatus('cm110', 'failed', 'Generation failed ✗');
+                updateDocumentStatus(docType, 'failed', 'Generation failed ✗');
             }
 
             // Stop polling after max attempts
             if (attempts >= maxAttempts) {
                 clearInterval(pollInterval);
-                console.warn('⚠️  CM-110 PDF polling timed out');
-                addDebugLog('⚠️  CM-110 PDF generation timed out', 'warning');
+                console.warn(`⚠️  ${displayName} PDF polling timed out`);
+                addDebugLog(`⚠️  ${displayName} PDF generation timed out`, 'warning');
             }
 
         } catch (error) {
             console.error('Error polling PDF status:', error);
             if (attempts >= maxAttempts) {
                 clearInterval(pollInterval);
-                addDebugLog('⚠️  CM-110 PDF status check failed', 'warning');
+                addDebugLog(`⚠️  ${displayName} PDF status check failed`, 'warning');
             }
         }
     }, 1000); // Poll every 1 second
 
-    // Store interval ID for cleanup
-    window.currentPdfPollInterval = pollInterval;
+    // Store interval ID for cleanup (store multiple if needed)
+    if (!window.pdfPollIntervals) {
+        window.pdfPollIntervals = {};
+    }
+    window.pdfPollIntervals[docType] = pollInterval;
+}
+
+/**
+ * Check if all PDF documents have completed generation
+ * Called after each PDF completes to see if we should mark submission complete
+ */
+function checkAllPdfComplete() {
+    const storedFormData = JSON.parse(sessionStorage.getItem('lastSubmissionFormData') || '{}');
+    const selectedDocuments = storedFormData.documentTypesToGenerate || [];
+    const hasDocxDocuments = selectedDocuments.some(doc => ['srogs', 'pods', 'admissions'].includes(doc));
+
+    // If DOCX documents are selected, SSE will handle completion
+    if (hasDocxDocuments) {
+        return;
+    }
+
+    // Check if all selected PDF types have completed status elements
+    const pdfTypes = ['cm110', 'civ109', 'cm010'];
+    const selectedPdfTypes = pdfTypes.filter(type => selectedDocuments.includes(type));
+
+    let allComplete = true;
+    for (const type of selectedPdfTypes) {
+        const statusItem = document.getElementById(`doc-status-${type}`);
+        if (statusItem && !statusItem.classList.contains('completed')) {
+            allComplete = false;
+            break;
+        }
+    }
+
+    if (allComplete && !window.submissionCompleted) {
+        console.log('ℹ️  All PDF documents completed - marking generation as complete');
+        handleSubmissionComplete({ outputUrl: window.currentPdfInfo?.dropboxUrl });
+    }
 }
 
 // Make functions available globally
