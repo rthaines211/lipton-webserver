@@ -543,21 +543,17 @@ async function generateAndUploadPDF(formData, jobId, options = {}) {
     // Generate filename with document type and head of household name
     const filename = options.filename || `${documentDisplayName}-${headOfHouseholdName}.pdf`;
 
-    // Use webhook_documents base path to match Python pipeline structure exactly
-    // Python pipeline: webhook_documents/<street>/<name>/Discovery Propounded/<type>/file.docx
-    // CM-110 PDF:      webhook_documents/<street>/<name>/Discovery Propounded/CM-110-<name>.pdf
-    // Both map to Dropbox: /Current Clients/STAGING/<street>/<name>/Discovery Propounded/
+    // Use webhook_documents base path for Dropbox integration
+    // PDF path: webhook_documents/<street>/<filename>.pdf
+    // Maps to Dropbox: /Current Clients/<street>/<filename>.pdf
     //
     // IMPORTANT: Use process.cwd() to get project root, not __dirname
-    // This ensures the path is: webhook_documents/<street>/<name>/...
-    // Not: /app/server/services/../../webhook_documents/... (which includes container prefix)
     const projectRoot = process.cwd();
-    const outputDir = path.join(projectRoot, 'webhook_documents', streetAddress, headOfHouseholdName, 'Discovery Propounded');
+    const outputDir = path.join(projectRoot, 'webhook_documents', streetAddress);
 
     console.log('📁 [PDF Service] Creating output directory');
     console.log('   Project root:', projectRoot);
     console.log('   Street address:', streetAddress);
-    console.log('   Head of household:', headOfHouseholdName);
     console.log('   Full output path:', outputDir);
 
     await fs.mkdir(outputDir, { recursive: true });
