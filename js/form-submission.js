@@ -73,23 +73,17 @@ function getAuthHeaders() {
  * @returns {boolean} True if at least one plaintiff is a minor
  */
 function hasChildPlaintiffs() {
-    // Get all plaintiff sections
-    const plaintiffsContainer = document.getElementById('plaintiffs-container');
-    if (!plaintiffsContainer) return false;
+    // Search for any checked "child" radio button in plaintiff age fields
+    // Radio buttons have names like "plaintiff-1-age", "plaintiff-2-age", etc.
+    const childRadios = document.querySelectorAll('input[type="radio"][name*="plaintiff-"][name$="-age"][value="child"]:checked');
 
-    const plaintiffSections = plaintiffsContainer.querySelectorAll('.repeatable-section');
+    const hasChildren = childRadios.length > 0;
+    console.log('🔍 hasChildPlaintiffs check:', {
+        childRadiosFound: childRadios.length,
+        hasChildren
+    });
 
-    for (const section of plaintiffSections) {
-        // Look for age radio buttons within this section
-        const ageRadios = section.querySelectorAll('input[type="radio"][name$="-age"]');
-        for (const radio of ageRadios) {
-            if (radio.checked && radio.value === 'child') {
-                return true;
-            }
-        }
-    }
-
-    return false;
+    return hasChildren;
 }
 
 /**
