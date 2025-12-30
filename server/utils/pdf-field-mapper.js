@@ -316,7 +316,11 @@ function mapCiv010Fields(formData, childPlaintiffData = null) {
     let childPlaintiff = childPlaintiffData;
     if (!childPlaintiff) {
       const plaintiffs = formData.PlaintiffDetails || [];
-      childPlaintiff = plaintiffs.find(p => p.PlaintiffAgeCategory === 'Child');
+      // PlaintiffItemNumberAgeCategory is an array (e.g., ["Child"] or ["Adult"])
+      childPlaintiff = plaintiffs.find(p => {
+        const ageCategory = p.PlaintiffItemNumberAgeCategory;
+        return Array.isArray(ageCategory) && ageCategory.includes('Child');
+      });
     }
     const childName = childPlaintiff?.PlaintiffItemNumberName?.FirstAndLast || '';
 
@@ -748,7 +752,11 @@ function getNestedValue(obj, path) {
  */
 function getChildPlaintiffs(formData) {
   const plaintiffs = formData.PlaintiffDetails || [];
-  return plaintiffs.filter(p => p.PlaintiffAgeCategory === 'Child');
+  // PlaintiffItemNumberAgeCategory is an array (e.g., ["Child"] or ["Adult"])
+  return plaintiffs.filter(p => {
+    const ageCategory = p.PlaintiffItemNumberAgeCategory;
+    return Array.isArray(ageCategory) && ageCategory.includes('Child');
+  });
 }
 
 module.exports = {
