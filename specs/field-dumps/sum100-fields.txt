@@ -1,0 +1,113 @@
+---
+FieldType: Text
+FieldName: SUM-100[0].Page1[0].Notice[0].FillText180[0]
+FieldNameAlt: YOU ARE BEING SUED BY CROSS-COMPLAINANT:
+FieldFlags: 8392704
+FieldValue: MELANIE JACOBS AND ZEA JACOBS
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: SUM-100[0].Page1[0].Notice[0].FillText25[0]
+FieldNameAlt: NOTICE TO CROSS-DEFENDANT:
+FieldFlags: 8392704
+FieldValue: Clarington-Mentone Partners, LP, et al.
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: SUM-100[0].Page1[0].Noticeto[0].List[0].Li1[0].ServiceDef_cb[0]
+FieldNameAlt: NOTICE TO THE PERSON SERVED: You are served as an individual defendant.
+FieldFlags: 0
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: SUM-100[0].Page1[0].Noticeto[0].List[0].Li2[0].ServiceDef_cb[0]
+FieldNameAlt: as the person sued under the fictitious name of 
+FieldFlags: 0
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 2
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: SUM-100[0].Page1[0].Noticeto[0].List[0].Li3[0].ServiceDef_cb[0]
+FieldNameAlt: on behalf of
+FieldFlags: 0
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: SUM-100[0].Page1[0].Noticeto[0].List[0].Li3[0].SubLi3[0].ServiceSection_cb[0]
+FieldNameAlt: CCP 416.10 (corporation)
+FieldFlags: 0
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: SUM-100[0].Page1[0].Noticeto[0].List[0].Li3[0].SubLi3[0].ServiceSection_cb[1]
+FieldNameAlt: CCP 416.20 (defunct corporation)
+FieldFlags: 0
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 3
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: SUM-100[0].Page1[0].Noticeto[0].List[0].Li3[0].SubLi3[0].ServiceSection_cb[2]
+FieldNameAlt: CCP 416.40 (association or partnership)
+FieldFlags: 0
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 5
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: SUM-100[0].Page1[0].Noticeto[0].List[0].Li3[0].SubLi3[0].ServiceSection_cb[3]
+FieldNameAlt: CCP 416.60 (minor)
+FieldFlags: 0
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 2
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: SUM-100[0].Page1[0].Noticeto[0].List[0].Li3[0].SubLi3[0].ServiceSection_cb[4]
+FieldNameAlt: CCP 416.70 (conservatee)
+FieldFlags: 0
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 4
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: SUM-100[0].Page1[0].Noticeto[0].List[0].Li3[0].SubLi3[0].ServiceSection_cb[5]
+FieldNameAlt: CCP 416.90 (authorized person)
+FieldFlags: 0
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: Off
+FieldStateOption: 6
+---
+FieldType: Button
+FieldName: SUM-100[0].Page1[0].Noticeto[0].List[0].Li3[0].SubLi3[0].ServiceSection_cb[6]
+FieldNameAlt: other 
+FieldFlags: 0
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: Off
+FieldStateOption: 7
+---
+FieldType: Button
+FieldName: SUM-100[0].Page1[0].Noticeto[0].List[0].Li4[0].PersDelivery_cb[0]
+FieldNameAlt: by personal delivery 
+FieldFlags: 0
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off

@@ -38,7 +38,7 @@ const PdfGenerationJob = require('../models/pdf-generation-job');
 const dropboxService = require('../../dropbox-service');
 
 // Document types that require pdftk instead of pdf-lib (due to XFA/complex structure)
-const PDFTK_DOCUMENT_TYPES = ['cm010'];
+const PDFTK_DOCUMENT_TYPES = ['cm010', 'sum100', 'sum200a'];
 
 /**
  * Generate FDF content for pdftk fill_form

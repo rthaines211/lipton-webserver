@@ -1,0 +1,687 @@
+---
+FieldType: Button
+FieldName: A7100 Motor Vehicle Personal InjuryProperty DamageWrongful Death
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: A7110 Personal InjuryProperty DamageWrongful Death  Uninsured Motorist
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: A6070 Asbestos Property Damage
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: A7221 Asbestos Personal InjuryWrongful Death
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: A7260 Product Liability not asbestos or toxicenvironmental
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: A7210 Medical Malpractice Physicians  Surgeons
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: A7240 Other Professional Health Care Malpractice
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: A7240 Other Professional Health Care Malpracticexx
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: SHORT TITLE
+FieldFlags: 4194304
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CASE NUMBER
+FieldFlags: 4194304
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: 2401 Product Liability not asbestos or toxic
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2402 Product Liability  SongBeverly Consumer Warranty
+FieldFlags: 0
+FieldValue: On
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 4501 Medical Malpractice  Physicians  Surgeons
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 4502 Other Professional Health Case Malpractice
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2305 ElderDependent Adult AbuseClaims Against Skilled
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2306 Intentional Conduct  Sexual Abuse Case in any
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2308 Landlord  Tenant Habitability eg bed bugs mold
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 0701 Other CommercialBusiness Tort not fraud or
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_2
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_3
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_4
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2501 Legal Malpractice
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2502 Other Professional Malpractice not medical or legal
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_5
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_6
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 1501 Other Employment Complaint Case
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 1502 Labor Commissioner Appeals
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 0601 Breach of RentalLease Contract not unlawful
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 0602 ContractWarranty Breach  Seller Plaintiff no
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 0603 Negligent Breach of ContractWarranty no fraud
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 0203 Writ  Other Limited Court Case Review
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 4301 Civil Harassment with Damages
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 4302 Workplace Harassment with Damages
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 4303 ElderDependent Adult Abuse Case with Damages
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 4306 Petition for Relief from Late Claim Law
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 4307 Other Civil Petition
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 0604 Other Breach of ContractWarranty no fraud
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 0605 Breach of RentalLease Contract COVID19 Rental
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 0901 Collections Case  Seller Plaintiff
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 0902 Other Promissory NoteCollections Case
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: PARCELS1
+FieldFlags: 4194304
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: 0903 Collections Case  Purchased Debt charged off
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 0904 Collections Case  COVID19 Rental Debt
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_7
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 3701 Contractual Fraud
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 3702 Tortious Interference
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 3703 Other Contract Dispute not breachinsurancefraud
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 1401 Eminent DomainCondemnation
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_8
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2601 Mortgage Foreclosure
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2602 Quiet Title
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2603 Other Real Property not eminent domain
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 3101 Unlawful Detainer  Commercial not drugs or
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 3201 Unlawful Detainer  Residential not drugs or
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_9
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_10
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_11
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_12
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 0201 Writ  Administrative Mandamus
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 0202 Writ  Mandamus on Limited Court Case Matter
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 3901 Other WritJudicial Review
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 3902 Administrative Hearing
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 3903 Parking Appeal
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_13
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 0401 Asbestos Property Damage
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 0402 Asbestos Personal InjuryWrongful Death
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_15
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_16
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_17
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_18
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2001 Sister State Judgment
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2002 Abstract of Judgment
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2003 Confession of Judgment nondomestic relations
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2004 Administrative Agency Award not unpaid taxes
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2005 PetitionCertificate for Entry of Judgment Unpaid Tax
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 2006 Other Enforcement of Judgment Case
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_19
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 4201 Declaratory Relief Only
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 4202 Injunctive Relief Only not domesticharassment
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 4203 Other Commercial Complaint Case nontortnon
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: 4304 Other Civil Complaint nontortnoncomplex
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_20
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_20xxx
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_21
+FieldFlags: 0
+FieldValue: On
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_22
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_23
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_24
+FieldFlags: 0
+FieldValue: On
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_25
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_26
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_27
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_28
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_29
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_30
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: undefined_31
+FieldFlags: 0
+FieldJustification: Left
+FieldStateOption: On
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: ADDRESSZIP CODE
+FieldFlags: 12587008
+FieldJustification: Center
+---
+FieldType: Text
+FieldName: CITY
+FieldFlags: 4194304
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: STATE
+FieldFlags: 4194304
+FieldValue: CA
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: ZIP
+FieldFlags: 4194304
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: the Superior Court of California County of Los Angeles Code Civ Proc 392 et seq and Local Rule 23a1E
+FieldFlags: 4194304
+FieldValue: Central
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: Dated
+FieldFlags: 4194304
+FieldJustification: Left

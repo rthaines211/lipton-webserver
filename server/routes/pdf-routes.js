@@ -78,6 +78,8 @@ router.post('/generate', async (req, res) => {
     const templateMap = {
       'civ109': 'civ109',
       'cm010': 'cm010',
+      'sum100': 'sum100',
+      'sum200a': 'sum200a',
       'cm110': 'cm110-decrypted',
       'cm110-decrypted': 'cm110-decrypted'
     };

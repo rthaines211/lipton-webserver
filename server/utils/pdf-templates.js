@@ -18,7 +18,9 @@ const TEMPLATE_PATHS = {
   'cm110': path.join(__dirname, '../../normalization work/pdf_templates/cm110.pdf'),
   'cm110-decrypted': path.join(__dirname, '../../normalization work/pdf_templates/cm110-decrypted.pdf'),
   'civ109': path.join(__dirname, '../../new templates/Civil Case Addendum (CIV-109).pdf'),
-  'cm010': path.join(__dirname, '../../new templates/Civil Case Cover Sheet (CM-010).pdf')
+  'cm010': path.join(__dirname, '../../new templates/Civil Case Cover Sheet (CM-010).pdf'),
+  'sum100': path.join(__dirname, '../../new templates/Summons (SUM-100).pdf'),
+  'sum200a': path.join(__dirname, '../../new templates/SUM-200A-decrypted.pdf')
 };
 
 /**

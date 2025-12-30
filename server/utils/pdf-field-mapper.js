@@ -130,6 +130,137 @@ function mapCm010Fields(formData) {
 }
 
 /**
+ * Map form data to PDF fields for SUM-100 (Summons)
+ * @param {Object} formData - Form submission data
+ * @returns {Object} Mapped PDF field values
+ */
+function mapSum100Fields(formData) {
+  const pdfFields = {};
+
+  try {
+    logger.info('Starting SUM-100 field mapping');
+
+    // Get all plaintiff names
+    const plaintiffs = formData.PlaintiffDetails || [];
+    const plaintiffNames = plaintiffs
+      .map(p => p.PlaintiffItemNumberName?.FirstAndLast)
+      .filter(name => name && name.length > 0);
+
+    // Get all defendant names
+    const defendants = formData.DefendantDetails2 || [];
+    const defendantNames = defendants
+      .map(d => d.DefendantItemNumberName?.FirstAndLast)
+      .filter(name => name && name.length > 0);
+
+    // Format plaintiff string with "et al." if 3+ parties
+    let plaintiffText = '';
+    if (plaintiffNames.length === 0) {
+      plaintiffText = 'PLAINTIFF';
+    } else if (plaintiffNames.length === 1) {
+      plaintiffText = plaintiffNames[0].toUpperCase();
+    } else if (plaintiffNames.length === 2) {
+      plaintiffText = plaintiffNames.map(n => n.toUpperCase()).join(' AND ');
+    } else {
+      plaintiffText = `${plaintiffNames[0].toUpperCase()}, et al.`;
+    }
+
+    // Format defendant string with "et al." if 3+ parties
+    let defendantText = '';
+    if (defendantNames.length === 0) {
+      defendantText = 'DEFENDANT';
+    } else if (defendantNames.length === 1) {
+      defendantText = defendantNames[0].toUpperCase();
+    } else if (defendantNames.length === 2) {
+      defendantText = defendantNames.map(n => n.toUpperCase()).join(' AND ');
+    } else {
+      defendantText = `${defendantNames[0].toUpperCase()}, et al.`;
+    }
+
+    // 1. "YOU ARE BEING SUED BY" - Plaintiff(s)
+    pdfFields['SUM-100[0].Page1[0].Notice[0].FillText180[0]'] = plaintiffText;
+
+    // 2. "NOTICE TO DEFENDANT" - Defendant(s)
+    pdfFields['SUM-100[0].Page1[0].Notice[0].FillText25[0]'] = defendantText;
+
+    logger.info('SUM-100 field mapping complete', { fieldCount: Object.keys(pdfFields).length });
+    return pdfFields;
+  } catch (error) {
+    logger.error('Error mapping SUM-100 fields', { error: error.message });
+    throw new Error(`SUM-100 field mapping failed: ${error.message}`);
+  }
+}
+
+/**
+ * Map form data to PDF fields for SUM-200A (Additional Parties Attachment)
+ * @param {Object} formData - Form submission data
+ * @returns {Object} Mapped PDF field values
+ */
+function mapSum200aFields(formData) {
+  const pdfFields = {};
+
+  try {
+    logger.info('Starting SUM-200A field mapping');
+
+    // Get party names
+    const plaintiffs = formData.PlaintiffDetails || [];
+    const defendants = formData.DefendantDetails2 || [];
+
+    const plaintiffNames = plaintiffs
+      .map(p => p.PlaintiffItemNumberName?.FirstAndLast)
+      .filter(name => name && name.length > 0);
+
+    const defendantNames = defendants
+      .map(d => d.DefendantItemNumberName?.FirstAndLast)
+      .filter(name => name && name.length > 0);
+
+    // 1. SHORT TITLE - First plaintiff v. First defendant (uppercase)
+    const firstPlaintiff = plaintiffNames[0] || 'PLAINTIFF';
+    const firstDefendant = defendantNames[0] || 'DEFENDANT';
+    pdfFields['SUM-200A[0].Page1[0].pxCaption[0].TitlePartyName[0].ShortTitle[0]'] =
+      `${firstPlaintiff.toUpperCase()} v. ${firstDefendant.toUpperCase()}`;
+
+    // 2. CASE NUMBER - Leave blank for pre-filing
+    // pdfFields['SUM-200A[0].Page1[0].pxCaption[0].CaseNumber[0].CaseNumber[0]'] = '';
+
+    // 3. Determine if this is for additional plaintiffs or defendants
+    // If more than 1 plaintiff, list additional plaintiffs
+    // If more than 1 defendant, list additional defendants
+    // Priority: defendants (more common to have multiple defendants)
+    let additionalPartiesText = '';
+    let partyTypeCheckbox = null;
+
+    if (defendantNames.length > 1) {
+      // List additional defendants (skip first one)
+      additionalPartiesText = defendantNames.slice(1).join('\n');
+      partyTypeCheckbox = 1; // Defendant checkbox
+    } else if (plaintiffNames.length > 1) {
+      // List additional plaintiffs (skip first one)
+      additionalPartiesText = plaintiffNames.slice(1).join('\n');
+      partyTypeCheckbox = 0; // Plaintiff checkbox
+    }
+
+    // 4. Additional Parties List
+    if (additionalPartiesText) {
+      pdfFields['SUM-200A[0].Page1[0].List[0].items[0].FillText5[0]'] = additionalPartiesText;
+    }
+
+    // 5. Party Type Checkboxes (Plaintiff=0, Defendant=1, Cross-Complainant=2, Cross-Defendant=3)
+    if (partyTypeCheckbox !== null) {
+      pdfFields[`SUM-200A[0].Page1[0].List[0].items[0].Ch1[${partyTypeCheckbox}]`] = '1';
+    }
+
+    logger.info('SUM-200A field mapping complete', {
+      fieldCount: Object.keys(pdfFields).length,
+      additionalParties: additionalPartiesText ? additionalPartiesText.split('\n').length : 0
+    });
+    return pdfFields;
+  } catch (error) {
+    logger.error('Error mapping SUM-200A fields', { error: error.message });
+    throw new Error(`SUM-200A field mapping failed: ${error.message}`);
+  }
+}
+
+/**
  * Map form data to PDF fields based on document type
  * @param {Object} formData - Form submission data
  * @param {string} documentType - Document type (e.g., 'cm110', 'civ109')
@@ -143,6 +274,10 @@ function mapFieldsForDocumentType(formData, documentType) {
       return mapCiv109Fields(formData);
     case 'cm010':
       return mapCm010Fields(formData);
+    case 'sum100':
+      return mapSum100Fields(formData);
+    case 'sum200a':
+      return mapSum200aFields(formData);
     case 'cm110':
     case 'cm110-decrypted':
       return mapFormDataToPdfFields(formData, fieldMappingConfig);
@@ -491,6 +626,8 @@ module.exports = {
   mapFieldsForDocumentType,
   mapCiv109Fields,
   mapCm010Fields,
+  mapSum100Fields,
+  mapSum200aFields,
   loadFieldMapping,
   truncateText,
   mapDiscoveryIssuesToCheckboxes,

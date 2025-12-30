@@ -3408,6 +3408,46 @@
                                 </div>
                             </div>
                         </label>
+
+                        <!-- SUM-100 PDF Checkbox -->
+                        <label class="document-checkbox-wrapper" for="doc-select-sum100">
+                            <input
+                                type="checkbox"
+                                id="doc-select-sum100"
+                                name="document-selection"
+                                value="sum100"
+                                class="document-checkbox"
+                            >
+                            <div class="document-checkbox-label">
+                                <div class="document-checkbox-icon">
+                                    <i class="fas fa-file-pdf"></i>
+                                </div>
+                                <div class="document-checkbox-content">
+                                    <span class="document-checkbox-name">SUM-100</span>
+                                    <span class="document-checkbox-desc">Summons</span>
+                                </div>
+                            </div>
+                        </label>
+
+                        <!-- SUM-200A PDF Checkbox -->
+                        <label class="document-checkbox-wrapper" for="doc-select-sum200a">
+                            <input
+                                type="checkbox"
+                                id="doc-select-sum200a"
+                                name="document-selection"
+                                value="sum200a"
+                                class="document-checkbox"
+                            >
+                            <div class="document-checkbox-label">
+                                <div class="document-checkbox-icon">
+                                    <i class="fas fa-file-pdf"></i>
+                                </div>
+                                <div class="document-checkbox-content">
+                                    <span class="document-checkbox-name">SUM-200A</span>
+                                    <span class="document-checkbox-desc">Additional Parties Attachment</span>
+                                </div>
+                            </div>
+                        </label>
                     </div>
 
                     <!-- Validation message -->
@@ -3509,6 +3549,18 @@
                             <i id="doc-icon-cm010" class="fas fa-spinner fa-spin" style="color: #00AEEF; margin-right: 8px;"></i>
                             <span style="flex: 1; font-weight: 500;">CM-010 PDF (Civil Case Cover Sheet)</span>
                             <span id="doc-status-text-cm010" style="font-size: 0.85rem; color: #5B6475;">Processing...</span>
+                        </div>
+                        <!-- SUM-100 PDF Status -->
+                        <div id="doc-status-sum100" class="document-status-item" style="display: none;">
+                            <i id="doc-icon-sum100" class="fas fa-spinner fa-spin" style="color: #00AEEF; margin-right: 8px;"></i>
+                            <span style="flex: 1; font-weight: 500;">SUM-100 PDF (Summons)</span>
+                            <span id="doc-status-text-sum100" style="font-size: 0.85rem; color: #5B6475;">Processing...</span>
+                        </div>
+                        <!-- SUM-200A PDF Status -->
+                        <div id="doc-status-sum200a" class="document-status-item" style="display: none;">
+                            <i id="doc-icon-sum200a" class="fas fa-spinner fa-spin" style="color: #00AEEF; margin-right: 8px;"></i>
+                            <span style="flex: 1; font-weight: 500;">SUM-200A PDF (Additional Parties)</span>
+                            <span id="doc-status-text-sum200a" style="font-size: 0.85rem; color: #5B6475;">Processing...</span>
                         </div>
                         <!-- DOCX Documents Status -->
                         <div id="doc-status-docx" class="document-status-item" style="display: none;">
@@ -3722,6 +3774,46 @@
                                 <div class="document-checkbox-content">
                                     <span class="document-checkbox-title">CM-010</span>
                                     <span class="document-checkbox-desc">Civil Case Cover Sheet</span>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- SUM-100 PDF Checkbox -->
+                        <div class="document-checkbox-wrapper">
+                            <input
+                                type="checkbox"
+                                id="regen-doc-sum100"
+                                name="regen-document-selection"
+                                value="sum100"
+                                class="document-checkbox"
+                            >
+                            <label for="regen-doc-sum100" class="document-checkbox-label">
+                                <div class="document-checkbox-icon">
+                                    <i class="fas fa-file-pdf"></i>
+                                </div>
+                                <div class="document-checkbox-content">
+                                    <span class="document-checkbox-title">SUM-100</span>
+                                    <span class="document-checkbox-desc">Summons</span>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- SUM-200A PDF Checkbox -->
+                        <div class="document-checkbox-wrapper">
+                            <input
+                                type="checkbox"
+                                id="regen-doc-sum200a"
+                                name="regen-document-selection"
+                                value="sum200a"
+                                class="document-checkbox"
+                            >
+                            <label for="regen-doc-sum200a" class="document-checkbox-label">
+                                <div class="document-checkbox-icon">
+                                    <i class="fas fa-file-pdf"></i>
+                                </div>
+                                <div class="document-checkbox-content">
+                                    <span class="document-checkbox-title">SUM-200A</span>
+                                    <span class="document-checkbox-desc">Additional Parties Attachment</span>
                                 </div>
                             </label>
                         </div>

@@ -361,7 +361,7 @@ async function handleSubmissionSuccess(result) {
 
     // Check if ANY documents are selected (DOCX or PDF)
     const hasDocxDocuments = selectedDocuments.some(doc => ['srogs', 'pods', 'admissions'].includes(doc));
-    const hasPdfDocuments = selectedDocuments.some(doc => ['cm110', 'civ109', 'cm010'].includes(doc));
+    const hasPdfDocuments = selectedDocuments.some(doc => ['cm110', 'civ109', 'cm010', 'sum100', 'sum200a'].includes(doc));
     const hasAnyDocuments = hasDocxDocuments || hasPdfDocuments;
 
     // Only show progress tracking if document generation is enabled
@@ -757,6 +757,8 @@ function initializeDocumentStatusUI() {
     const cm110Status = document.getElementById('doc-status-cm110');
     const civ109Status = document.getElementById('doc-status-civ109');
     const cm010Status = document.getElementById('doc-status-cm010');
+    const sum100Status = document.getElementById('doc-status-sum100');
+    const sum200aStatus = document.getElementById('doc-status-sum200a');
     const docxStatus = document.getElementById('doc-status-docx');
 
     if (!documentList) return;
@@ -765,11 +767,13 @@ function initializeDocumentStatusUI() {
     const hasCm110 = selectedDocuments.includes('cm110');
     const hasCiv109 = selectedDocuments.includes('civ109');
     const hasCm010 = selectedDocuments.includes('cm010');
+    const hasSum100 = selectedDocuments.includes('sum100');
+    const hasSum200a = selectedDocuments.includes('sum200a');
     // Check if any DOCX documents are selected
     const hasDocx = selectedDocuments.some(doc => ['srogs', 'pods', 'admissions'].includes(doc));
 
     // Show document list if any documents are selected
-    if (hasCm110 || hasCiv109 || hasCm010 || hasDocx) {
+    if (hasCm110 || hasCiv109 || hasCm010 || hasSum100 || hasSum200a || hasDocx) {
         documentList.style.display = 'block';
     }
 
@@ -786,11 +790,19 @@ function initializeDocumentStatusUI() {
         cm010Status.style.display = hasCm010 ? 'flex' : 'none';
     }
 
+    if (sum100Status) {
+        sum100Status.style.display = hasSum100 ? 'flex' : 'none';
+    }
+
+    if (sum200aStatus) {
+        sum200aStatus.style.display = hasSum200a ? 'flex' : 'none';
+    }
+
     if (docxStatus) {
         docxStatus.style.display = hasDocx ? 'flex' : 'none';
     }
 
-    console.log('📄 Document status UI initialized:', { hasCm110, hasCiv109, hasCm010, hasDocx });
+    console.log('📄 Document status UI initialized:', { hasCm110, hasCiv109, hasCm010, hasSum100, hasSum200a, hasDocx });
 }
 
 /**
@@ -1236,7 +1248,7 @@ function pollPdfStatus(jobId, docType = 'cm110') {
     const maxAttempts = 30; // 30 seconds max (poll every 1 second)
 
     // Get display name for logging
-    const displayNames = { 'cm110': 'CM-110', 'civ109': 'CIV-109', 'cm010': 'CM-010' };
+    const displayNames = { 'cm110': 'CM-110', 'civ109': 'CIV-109', 'cm010': 'CM-010', 'sum100': 'SUM-100', 'sum200a': 'SUM-200A' };
     const displayName = displayNames[docType] || docType.toUpperCase();
 
     const pollInterval = setInterval(async () => {
@@ -1343,7 +1355,7 @@ function checkAllPdfComplete() {
     }
 
     // Check if all selected PDF types have completed status elements
-    const pdfTypes = ['cm110', 'civ109', 'cm010'];
+    const pdfTypes = ['cm110', 'civ109', 'cm010', 'sum100', 'sum200a'];
     const selectedPdfTypes = pdfTypes.filter(type => selectedDocuments.includes(type));
 
     let allComplete = true;

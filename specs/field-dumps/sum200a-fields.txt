@@ -1,0 +1,99 @@
+---
+FieldType: Button
+FieldName: SUM-200A[0].#pageSet[0].Page1[0].pXFooter_sf[0].FooterButtons[0].Print[0]
+FieldNameAlt: Print this form
+FieldFlags: 65536
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: SUM-200A[0].#pageSet[0].Page1[0].pXFooter_sf[0].FooterButtons[0].Save[0]
+FieldNameAlt: Save this form
+FieldFlags: 65536
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: SUM-200A[0].#pageSet[0].Page1[0].pXFooter_sf[0].FooterButtons[0].Reset[0]
+FieldNameAlt: Clear this form
+FieldFlags: 65536
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: SUM-200A[0].#pageSet[0].Page1[0].pXFooter_sf[0].FooterButtons[0].Warning[0]
+FieldNameAlt: For your protection and privacy, please press the Clear This Form button after you have printed the form.
+FieldFlags: 65536
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: SUM-200A[0].Page1[0].pxCaption[0].TitlePartyName[0].ShortTitle[0]
+FieldNameAlt: SHORT TITLE:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: SUM-200A[0].Page1[0].pxCaption[0].CaseNumber[0].CaseNumber[0]
+FieldNameAlt: CASE NUMBER:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: SUM-200A[0].Page1[0].List[0].items[0].Ch1[0]
+FieldNameAlt: Plaintiff
+FieldFlags: 0
+FieldValue: 
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: SUM-200A[0].Page1[0].List[0].items[0].Ch1[1]
+FieldNameAlt: Defendant
+FieldFlags: 0
+FieldValue: 
+FieldJustification: Left
+FieldStateOption: 2
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: SUM-200A[0].Page1[0].List[0].items[0].Ch1[2]
+FieldNameAlt: Cross-Complainant
+FieldFlags: 0
+FieldValue: 
+FieldJustification: Left
+FieldStateOption: 3
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: SUM-200A[0].Page1[0].List[0].items[0].Ch1[3]
+FieldNameAlt: Cross-Defendant
+FieldFlags: 0
+FieldValue: 
+FieldJustification: Left
+FieldStateOption: 4
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: SUM-200A[0].Page1[0].List[0].items[0].FillText5[0]
+FieldNameAlt: List Additional Parties here:
+FieldFlags: 8392704
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: SUM-200A[0].Page1[0].PageNumber[0].FillText2[0]
+FieldNameAlt: Page
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Center
+---
+FieldType: Text
+FieldName: SUM-200A[0].Page1[0].PageNumber[0].FillText3[0]
+FieldNameAlt: of
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Center

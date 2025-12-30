@@ -80,7 +80,7 @@ router.post('/', asyncHandler(async (req, res) => {
     // ============================================================
     // Extract and validate selected document types
     const documentTypesToGenerate = formData.documentTypesToGenerate || ['srogs', 'pods', 'admissions'];
-    const validTypes = ['srogs', 'pods', 'admissions', 'cm110', 'civ109', 'cm010'];
+    const validTypes = ['srogs', 'pods', 'admissions', 'cm110', 'civ109', 'cm010', 'sum100', 'sum200a'];
 
     // Validate: must be an array
     if (!Array.isArray(documentTypesToGenerate)) {
