@@ -31,14 +31,14 @@ const { promisify } = require('util');
 const execAsync = promisify(exec);
 const logger = require('../../monitoring/logger');
 const { loadTemplate, getTemplatePath } = require('../utils/pdf-templates');
-const { mapFormDataToPdfFields, mapFieldsForDocumentType } = require('../utils/pdf-field-mapper');
+const { mapFormDataToPdfFields, mapFieldsForDocumentType, getChildPlaintiffs, mapCiv010Fields } = require('../utils/pdf-field-mapper');
 const { updateStatus } = require('./sse-service');
 const storageService = require('./storage-service');
 const PdfGenerationJob = require('../models/pdf-generation-job');
 const dropboxService = require('../../dropbox-service');
 
 // Document types that require pdftk instead of pdf-lib (due to XFA/complex structure)
-const PDFTK_DOCUMENT_TYPES = ['cm010', 'sum100', 'sum200a'];
+const PDFTK_DOCUMENT_TYPES = ['cm010', 'sum100', 'sum200a', 'civ010'];
 
 /**
  * Generate FDF content for pdftk fill_form
@@ -452,6 +452,133 @@ async function generatePDFWithValidation(formData, jobId, options = {}) {
 }
 
 /**
+ * Generate CIV-010 PDFs for all child plaintiffs
+ * Creates a separate PDF for each child and saves to their specific folder
+ *
+ * @param {Object} formData - Form submission data
+ * @param {string} jobId - Job ID for SSE progress tracking
+ * @param {Object} options - Generation and upload options
+ * @returns {Promise<Object>} Combined result with all generated PDFs
+ */
+async function generateMultiChildCiv010(formData, jobId, options = {}) {
+  const startTime = Date.now();
+  const childPlaintiffs = getChildPlaintiffs(formData);
+
+  if (childPlaintiffs.length === 0) {
+    throw new Error('CIV-010 requires at least one child plaintiff');
+  }
+
+  logger.info('Starting multi-child CIV-010 generation', {
+    jobId,
+    childCount: childPlaintiffs.length,
+    children: childPlaintiffs.map(c => c.PlaintiffItemNumberName?.FirstAndLast || 'Unknown')
+  });
+
+  // Extract street address for base path
+  let streetAddress = 'Unknown-Address';
+  if (formData.Full_Address && formData.Full_Address.Line1) {
+    streetAddress = formData.Full_Address.Line1;
+  } else if (formData['property-address']) {
+    streetAddress = formData['property-address'];
+  }
+  streetAddress = streetAddress.trim() || 'Unknown-Address';
+
+  const results = [];
+  const projectRoot = process.cwd();
+
+  for (let i = 0; i < childPlaintiffs.length; i++) {
+    const child = childPlaintiffs[i];
+    const childName = child.PlaintiffItemNumberName?.FirstAndLast || `Child-${i + 1}`;
+    const childJobId = `${jobId}-child-${i + 1}`;
+
+    logger.info('Generating CIV-010 for child', { childJobId, childName, index: i + 1, total: childPlaintiffs.length });
+
+    // Update progress
+    const progressPercent = Math.floor((i / childPlaintiffs.length) * 80);
+    updateProgress(jobId, 'generating', progressPercent, `Generating CIV-010 for ${childName}...`, options.progressCallback);
+
+    try {
+      // Map fields specifically for this child
+      const pdfFieldValues = mapCiv010Fields(formData, child);
+
+      // Generate PDF using pdftk
+      const templatePath = getTemplatePath('civ010');
+      const pdfBuffer = await generatePdfWithPdftk(templatePath, pdfFieldValues, childJobId);
+
+      // Create child-specific folder path: /{streetAddress}/{childName}/
+      const childFolderName = childName.replace(/[<>:"/\\|?*]/g, '_'); // Sanitize folder name
+      const outputDir = path.join(projectRoot, 'webhook_documents', streetAddress, childFolderName);
+      await fs.mkdir(outputDir, { recursive: true });
+
+      // Save PDF with child name in filename
+      const filename = `CIV-010-${childFolderName}.pdf`;
+      const tempFilePath = path.join(outputDir, filename);
+      await fs.writeFile(tempFilePath, pdfBuffer);
+
+      logger.info('CIV-010 saved for child', { childJobId, childName, tempFilePath });
+
+      // Upload to Dropbox if enabled
+      let dropboxResult = null;
+      if (dropboxService.isEnabled()) {
+        try {
+          dropboxResult = await dropboxService.uploadFile(tempFilePath, pdfBuffer);
+          if (dropboxResult.success) {
+            logger.info('CIV-010 uploaded to Dropbox for child', { childJobId, childName, dropboxPath: dropboxResult.dropboxPath });
+          }
+        } catch (dropboxError) {
+          logger.error('Dropbox upload failed for child CIV-010', { childJobId, childName, error: dropboxError.message });
+        }
+      }
+
+      results.push({
+        childName,
+        filename,
+        tempFilePath,
+        sizeBytes: pdfBuffer.length,
+        dropboxPath: dropboxResult?.dropboxPath || null,
+        dropboxUrl: dropboxResult?.sharedUrl || null
+      });
+
+    } catch (error) {
+      logger.error('Failed to generate CIV-010 for child', { childJobId, childName, error: error.message });
+      results.push({
+        childName,
+        error: error.message
+      });
+    }
+  }
+
+  const executionTime = Date.now() - startTime;
+  const successCount = results.filter(r => !r.error).length;
+
+  logger.info('Multi-child CIV-010 generation complete', {
+    jobId,
+    totalChildren: childPlaintiffs.length,
+    successCount,
+    failedCount: childPlaintiffs.length - successCount,
+    executionTimeMs: executionTime
+  });
+
+  // Update final progress
+  updateProgress(jobId, 'complete', 100, `Generated ${successCount} CIV-010 forms for minor plaintiffs`, options.progressCallback);
+
+  return {
+    success: successCount > 0,
+    documentType: 'civ010',
+    childResults: results,
+    totalChildren: childPlaintiffs.length,
+    successCount,
+    executionTimeMs: executionTime,
+    // For compatibility with single-PDF response format, use first successful result
+    filename: results.find(r => !r.error)?.filename || 'CIV-010.pdf',
+    tempFilePath: results.find(r => !r.error)?.tempFilePath || null,
+    dropboxPath: results.find(r => !r.error)?.dropboxPath || null,
+    dropboxUrl: results.find(r => !r.error)?.dropboxUrl || null,
+    sizeBytes: results.reduce((sum, r) => sum + (r.sizeBytes || 0), 0)
+  };
+}
+
+/**
  * Generate PDF and upload to Dropbox
  * Complete workflow: generate PDF → save to temp → upload to Dropbox → get shareable link
  *
@@ -469,6 +596,11 @@ async function generatePDFWithValidation(formData, jobId, options = {}) {
 async function generateAndUploadPDF(formData, jobId, options = {}) {
   const startTime = Date.now();
   const documentType = options.documentType || options.template || 'cm110-decrypted';
+
+  // Special handling for CIV-010: Generate one PDF per child plaintiff
+  if (documentType === 'civ010') {
+    return generateMultiChildCiv010(formData, jobId, options);
+  }
   // Convert documentType to display name for filename (e.g., 'civ109' -> 'CIV-109')
   const documentDisplayName = documentType.replace(/([a-z])(\d)/i, '$1-$2').toUpperCase();
 

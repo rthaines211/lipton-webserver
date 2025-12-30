@@ -1,0 +1,625 @@
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].AttyBarNo[0]
+FieldNameAlt: STATE BAR NUMBER:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].Name[0]
+FieldNameAlt: NAME:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].AttyFirm[0]
+FieldNameAlt: FIRM NAME:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].Street[0]
+FieldNameAlt: STREET ADDRESS:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].City[0]
+FieldNameAlt: CITY:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].State[0]
+FieldNameAlt: STATE:
+FieldFlags: 0
+FieldValue: 
+FieldJustification: Left
+FieldMaxLength: 2
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].Zip[0]
+FieldNameAlt: ZIP CODE:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].Phone[0]
+FieldNameAlt: Phone number
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].Fax[0]
+FieldNameAlt: Fax number
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].Email[0]
+FieldNameAlt: EMAIL ADDRESS:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].AttyFor[0]
+FieldNameAlt: ATTORNEY FOR (name):
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].CourtInfo[0].CrtCounty[0]
+FieldNameAlt: SUPERIOR COURT OF CALIFORNIA, COUNTY OF
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].CourtInfo[0].CrtStreet[0]
+FieldNameAlt: STREET ADDRESS:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].CourtInfo[0].CrtMailingAdd[0]
+FieldNameAlt: MAILING ADDRESS:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].CourtInfo[0].CrtCityZip[0]
+FieldNameAlt: CITY AND ZIP CODE:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].CourtInfo[0].CrtBranch[0]
+FieldNameAlt: BRANCH NAME:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].CaseNumber[0].CaseNumber_ft[0]
+FieldNameAlt: CASE NUMBER:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].TitlePartyName[0].Party1_ft[0]
+FieldNameAlt: PLAINTIFF or PETITIONER:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].TitlePartyName[0].Party2_ft[0]
+FieldNameAlt: DEFENDANT or RESPONDENT:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].TitlePartyName[0].Party3_ft[0]
+FieldNameAlt: Other parent or party:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page1[0].P1Header_sf[0].FormTitle[0].ExParte_cb[0]
+FieldNameAlt: EX PARTE
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].Applicant_sf[0].ApplicantName_ft[0]
+FieldNameAlt: I (applicant&apos;s name):
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page1[0].Applicant_sf[0].Item1a[0].Parent_cb[0]
+FieldNameAlt: the parent of
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].Applicant_sf[0].Item1a[0].ParentName_ft[0]
+FieldNameAlt: (name):
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page1[0].Applicant_sf[0].Item1b[0].Guardian_cb[0]
+FieldNameAlt: the guardian of
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].Applicant_sf[0].Item1b[0].GuardianName_ft[0]
+FieldNameAlt: (name):
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page1[0].Applicant_sf[0].Item1c[0].Conservator_cb[0]
+FieldNameAlt: the conservator of 
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].Applicant_sf[0].Item1c[0].ConservatorName_ft[0]
+FieldNameAlt: (name):
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page1[0].Applicant_sf[0].Item1d[0].Party_cb[0]
+FieldNameAlt: a party to the suit.
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: CIV-010[0].Page1[0].Applicant_sf[0].Item1e[0].Minor_cb[0]
+FieldNameAlt: the minor to be represented (if the minor is 14 years of age or older).
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: CIV-010[0].Page1[0].Applicant_sf[0].Item1f[0].IntPerson_cb[0]
+FieldNameAlt: another interested person 
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].Applicant_sf[0].Item1f[0].IntPersonCap_ft[0]
+FieldNameAlt: (specify capacity):
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].GdnadLitem[0].GALInfo_ft[0]
+FieldNameAlt: I am asking the court to appoint the following person as guardian ad litem (name, address, phone number, and email address):
+FieldFlags: 8392704
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].PersonRep[0].PersonRepInfo_ft[0]
+FieldNameAlt: The guardian ad litem will represent the interest of (name, address, and, if applicable, phone number and email address):
+FieldFlags: 8392704
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page1[0].PersonRepMore[0].Item4a_sf[0].Minor_cb[0]
+FieldNameAlt: a minor 
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].PersonRepMore[0].Item4a_sf[0].MinorDOB_ft[0]
+FieldNameAlt: (date of birth):
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page1[0].PersonRepMore[0].Item4b_sf[0].PersonNoCap_cb[0]
+FieldNameAlt: a person who lacks legal capacity to make decisions
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].PersonRepMore[0].Item4b_sf[0].NoCapExpl_ft[0]
+FieldNameAlt: explain the basis for claiming lack of capacity
+FieldFlags: 8392704
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page1[0].PersonRepMore[0].Item4b_sf[0].Att4b_cb[0]
+FieldNameAlt: Continued on Attachment 4b.
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: CIV-010[0].Page1[0].PersonRepMore[0].Item4c_sf[0].PersonwConservator_cb[0]
+FieldNameAlt: a person for whom a conservator has been appointed
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page1[0].PersonRepMore[0].Item4c_sf[0].ConservApptDetails_ft[0]
+FieldNameAlt: provide the details of the appointment
+FieldFlags: 8392704
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page1[0].PersonRepMore[0].Item4c_sf[0].Att4c_cb[0]
+FieldNameAlt: Continued on Attachment 4c.
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page2[0].P2Caption_sf[0].TitlePartyName[0].Party1_ft[0]
+FieldNameAlt: PLAINTIFF or PETITIONER:
+FieldFlags: 8388609
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page2[0].P2Caption_sf[0].TitlePartyName[0].Party2_ft[0]
+FieldNameAlt: DEFENDANT or RESPONDENT:
+FieldFlags: 8388609
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page2[0].P2Caption_sf[0].TitlePartyName[0].Party3_ft[0]
+FieldNameAlt: Other parent or party
+FieldFlags: 8388609
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page2[0].P2Caption_sf[0].CaseNumber[0].CaseNumber_ft[0]
+FieldNameAlt: CASE NUMBER:
+FieldFlags: 8388609
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].Person3Minor[0].Person3Minorand_cb[0]
+FieldNameAlt: The person named in item 3 is a minor and is (check one):
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].Person3Minor[0].Item5a_sf[0].plantifforpet5a\.b[0]
+FieldNameAlt: a plaintiff or petitioner in this action and the summons has not been issued.
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].Person3Minor[0].Item5b_sf[0].plantifforpet5a\.b[0]
+FieldNameAlt: a defendant or respondent in this action. More than 10 days have passed since service of the summons, and no one has applied for the appointment of a guardian ad litem.
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 5
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].Item6[0].Item6a[0].MinorUPA_cb[0]
+FieldNameAlt: is a minor who is a party to an action under the Uniform Parentage Act (Family Code, &#167;&#167; 7600&#8211;7730).
+FieldFlags: 0
+FieldValue: 
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].Item6[0].Item6b[0].MinorReqRO_cb[0]
+FieldNameAlt: is a minor who is requesting or opposing a request for an injunction or restraining order described in Code of Civil Procedure sections 372(b)(1) and 374(a). (If the minor is 12 years of age or older, check one of the following):
+FieldFlags: 0
+FieldValue: 
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].Item6[0].Item6b[0].doesdoesnot6\.b[0]
+FieldNameAlt: The minor does object to the appointment of the person named in item 2.
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].Item6[0].Item6b[0].doesdoesnot6\.b[1]
+FieldNameAlt: The minor does not object to the appointment of the person named in item 2.
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 5
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].Item6[0].Item6b[0].doesdoesnot6\.b[2]
+FieldNameAlt: I don&apos;t know whether the minor objects to the appointment of the person named in item 2.
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 9
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].Item6[0].Item6c[0].hashasnoguard6c\.d[0]
+FieldNameAlt: has no guardian or conservator of the estate.
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].Item6[0].Item6d[0].hashasnoguard6c\.d[0]
+FieldNameAlt: has a guardian or conservator of the estate, but the guardian or conservator is inadequate to represent the person&apos;s interest in this action or proceeding because
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 5
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page2[0].Item6[0].Item6d[0].ExplainInadeq_ft[0]
+FieldNameAlt: (explain):
+FieldFlags: 8392704
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].Item6[0].Item6d[0].Att6d_cb[0]
+FieldNameAlt: Continued on Attachment 6d.
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page2[0].Item6[0].Item6d[0].GdnCnsrvtrInfo_ft[0]
+FieldNameAlt: The guardian or conservator of the estate is (name, address, telephone number, and email address):
+FieldFlags: 8392704
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page2[0].SignAttorney[0].AttName_ft[0]
+FieldNameAlt: (TYPE OR PRINT NAME)
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page2[0].PoPDecl[0].ApplSigDate_ft[0]
+FieldNameAlt: Date:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page2[0].PoPDecl[0].ApplName_ft[0]
+FieldNameAlt: (TYPE OR PRINT NAME)
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].GALDiscloseConsent_sf[0].Item8[0].Item8a[0].relationship8\.abc[0]
+FieldNameAlt: No relationship
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].GALDiscloseConsent_sf[0].Item8[0].Item8b[0].relationship8\.abc[0]
+FieldNameAlt: A familial relationship
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 5
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page2[0].GALDiscloseConsent_sf[0].Item8[0].Item8b[0].SpecifyFamRel_ft[0]
+FieldNameAlt: (specify):
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].GALDiscloseConsent_sf[0].Item8[0].Item8c[0].relationship8\.abc[0]
+FieldNameAlt: An affiliate (nonfamilial) relationship
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 9
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page2[0].GALDiscloseConsent_sf[0].Item8[0].Item8c[0].SpecifyNonFamRel_ft[0]
+FieldNameAlt: (specify):
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].GALDiscloseConsent_sf[0].Item9[0].Item9a[0].iam9\.ab[0]
+FieldNameAlt: I am not aware of any actual or potential conflicts of interest that would or might arise from the appointment.
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].GALDiscloseConsent_sf[0].Item9[0].Item9b[0].iam9\.ab[0]
+FieldNameAlt: I am aware of the following actual or potential conflicts that would or might arise from the appointment
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 5
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page2[0].GALDiscloseConsent_sf[0].Item9[0].Item9b[0].ConflictDescription_ft[0]
+FieldNameAlt: describe the actual or potential conflicts of interest and explain why the proposed guardian should still be appointed
+FieldFlags: 8392704
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].GALDiscloseConsent_sf[0].Item9[0].Item9b[0].Att9b_cb[0]
+FieldNameAlt: Continued on Attachment 9b.
+FieldFlags: 0
+FieldValue: 
+FieldValue: Off
+FieldJustification: Left
+FieldStateOption: 1
+FieldStateOption: Off
+---
+FieldType: Text
+FieldName: CIV-010[0].Page2[0].GALDiscloseConsent_sf[0].GdnDecl_sf[0].GALSigDate_ft[0]
+FieldNameAlt: Date:
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Text
+FieldName: CIV-010[0].Page2[0].GALDiscloseConsent_sf[0].GdnDecl_sf[0].GALName_ft[0]
+FieldNameAlt: (TYPE OR PRINT NAME)
+FieldFlags: 8388608
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].FooterButtons[0].Print[0]
+FieldNameAlt: Print this form
+FieldFlags: 65536
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].FooterButtons[0].Save[0]
+FieldNameAlt: Save this form
+FieldFlags: 65536
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].FooterButtons[0].Reset[0]
+FieldNameAlt: Clear this form
+FieldFlags: 65536
+FieldValue: 
+FieldJustification: Left
+---
+FieldType: Button
+FieldName: CIV-010[0].Page2[0].FooterButtons[0].Warning[0]
+FieldNameAlt: For your protection and privacy, please press the Clear This Form button after you have printed the form.
+FieldFlags: 65536
+FieldValue: 
+FieldJustification: Left

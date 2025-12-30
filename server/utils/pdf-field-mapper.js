@@ -301,6 +301,83 @@ function mapSum200aFields(formData) {
 }
 
 /**
+ * Map form data to PDF fields for CIV-010 (Application for Appointment of Guardian Ad Litem)
+ * @param {Object} formData - Form submission data
+ * @param {Object} childPlaintiffData - Optional specific child plaintiff data (for multi-child cases)
+ * @returns {Object} Mapped PDF field values
+ */
+function mapCiv010Fields(formData, childPlaintiffData = null) {
+  const pdfFields = {};
+
+  try {
+    logger.info('Starting CIV-010 field mapping');
+
+    // If specific child plaintiff data is passed, use it; otherwise find first child
+    let childPlaintiff = childPlaintiffData;
+    if (!childPlaintiff) {
+      const plaintiffs = formData.PlaintiffDetails || [];
+      childPlaintiff = plaintiffs.find(p => p.PlaintiffAgeCategory === 'Child');
+    }
+    const childName = childPlaintiff?.PlaintiffItemNumberName?.FirstAndLast || '';
+
+    // Get all defendant names
+    const defendants = formData.DefendantDetails2 || [];
+    const defendantNames = defendants
+      .map(d => d.DefendantItemNumberName?.FirstAndLast)
+      .filter(name => name && name.length > 0)
+      .join('; ');
+
+    // 1. Court County (Page 1)
+    const county = formData.FilingCounty || formData['Filing county'] || '';
+    if (county) {
+      pdfFields['CIV-010[0].Page1[0].P1Header_sf[0].CourtInfo[0].CrtCounty[0]'] = county;
+    }
+
+    // 2. Plaintiff/Petitioner - Child plaintiff name only (Page 1)
+    if (childName) {
+      pdfFields['CIV-010[0].Page1[0].P1Header_sf[0].TitlePartyName[0].Party1_ft[0]'] = childName;
+    }
+
+    // 3. Defendant/Respondent - All defendants (Page 1)
+    if (defendantNames) {
+      pdfFields['CIV-010[0].Page1[0].P1Header_sf[0].TitlePartyName[0].Party2_ft[0]'] = defendantNames;
+    }
+
+    // 4. Page 2 Caption - Same as Page 1
+    if (childName) {
+      pdfFields['CIV-010[0].Page2[0].P2Caption_sf[0].TitlePartyName[0].Party1_ft[0]'] = childName;
+    }
+    if (defendantNames) {
+      pdfFields['CIV-010[0].Page2[0].P2Caption_sf[0].TitlePartyName[0].Party2_ft[0]'] = defendantNames;
+    }
+
+    // 5. Attorney Information - Kevin Lipton, ESQ
+    pdfFields['CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].Name[0]'] = 'Kevin Lipton, ESQ';
+    pdfFields['CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].AttyBarNo[0]'] = '291739';
+    pdfFields['CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].AttyFirm[0]'] = 'Lipton Legal Group, A PC';
+    pdfFields['CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].Street[0]'] = '9478 W. Olympic Blvd., Suite 308';
+    pdfFields['CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].City[0]'] = 'Beverly Hills';
+    pdfFields['CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].State[0]'] = 'CA';
+    pdfFields['CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].Zip[0]'] = '90212';
+
+    // 6. Attorney For - Child plaintiff name
+    if (childName) {
+      pdfFields['CIV-010[0].Page1[0].P1Header_sf[0].AttyPartyInfo[0].AttyFor[0]'] = childName;
+    }
+
+    logger.info('CIV-010 field mapping complete', {
+      fieldCount: Object.keys(pdfFields).length,
+      childPlaintiff: childName,
+      defendantCount: defendants.length
+    });
+    return pdfFields;
+  } catch (error) {
+    logger.error('Error mapping CIV-010 fields', { error: error.message });
+    throw new Error(`CIV-010 field mapping failed: ${error.message}`);
+  }
+}
+
+/**
  * Map form data to PDF fields based on document type
  * @param {Object} formData - Form submission data
  * @param {string} documentType - Document type (e.g., 'cm110', 'civ109')
@@ -318,6 +395,8 @@ function mapFieldsForDocumentType(formData, documentType) {
       return mapSum100Fields(formData);
     case 'sum200a':
       return mapSum200aFields(formData);
+    case 'civ010':
+      return mapCiv010Fields(formData);
     case 'cm110':
     case 'cm110-decrypted':
       return mapFormDataToPdfFields(formData, fieldMappingConfig);
@@ -661,6 +740,17 @@ function getNestedValue(obj, path) {
   }, obj);
 }
 
+/**
+ * Get all child plaintiffs from form data
+ * Used to generate multiple CIV-010 forms for multi-child cases
+ * @param {Object} formData - Form submission data
+ * @returns {Array} Array of child plaintiff objects
+ */
+function getChildPlaintiffs(formData) {
+  const plaintiffs = formData.PlaintiffDetails || [];
+  return plaintiffs.filter(p => p.PlaintiffAgeCategory === 'Child');
+}
+
 module.exports = {
   mapFormDataToPdfFields,
   mapFieldsForDocumentType,
@@ -668,6 +758,8 @@ module.exports = {
   mapCm010Fields,
   mapSum100Fields,
   mapSum200aFields,
+  mapCiv010Fields,
+  getChildPlaintiffs,
   loadFieldMapping,
   truncateText,
   mapDiscoveryIssuesToCheckboxes,

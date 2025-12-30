@@ -80,6 +80,7 @@ router.post('/generate', async (req, res) => {
       'cm010': 'cm010',
       'sum100': 'sum100',
       'sum200a': 'sum200a',
+      'civ010': 'civ010',
       'cm110': 'cm110-decrypted',
       'cm110-decrypted': 'cm110-decrypted'
     };

@@ -20,7 +20,8 @@ const TEMPLATE_PATHS = {
   'civ109': path.join(__dirname, '../../new templates/Civil Case Addendum (CIV-109).pdf'),
   'cm010': path.join(__dirname, '../../new templates/Civil Case Cover Sheet (CM-010).pdf'),
   'sum100': path.join(__dirname, '../../new templates/Summons (SUM-100).pdf'),
-  'sum200a': path.join(__dirname, '../../new templates/SUM-200A-decrypted.pdf')
+  'sum200a': path.join(__dirname, '../../new templates/SUM-200A-decrypted.pdf'),
+  'civ010': path.join(__dirname, '../../new templates/application for guardian civ010.pdf')
 };
 
 /**
