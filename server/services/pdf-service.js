@@ -540,8 +540,9 @@ async function generateAndUploadPDF(formData, jobId, options = {}) {
       }
     }
 
-    // Generate filename with document type and head of household name
-    const filename = options.filename || `${documentDisplayName}-${headOfHouseholdName}.pdf`;
+    // Generate filename with document type and first 10 chars of street address
+    const streetPrefix = streetAddress.substring(0, 10).trim();
+    const filename = options.filename || `${documentDisplayName}-${streetPrefix}.pdf`;
 
     // Use webhook_documents base path for Dropbox integration
     // PDF path: webhook_documents/<street>/<filename>.pdf
