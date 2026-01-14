@@ -45,7 +45,7 @@ function requireAuth(req, res, next) {
     }
 
     // Skip auth for API endpoints used by forms - forms handle their own password authentication
-    if (req.path.startsWith('/api/entries') || req.path.startsWith('/api/contingency-entries')) {
+    if (req.path.startsWith('/api/form-entries') || req.path.startsWith('/api/contingency-entries') || req.path.startsWith('/api/pdf/')) {
         return next();
     }
 
