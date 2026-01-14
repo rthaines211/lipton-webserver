@@ -9,8 +9,8 @@
 const logger = require('../monitoring/logger');
 
 // Get passwords from environment
-const DOCS_PASSWORD = process.env.DOCS_FORM_PASSWORD || 'lipton-docs-2025';
-const AGREEMENT_PASSWORD = process.env.AGREEMENT_FORM_PASSWORD || 'lipton-agreement-2025';
+const DOCS_PASSWORD = process.env.DOCS_FORM_PASSWORD || 'lipton-discovery-2026';
+const AGREEMENT_PASSWORD = process.env.AGREEMENT_FORM_PASSWORD || 'lipton-discovery-2026';
 
 /**
  * Create password authentication middleware for a specific form
