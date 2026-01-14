@@ -56,6 +56,7 @@ const envValidator = require('./config/env-validator');
 envValidator.validate();
 
 const express = require('express');
+const session = require('express-session');
 const cors = require('cors');
 const morgan = require('morgan');
 const compression = require('compression');
@@ -99,6 +100,7 @@ const pipelineService = require('./services/pipeline-service');
 // Middleware
 const { errorHandler } = require('./middleware/error-handler');
 const { requireAuth, getAuthConfig } = require('./middleware/auth');
+const { createPasswordAuth, createLogoutHandler } = require('./middleware/password-auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -310,6 +312,18 @@ async function deleteFormData(filename) {
 // Middleware
 app.use(cors());
 
+// Session middleware for password authentication
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'lipton-legal-secret-key-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
 // Winston structured logging (must be early in middleware chain)
 app.use(requestLoggingMiddleware);
 
@@ -382,7 +396,13 @@ app.use('/metrics', metricsRoutes);
 // Apply authentication to all routes (except health checks, handled in middleware)
 app.use(requireAuth);
 
-// Serve static files from forms directory structure
+// Password-protect document generation form
+app.use('/forms/docs', createPasswordAuth('docs'));
+
+// Password-protect contingency agreement form (future)
+app.use('/forms/agreement', createPasswordAuth('agreement'));
+
+// Serve static files from forms directory structure (after password auth)
 app.use('/forms', express.static(path.join(__dirname, 'forms')));
 
 // Mount PDF generation routes
@@ -669,6 +689,10 @@ app.get('/', (req, res) => {
 app.get('/forms/docs/', (req, res) => {
     res.sendFile(path.join(__dirname, 'forms/docs/index.html'));
 });
+
+// Logout routes
+app.get('/forms/docs/logout', createLogoutHandler('docs'));
+app.get('/forms/agreement/logout', createLogoutHandler('agreement'));
 
 // Review page route
 app.get('/review.html', (req, res) => {
