@@ -153,18 +153,8 @@ function hideProgress() {
  * Show success message
  */
 function showSuccessMessage(result) {
-    const plaintiffCount = parseInt(document.getElementById('plaintiff-count').value);
-    const plural = plaintiffCount > 1 ? 's' : '';
-
-    let message = `Success! Your contingency agreement${plural} ha${plural === 's' ? 've' : 's'} been submitted.\n\nCase ID: ${result.id}`;
-
-    if (result.documentStatus === 'completed') {
-        message += `\n\n${result.generatedDocuments.length} agreement${plural} generated successfully!`;
-    } else if (result.documentStatus === 'failed') {
-        message += '\n\nNote: Document generation failed. Please contact support.';
-    }
-
-    alert(message);
+    // Silently reset form after successful submission
+    // Documents are automatically downloaded, no alert needed
 
     // Reset form
     document.getElementById('contingency-form').reset();
