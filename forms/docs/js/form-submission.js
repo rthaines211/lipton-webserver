@@ -42,31 +42,6 @@
  * @requires ./toast-notifications.js (optional - for progress updates)
  */
 
-/**
- * Get authentication token from URL parameters
- * @returns {string|null} The token if found, null otherwise
- */
-function getAuthToken() {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('token');
-}
-
-/**
- * Get authentication headers for fetch requests
- * @returns {Object} Headers object with Authorization if token is present
- */
-function getAuthHeaders() {
-    const token = getAuthToken();
-    const headers = {
-        'Content-Type': 'application/json'
-    };
-
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return headers;
-}
 
 /**
  * Check if any plaintiffs are minors (age category = child)
@@ -321,16 +296,11 @@ async function submitForm(notificationEmail = null, optedIn = false, notificatio
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        // Get access token from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const accessToken = urlParams.get('token');
-
-        // Submit to server with authentication
+        // Submit to server
         const response = await fetch('/api/form-entries', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(data),
             signal: controller.signal
@@ -514,7 +484,7 @@ async function handleSubmissionSuccess(result) {
                         // Trigger PDF generation with document type
                         const pdfResponse = await fetch('/api/pdf/generate', {
                             method: 'POST',
-                            headers: getAuthHeaders(),
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 formData: fullFormData,
                                 documentType: docType
@@ -1307,7 +1277,7 @@ function pollPdfStatus(jobId, docType = 'cm110') {
 
         try {
             const response = await fetch(`/api/pdf/status/${jobId}`, {
-                headers: getAuthHeaders()
+                headers: { 'Content-Type': 'application/json' }
             });
 
             if (!response.ok) {
