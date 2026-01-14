@@ -18,7 +18,12 @@ const logger = require('../monitoring/logger');
 class ContingencyDocumentGenerator {
     constructor() {
         this.templatePath = path.join(__dirname, '../templates/LLG Contingency Fee Agreement - Template.docx');
-        this.outputBaseDir = path.join(__dirname, '../generated-documents/contingency-agreements');
+
+        // Use /tmp for Cloud Run compatibility (ephemeral storage)
+        // In production, files are temporary and will be downloaded immediately
+        this.outputBaseDir = process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging'
+            ? '/tmp/contingency-agreements'
+            : path.join(__dirname, '../generated-documents/contingency-agreements');
 
         // Ensure output directory exists
         if (!fs.existsSync(this.outputBaseDir)) {

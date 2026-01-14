@@ -1,8 +1,9 @@
--- Migration: Create Contingency Agreements Tables
--- Date: 2026-01-13
--- Description: Database schema for contingency agreement form submissions
+-- ============================================================================
+-- STAGING DATABASE MIGRATION
+-- Run this SQL in GCP Console → Cloud SQL → legal-forms-db-staging → SQL Editor
+-- ============================================================================
 
--- Contingency Agreement submissions table
+-- Create contingency_agreements table
 CREATE TABLE IF NOT EXISTS contingency_agreements (
   id SERIAL PRIMARY KEY,
   case_id VARCHAR(255) UNIQUE NOT NULL,
@@ -32,7 +33,7 @@ CREATE TABLE IF NOT EXISTS contingency_agreements (
   CONSTRAINT chk_document_status CHECK (document_status IN ('pending', 'processing', 'completed', 'failed'))
 );
 
--- Plaintiffs table for contingency agreements
+-- Create contingency_plaintiffs table
 CREATE TABLE IF NOT EXISTS contingency_plaintiffs (
   id SERIAL PRIMARY KEY,
   case_id VARCHAR(255) REFERENCES contingency_agreements(case_id) ON DELETE CASCADE,
@@ -55,7 +56,7 @@ CREATE TABLE IF NOT EXISTS contingency_plaintiffs (
   UNIQUE(case_id, plaintiff_index)
 );
 
--- Defendants table for contingency agreements
+-- Create contingency_defendants table
 CREATE TABLE IF NOT EXISTS contingency_defendants (
   id SERIAL PRIMARY KEY,
   case_id VARCHAR(255) REFERENCES contingency_agreements(case_id) ON DELETE CASCADE,
@@ -69,15 +70,33 @@ CREATE TABLE IF NOT EXISTS contingency_defendants (
   UNIQUE(case_id, defendant_index)
 );
 
--- Indexes for performance
+-- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_contingency_agreements_case_id ON contingency_agreements(case_id);
 CREATE INDEX IF NOT EXISTS idx_contingency_agreements_submitted_at ON contingency_agreements(submitted_at);
 CREATE INDEX IF NOT EXISTS idx_contingency_agreements_status ON contingency_agreements(document_status);
 CREATE INDEX IF NOT EXISTS idx_contingency_plaintiffs_case_id ON contingency_plaintiffs(case_id);
 CREATE INDEX IF NOT EXISTS idx_contingency_defendants_case_id ON contingency_defendants(case_id);
 
--- Comments for documentation
+-- Add comments for documentation
 COMMENT ON TABLE contingency_agreements IS 'Main table for contingency agreement form submissions';
 COMMENT ON TABLE contingency_plaintiffs IS 'Plaintiff information for contingency agreements';
 COMMENT ON TABLE contingency_defendants IS 'Defendant information for contingency agreements';
 COMMENT ON COLUMN contingency_plaintiffs.guardian_plaintiff_id IS 'References plaintiff_index of guardian (for minors)';
+
+-- ============================================================================
+-- Verification Query - Run this to verify tables were created
+-- ============================================================================
+SELECT
+  'contingency_agreements' as table_name,
+  COUNT(*) as row_count
+FROM contingency_agreements
+UNION ALL
+SELECT
+  'contingency_plaintiffs' as table_name,
+  COUNT(*) as row_count
+FROM contingency_plaintiffs
+UNION ALL
+SELECT
+  'contingency_defendants' as table_name,
+  COUNT(*) as row_count
+FROM contingency_defendants;
