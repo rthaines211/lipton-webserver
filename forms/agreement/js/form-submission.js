@@ -3,6 +3,32 @@
  * Handles form validation and submission to backend API
  */
 
+/**
+ * Get authentication token from URL parameters
+ * @returns {string|null} The token if found, null otherwise
+ */
+function getAuthToken() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('token');
+}
+
+/**
+ * Get authentication headers for fetch requests
+ * @returns {Object} Headers object with Authorization if token is present
+ */
+function getAuthHeaders() {
+    const token = getAuthToken();
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('contingency-form');
 
@@ -25,9 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Submit to API
             const response = await fetch('/api/contingency-entries', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(formData)
             });
 
