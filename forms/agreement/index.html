@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lipton Legal - Contingency Agreement Form</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="form-container">
+        <!-- Header -->
+        <header class="form-header">
+            <img src="../shared/images/logo.png" alt="Lipton Legal Logo" class="logo">
+            <h1>Contingency Fee Agreement Form</h1>
+            <p class="subtitle">Please complete this form to generate your contingency fee agreement</p>
+        </header>
+
+        <!-- Main Form -->
+        <form id="contingency-form">
+            <!-- Property Information Section -->
+            <section class="form-section">
+                <h2><i class="fas fa-home"></i> Property Information</h2>
+                <div class="form-group">
+                    <label for="property-address">Property Address <span class="required">*</span></label>
+                    <input type="text" id="property-address" name="property-address" required
+                           placeholder="123 Main Street, Los Angeles, CA 90001">
+                </div>
+            </section>
+
+            <!-- Plaintiffs Section -->
+            <section class="form-section" id="plaintiffs-section">
+                <h2><i class="fas fa-users"></i> Plaintiff Information</h2>
+                <p class="section-description">Add all plaintiffs who will be party to this agreement</p>
+
+                <div id="plaintiffs-container">
+                    <!-- Plaintiff 1 (default) -->
+                    <div class="plaintiff-block" data-plaintiff-number="1">
+                        <div class="block-header">
+                            <h3>Plaintiff 1</h3>
+                            <button type="button" class="btn-remove" onclick="removePlaintiff(1)" style="display: none;">
+                                <i class="fas fa-times"></i> Remove
+                            </button>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="plaintiff-1-first-name">First Name <span class="required">*</span></label>
+                                <input type="text" id="plaintiff-1-first-name" name="plaintiff-1-first-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="plaintiff-1-last-name">Last Name <span class="required">*</span></label>
+                                <input type="text" id="plaintiff-1-last-name" name="plaintiff-1-last-name" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group flex-2">
+                                <label for="plaintiff-1-address">Street Address <span class="required">*</span></label>
+                                <input type="text" id="plaintiff-1-address" name="plaintiff-1-address" required
+                                       placeholder="123 Main Street">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="plaintiff-1-unit">Unit # (optional)</label>
+                                <input type="text" id="plaintiff-1-unit" name="plaintiff-1-unit"
+                                       placeholder="Apt 5">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="plaintiff-1-email">Email Address <span class="required">*</span></label>
+                                <input type="email" id="plaintiff-1-email" name="plaintiff-1-email" required
+                                       placeholder="john.doe@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="plaintiff-1-phone">Phone Number <span class="required">*</span></label>
+                                <input type="tel" id="plaintiff-1-phone" name="plaintiff-1-phone" required
+                                       placeholder="(555) 123-4567">
+                            </div>
+                        </div>
+
+                        <div class="form-group minor-section">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="plaintiff-1-is-minor" name="plaintiff-1-is-minor"
+                                       onchange="toggleGuardianSelect(1)">
+                                This plaintiff is a minor
+                            </label>
+
+                            <div id="plaintiff-1-guardian-container" class="guardian-select-container" style="display: none;">
+                                <label for="plaintiff-1-guardian">Guardian (select plaintiff) <span class="required">*</span></label>
+                                <select id="plaintiff-1-guardian" name="plaintiff-1-guardian">
+                                    <option value="">Select Guardian...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-add" onclick="addPlaintiff()">
+                    <i class="fas fa-plus"></i> Add Another Plaintiff
+                </button>
+            </section>
+
+            <!-- Defendants Section -->
+            <section class="form-section" id="defendants-section">
+                <h2><i class="fas fa-user-tie"></i> Defendant Information</h2>
+                <p class="section-description">Add all defendants named in this case</p>
+
+                <div id="defendants-container">
+                    <!-- Defendant 1 (default) -->
+                    <div class="defendant-block" data-defendant-number="1">
+                        <div class="block-header">
+                            <h3>Defendant 1</h3>
+                            <button type="button" class="btn-remove" onclick="removeDefendant(1)" style="display: none;">
+                                <i class="fas fa-times"></i> Remove
+                            </button>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="defendant-1-first-name">First Name <span class="required">*</span></label>
+                                <input type="text" id="defendant-1-first-name" name="defendant-1-first-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="defendant-1-last-name">Last Name <span class="required">*</span></label>
+                                <input type="text" id="defendant-1-last-name" name="defendant-1-last-name" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-add" onclick="addDefendant()">
+                    <i class="fas fa-plus"></i> Add Another Defendant
+                </button>
+            </section>
+
+            <!-- Submit Section -->
+            <section class="form-section submit-section">
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-file-contract"></i> Generate Agreement
+                </button>
+                <p class="submit-note">This will generate a separate contingency fee agreement for each plaintiff</p>
+            </section>
+        </form>
+
+        <!-- Progress Indicator (hidden by default) -->
+        <div id="progress-container" style="display: none;">
+            <div class="progress-content">
+                <i class="fas fa-spinner fa-spin"></i>
+                <h3>Generating Agreements...</h3>
+                <div id="progress-message">Processing your request...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden inputs for counts -->
+    <input type="hidden" id="plaintiff-count" name="plaintiffCount" value="1">
+    <input type="hidden" id="defendant-count" name="defendantCount" value="1">
+
+    <!-- Scripts -->
+    <script src="../shared/js/progress-state.js"></script>
+    <script src="js/form-logic.js"></script>
+    <script src="js/form-submission.js"></script>
+</body>
+</html>
