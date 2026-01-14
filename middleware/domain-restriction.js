@@ -16,7 +16,9 @@ const logger = require('../monitoring/logger');
  * @param {Function} next - Express next middleware function
  */
 function restrictFormAccess(req, res, next) {
-    const hostname = req.hostname || req.headers.host || '';
+    // NGINX sets Host to the backend, so check X-Forwarded-Host first
+    const forwardedHost = req.headers['x-forwarded-host'] || '';
+    const hostname = forwardedHost || req.hostname || req.headers.host || '';
     const path = req.path;
 
     // Only enforce restrictions on form routes
@@ -27,6 +29,7 @@ function restrictFormAccess(req, res, next) {
     // Check if docs domain is trying to access agreement form
     if (hostname.includes('docs.liptonlegal.com') && path.startsWith('/forms/agreement')) {
         logger.warn('Domain restriction: docs domain attempted to access agreement form', {
+            forwardedHost,
             hostname,
             path,
             ip: req.ip
@@ -40,6 +43,7 @@ function restrictFormAccess(req, res, next) {
     // Check if agreement domain is trying to access docs form
     if (hostname.includes('agreement.liptonlegal.com') && path.startsWith('/forms/docs')) {
         logger.warn('Domain restriction: agreement domain attempted to access docs form', {
+            forwardedHost,
             hostname,
             path,
             ip: req.ip

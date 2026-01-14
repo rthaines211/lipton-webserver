@@ -405,7 +405,16 @@ app.use(requireAuth);
 // Root redirect - send users to the appropriate form
 app.get('/', (req, res) => {
     // Check hostname to determine which form to redirect to
-    const hostname = req.hostname || req.headers.host || '';
+    // NGINX sets Host to the backend, so check X-Forwarded-Host first
+    const forwardedHost = req.headers['x-forwarded-host'] || '';
+    const hostname = forwardedHost || req.hostname || req.headers.host || '';
+
+    logger.info('Root redirect', {
+        forwardedHost,
+        hostname: req.hostname,
+        host: req.headers.host,
+        finalHostname: hostname
+    });
 
     if (hostname.includes('agreement.liptonlegal.com')) {
         res.redirect('/forms/agreement/');
@@ -413,7 +422,7 @@ app.get('/', (req, res) => {
         res.redirect('/forms/docs/');
     } else {
         // Default fallback (for localhost or unknown domains)
-        res.redirect('/forms/agreement/');
+        res.redirect('/forms/docs/');
     }
 });
 
