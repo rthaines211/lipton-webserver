@@ -382,8 +382,8 @@ app.use('/metrics', metricsRoutes);
 // Apply authentication to all routes (except health checks, handled in middleware)
 app.use(requireAuth);
 
-// Serve static files (HTML, CSS, JS) - only after auth passes
-app.use(express.static(__dirname));
+// Serve static files from forms directory structure
+app.use('/forms', express.static(path.join(__dirname, 'forms')));
 
 // Mount PDF generation routes
 const pdfRoutes = require('./server/routes/pdf-routes');
@@ -660,8 +660,14 @@ async function saveToDatabase(structuredData, rawPayload, documentTypes = ['srog
 // Previously started here at line 1165
 
 // Root route - serve the form
+// Redirect root to docs form
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.redirect('/forms/docs/');
+});
+
+// Serve docs form
+app.get('/forms/docs/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'forms/docs/index.html'));
 });
 
 // Review page route
