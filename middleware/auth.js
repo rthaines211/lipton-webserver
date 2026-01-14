@@ -39,6 +39,11 @@ function requireAuth(req, res, next) {
         return next();
     }
 
+    // Skip auth for root path (handles redirects to forms)
+    if (req.path === '/') {
+        return next();
+    }
+
     // Skip auth for form pages - they have their own password authentication
     if (req.path.startsWith('/forms/')) {
         return next();
