@@ -316,13 +316,17 @@ app.use(cors());
 // Session middleware for password authentication
 app.use(session({
     secret: process.env.SESSION_SECRET || 'lipton-legal-secret-key-change-in-production',
-    resave: false,
-    saveUninitialized: false,
+    resave: true, // Force session save on each request (Cloud Run compatibility)
+    saveUninitialized: true, // Save even empty sessions (Cloud Run compatibility)
     cookie: {
         secure: process.env.NODE_ENV === 'production', // HTTPS only in production
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        sameSite: 'lax' // Allow cookies across same-site redirects
+    },
+    // Use MemoryStore explicitly (note: sessions won't persist across container instances in Cloud Run)
+    // For production with multiple instances, consider using connect-pg-simple or similar
+    proxy: true // Trust proxy headers (required for Cloud Run)
 }));
 
 // Winston structured logging (must be early in middleware chain)
