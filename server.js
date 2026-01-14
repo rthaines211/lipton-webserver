@@ -397,10 +397,25 @@ app.use('/metrics', metricsRoutes);
 // Apply authentication to all routes (except health checks, handled in middleware)
 app.use(requireAuth);
 
+// Root redirect - send users to the appropriate form
+app.get('/', (req, res) => {
+    // Check hostname to determine which form to redirect to
+    const hostname = req.hostname || req.headers.host || '';
+
+    if (hostname.includes('agreement.liptonlegal.com')) {
+        res.redirect('/forms/agreement/');
+    } else if (hostname.includes('docs.liptonlegal.com')) {
+        res.redirect('/forms/docs/');
+    } else {
+        // Default fallback (for localhost or unknown domains)
+        res.redirect('/forms/agreement/');
+    }
+});
+
 // Password-protect document generation form
 app.use('/forms/docs', createPasswordAuth('docs'));
 
-// Password-protect contingency agreement form (future)
+// Password-protect contingency agreement form
 app.use('/forms/agreement', createPasswordAuth('agreement'));
 
 // Serve static files from forms directory structure (after password auth)

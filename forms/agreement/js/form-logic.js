@@ -3,8 +3,8 @@
  * Handles adding/removing plaintiffs and defendants
  */
 
-let plaintiffCount = 1;
-let defendantCount = 1;
+let plaintiffCount = 0;
+let defendantCount = 0;
 
 /**
  * Add a new plaintiff block
@@ -13,113 +13,129 @@ function addPlaintiff() {
     plaintiffCount++;
     const container = document.getElementById('plaintiffs-container');
 
-    const plaintiffBlock = document.createElement('div');
-    plaintiffBlock.className = 'plaintiff-block';
-    plaintiffBlock.setAttribute('data-plaintiff-number', plaintiffCount);
+    const plaintiffDiv = document.createElement('div');
+    plaintiffDiv.className = 'repeatable-section';
+    plaintiffDiv.id = `plaintiff-${plaintiffCount}`;
 
-    plaintiffBlock.innerHTML = `
-        <div class="block-header">
-            <h3>Plaintiff ${plaintiffCount}</h3>
-            <button type="button" class="btn-remove" onclick="removePlaintiff(${plaintiffCount})">
-                <i class="fas fa-times"></i> Remove
+    plaintiffDiv.innerHTML = `
+        <div class="repeatable-header">
+            <button type="button" class="repeatable-toggle" id="plaintiff-${plaintiffCount}-toggle" aria-expanded="true" aria-controls="plaintiff-${plaintiffCount}-content">
+                <span class="repeatable-title">Plaintiff #${plaintiffCount}</span>
+                <span class="repeatable-indicator" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
             </button>
+            <button type="button" class="btn btn-remove" onclick="removePlaintiff(${plaintiffCount})" title="Remove Plaintiff"><i class="fa-regular fa-trash-can"></i></button>
         </div>
+        <div class="repeatable-content" id="plaintiff-${plaintiffCount}-content" role="region" aria-labelledby="plaintiff-${plaintiffCount}-toggle">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="plaintiff-${plaintiffCount}-first-name">First Name <span class="required">*</span></label>
+                    <input type="text" id="plaintiff-${plaintiffCount}-first-name" name="plaintiff-${plaintiffCount}-first-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="plaintiff-${plaintiffCount}-last-name">Last Name <span class="required">*</span></label>
+                    <input type="text" id="plaintiff-${plaintiffCount}-last-name" name="plaintiff-${plaintiffCount}-last-name" required>
+                </div>
+            </div>
 
-        <div class="form-row">
-            <div class="form-group">
-                <label for="plaintiff-${plaintiffCount}-first-name">First Name <span class="required">*</span></label>
-                <input type="text" id="plaintiff-${plaintiffCount}-first-name" name="plaintiff-${plaintiffCount}-first-name" required>
+            <div class="form-grid">
+                <div class="form-group" style="flex: 9;">
+                    <label for="plaintiff-${plaintiffCount}-email">Email Address <span class="required">*</span></label>
+                    <input type="email" id="plaintiff-${plaintiffCount}-email" name="plaintiff-${plaintiffCount}-email" required
+                           placeholder="john.doe@example.com">
+                </div>
+                <div class="form-group" style="flex: 9;">
+                    <label for="plaintiff-${plaintiffCount}-phone">Phone Number <span class="required">*</span></label>
+                    <input type="tel" id="plaintiff-${plaintiffCount}-phone" name="plaintiff-${plaintiffCount}-phone" required
+                           placeholder="(555) 123-4567">
+                </div>
+                <div class="form-group" style="flex: 2;">
+                    <label for="plaintiff-${plaintiffCount}-unit">Unit #</label>
+                    <input type="text" id="plaintiff-${plaintiffCount}-unit" name="plaintiff-${plaintiffCount}-unit"
+                           placeholder="Apt 5">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="plaintiff-${plaintiffCount}-last-name">Last Name <span class="required">*</span></label>
-                <input type="text" id="plaintiff-${plaintiffCount}-last-name" name="plaintiff-${plaintiffCount}-last-name" required>
-            </div>
-        </div>
 
-        <div class="form-row">
-            <div class="form-group flex-2">
-                <label for="plaintiff-${plaintiffCount}-address">Street Address <span class="required">*</span></label>
-                <input type="text" id="plaintiff-${plaintiffCount}-address" name="plaintiff-${plaintiffCount}-address" required
-                       placeholder="123 Main Street">
+            <div class="form-grid" style="margin-top: 15px;">
+                <div class="form-group" style="display: flex; align-items: center; margin-bottom: 0;">
+                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; margin: 0; font-weight: normal;">
+                        <input type="checkbox" id="plaintiff-${plaintiffCount}-is-minor" name="plaintiff-${plaintiffCount}-is-minor"
+                               onchange="toggleGuardianSelect(${plaintiffCount})" style="margin: 0; width: auto;">
+                        <span>This plaintiff is a minor</span>
+                    </label>
+                </div>
             </div>
-            <div class="form-group flex-1">
-                <label for="plaintiff-${plaintiffCount}-unit">Unit # (optional)</label>
-                <input type="text" id="plaintiff-${plaintiffCount}-unit" name="plaintiff-${plaintiffCount}-unit"
-                       placeholder="Apt 5">
-            </div>
-        </div>
 
-        <div class="form-row">
-            <div class="form-group">
-                <label for="plaintiff-${plaintiffCount}-email">Email Address <span class="required">*</span></label>
-                <input type="email" id="plaintiff-${plaintiffCount}-email" name="plaintiff-${plaintiffCount}-email" required
-                       placeholder="john.doe@example.com">
-            </div>
-            <div class="form-group">
-                <label for="plaintiff-${plaintiffCount}-phone">Phone Number <span class="required">*</span></label>
-                <input type="tel" id="plaintiff-${plaintiffCount}-phone" name="plaintiff-${plaintiffCount}-phone" required
-                       placeholder="(555) 123-4567">
-            </div>
-        </div>
-
-        <div class="form-group minor-section">
-            <label class="checkbox-label">
-                <input type="checkbox" id="plaintiff-${plaintiffCount}-is-minor" name="plaintiff-${plaintiffCount}-is-minor"
-                       onchange="toggleGuardianSelect(${plaintiffCount})">
-                This plaintiff is a minor
-            </label>
-
-            <div id="plaintiff-${plaintiffCount}-guardian-container" class="guardian-select-container" style="display: none;">
-                <label for="plaintiff-${plaintiffCount}-guardian">Guardian (select plaintiff) <span class="required">*</span></label>
-                <select id="plaintiff-${plaintiffCount}-guardian" name="plaintiff-${plaintiffCount}-guardian">
-                    <option value="">Select Guardian...</option>
-                </select>
+            <div id="plaintiff-${plaintiffCount}-guardian-container" class="guardian-select-container" style="display: none; margin-top: 15px;">
+                <div class="form-group">
+                    <label for="plaintiff-${plaintiffCount}-guardian">Guardian (select plaintiff) <span class="required">*</span></label>
+                    <select id="plaintiff-${plaintiffCount}-guardian" name="plaintiff-${plaintiffCount}-guardian">
+                        <option value="">Select Guardian...</option>
+                    </select>
+                </div>
             </div>
         </div>
     `;
 
-    container.appendChild(plaintiffBlock);
+    container.appendChild(plaintiffDiv);
+    initializeRepeatableSection(plaintiffDiv);
 
     // Update the hidden count input
     document.getElementById('plaintiff-count').value = plaintiffCount;
-
-    // Show remove button on first plaintiff if there are now multiple
-    if (plaintiffCount > 1) {
-        const firstRemoveBtn = document.querySelector('[data-plaintiff-number="1"] .btn-remove');
-        if (firstRemoveBtn) {
-            firstRemoveBtn.style.display = 'inline-flex';
-        }
-    }
 
     // Update all guardian dropdowns
     updateGuardianSelects();
 
     // Scroll to new plaintiff
-    plaintiffBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    plaintiffDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/**
+ * Initialize collapsible functionality for repeatable section
+ */
+function initializeRepeatableSection(section) {
+    const toggle = section.querySelector('.repeatable-toggle');
+    const content = section.querySelector('.repeatable-content');
+
+    if (toggle && content) {
+        toggle.addEventListener('click', function() {
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', !isExpanded);
+            content.style.display = isExpanded ? 'none' : 'block';
+
+            const indicator = this.querySelector('.repeatable-indicator i');
+            if (indicator) {
+                indicator.className = isExpanded ? 'fas fa-chevron-right' : 'fas fa-chevron-down';
+            }
+        });
+    }
 }
 
 /**
  * Remove a plaintiff block
  */
 function removePlaintiff(number) {
-    const block = document.querySelector(`[data-plaintiff-number="${number}"]`);
+    const block = document.getElementById(`plaintiff-${number}`);
     if (block) {
         block.remove();
 
         // Renumber remaining plaintiffs
-        const remainingBlocks = document.querySelectorAll('.plaintiff-block');
+        const remainingBlocks = document.querySelectorAll('.repeatable-section[id^="plaintiff-"]');
         plaintiffCount = 0;
 
         remainingBlocks.forEach((block, index) => {
             plaintiffCount = index + 1;
             const newNumber = index + 1;
-            const oldNumber = block.getAttribute('data-plaintiff-number');
+            const oldId = block.id;
+            const oldNumber = oldId.replace('plaintiff-', '');
 
-            // Update block number
-            block.setAttribute('data-plaintiff-number', newNumber);
+            // Update block ID
+            block.id = `plaintiff-${newNumber}`;
 
-            // Update header
-            block.querySelector('h3').textContent = `Plaintiff ${newNumber}`;
+            // Update title
+            const title = block.querySelector('.repeatable-title');
+            if (title) {
+                title.textContent = `Plaintiff #${newNumber}`;
+            }
 
             // Update all IDs and names
             updatePlaintiffReferences(block, oldNumber, newNumber);
@@ -127,14 +143,6 @@ function removePlaintiff(number) {
 
         // Update the hidden count input
         document.getElementById('plaintiff-count').value = plaintiffCount;
-
-        // Hide remove button on first plaintiff if only one remains
-        if (plaintiffCount === 1) {
-            const firstRemoveBtn = document.querySelector('[data-plaintiff-number="1"] .btn-remove');
-            if (firstRemoveBtn) {
-                firstRemoveBtn.style.display = 'none';
-            }
-        }
 
         // Update all guardian dropdowns
         updateGuardianSelects();
@@ -165,6 +173,20 @@ function updatePlaintiffReferences(block, oldNumber, newNumber) {
         }
     });
 
+    // Update toggle button
+    const toggle = block.querySelector('.repeatable-toggle');
+    if (toggle) {
+        toggle.id = `plaintiff-${newNumber}-toggle`;
+        toggle.setAttribute('aria-controls', `plaintiff-${newNumber}-content`);
+    }
+
+    // Update content div
+    const content = block.querySelector('.repeatable-content');
+    if (content) {
+        content.id = `plaintiff-${newNumber}-content`;
+        content.setAttribute('aria-labelledby', `plaintiff-${newNumber}-toggle`);
+    }
+
     // Update onclick handlers
     const removeBtn = block.querySelector('.btn-remove');
     if (removeBtn) {
@@ -190,26 +212,68 @@ function toggleGuardianSelect(plaintiffNumber) {
     const checkbox = document.getElementById(`plaintiff-${plaintiffNumber}-is-minor`);
     const container = document.getElementById(`plaintiff-${plaintiffNumber}-guardian-container`);
     const select = document.getElementById(`plaintiff-${plaintiffNumber}-guardian`);
+    const emailField = document.getElementById(`plaintiff-${plaintiffNumber}-email`);
+    const phoneField = document.getElementById(`plaintiff-${plaintiffNumber}-phone`);
+    const emailGroup = emailField?.closest('.form-group');
+    const phoneGroup = phoneField?.closest('.form-group');
 
     if (checkbox.checked) {
         container.style.display = 'block';
         select.required = true;
         updateGuardianSelects();
+
+        // Hide and disable email/phone fields for minors
+        if (emailGroup) {
+            emailGroup.style.display = 'none';
+        }
+        if (phoneGroup) {
+            phoneGroup.style.display = 'none';
+        }
+
+        // Clear values and remove required
+        if (emailField) {
+            emailField.value = '';
+            emailField.required = false;
+        }
+        if (phoneField) {
+            phoneField.value = '';
+            phoneField.required = false;
+        }
     } else {
         container.style.display = 'none';
         select.required = false;
         select.value = '';
+
+        // Show and restore email/phone fields
+        if (emailGroup) {
+            emailGroup.style.display = '';
+        }
+        if (phoneGroup) {
+            phoneGroup.style.display = '';
+        }
+
+        // Restore required attribute
+        if (emailField) {
+            emailField.required = true;
+            emailField.value = '';
+        }
+        if (phoneField) {
+            phoneField.required = true;
+            phoneField.value = '';
+        }
     }
 }
+
 
 /**
  * Update all guardian select dropdowns with current plaintiffs
  */
 function updateGuardianSelects() {
-    const plaintiffBlocks = document.querySelectorAll('.plaintiff-block');
+    const plaintiffBlocks = document.querySelectorAll('.repeatable-section[id^="plaintiff-"]');
 
     plaintiffBlocks.forEach(block => {
-        const plaintiffNumber = parseInt(block.getAttribute('data-plaintiff-number'));
+        const plaintiffId = block.id;
+        const plaintiffNumber = parseInt(plaintiffId.replace('plaintiff-', ''));
         const select = block.querySelector('select[name$="-guardian"]');
 
         if (select) {
@@ -220,7 +284,8 @@ function updateGuardianSelects() {
 
             // Add all other plaintiffs as options
             plaintiffBlocks.forEach(otherBlock => {
-                const otherNumber = parseInt(otherBlock.getAttribute('data-plaintiff-number'));
+                const otherId = otherBlock.id;
+                const otherNumber = parseInt(otherId.replace('plaintiff-', ''));
 
                 // Can't be guardian of self
                 if (otherNumber !== plaintiffNumber) {
@@ -250,69 +315,68 @@ function addDefendant() {
     defendantCount++;
     const container = document.getElementById('defendants-container');
 
-    const defendantBlock = document.createElement('div');
-    defendantBlock.className = 'defendant-block';
-    defendantBlock.setAttribute('data-defendant-number', defendantCount);
+    const defendantDiv = document.createElement('div');
+    defendantDiv.className = 'repeatable-section';
+    defendantDiv.id = `defendant-${defendantCount}`;
 
-    defendantBlock.innerHTML = `
-        <div class="block-header">
-            <h3>Defendant ${defendantCount}</h3>
-            <button type="button" class="btn-remove" onclick="removeDefendant(${defendantCount})">
-                <i class="fas fa-times"></i> Remove
+    defendantDiv.innerHTML = `
+        <div class="repeatable-header">
+            <button type="button" class="repeatable-toggle" id="defendant-${defendantCount}-toggle" aria-expanded="true" aria-controls="defendant-${defendantCount}-content">
+                <span class="repeatable-title">Defendant #${defendantCount}</span>
+                <span class="repeatable-indicator" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
             </button>
+            <button type="button" class="btn btn-remove" onclick="removeDefendant(${defendantCount})" title="Remove Defendant"><i class="fa-regular fa-trash-can"></i></button>
         </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label for="defendant-${defendantCount}-first-name">First Name <span class="required">*</span></label>
-                <input type="text" id="defendant-${defendantCount}-first-name" name="defendant-${defendantCount}-first-name" required>
-            </div>
-            <div class="form-group">
-                <label for="defendant-${defendantCount}-last-name">Last Name <span class="required">*</span></label>
-                <input type="text" id="defendant-${defendantCount}-last-name" name="defendant-${defendantCount}-last-name" required>
+        <div class="repeatable-content" id="defendant-${defendantCount}-content" role="region" aria-labelledby="defendant-${defendantCount}-toggle">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="defendant-${defendantCount}-first-name">First Name <span class="required">*</span></label>
+                    <input type="text" id="defendant-${defendantCount}-first-name" name="defendant-${defendantCount}-first-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="defendant-${defendantCount}-last-name">Last Name <span class="required">*</span></label>
+                    <input type="text" id="defendant-${defendantCount}-last-name" name="defendant-${defendantCount}-last-name" required>
+                </div>
             </div>
         </div>
     `;
 
-    container.appendChild(defendantBlock);
+    container.appendChild(defendantDiv);
+    initializeRepeatableSection(defendantDiv);
 
     // Update the hidden count input
     document.getElementById('defendant-count').value = defendantCount;
 
-    // Show remove button on first defendant if there are now multiple
-    if (defendantCount > 1) {
-        const firstRemoveBtn = document.querySelector('[data-defendant-number="1"] .btn-remove');
-        if (firstRemoveBtn) {
-            firstRemoveBtn.style.display = 'inline-flex';
-        }
-    }
-
     // Scroll to new defendant
-    defendantBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    defendantDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 /**
  * Remove a defendant block
  */
 function removeDefendant(number) {
-    const block = document.querySelector(`[data-defendant-number="${number}"]`);
+    const block = document.getElementById(`defendant-${number}`);
     if (block) {
         block.remove();
 
         // Renumber remaining defendants
-        const remainingBlocks = document.querySelectorAll('.defendant-block');
+        const remainingBlocks = document.querySelectorAll('.repeatable-section[id^="defendant-"]');
         defendantCount = 0;
 
         remainingBlocks.forEach((block, index) => {
             defendantCount = index + 1;
             const newNumber = index + 1;
-            const oldNumber = block.getAttribute('data-defendant-number');
+            const oldId = block.id;
+            const oldNumber = oldId.replace('defendant-', '');
 
-            // Update block number
-            block.setAttribute('data-defendant-number', newNumber);
+            // Update block ID
+            block.id = `defendant-${newNumber}`;
 
-            // Update header
-            block.querySelector('h3').textContent = `Defendant ${newNumber}`;
+            // Update title
+            const title = block.querySelector('.repeatable-title');
+            if (title) {
+                title.textContent = `Defendant #${newNumber}`;
+            }
 
             // Update all IDs and names
             updateDefendantReferences(block, oldNumber, newNumber);
@@ -320,14 +384,6 @@ function removeDefendant(number) {
 
         // Update the hidden count input
         document.getElementById('defendant-count').value = defendantCount;
-
-        // Hide remove button on first defendant if only one remains
-        if (defendantCount === 1) {
-            const firstRemoveBtn = document.querySelector('[data-defendant-number="1"] .btn-remove');
-            if (firstRemoveBtn) {
-                firstRemoveBtn.style.display = 'none';
-            }
-        }
     }
 }
 
@@ -355,6 +411,20 @@ function updateDefendantReferences(block, oldNumber, newNumber) {
         }
     });
 
+    // Update toggle button
+    const toggle = block.querySelector('.repeatable-toggle');
+    if (toggle) {
+        toggle.id = `defendant-${newNumber}-toggle`;
+        toggle.setAttribute('aria-controls', `defendant-${newNumber}-content`);
+    }
+
+    // Update content div
+    const content = block.querySelector('.repeatable-content');
+    if (content) {
+        content.id = `defendant-${newNumber}-content`;
+        content.setAttribute('aria-labelledby', `defendant-${newNumber}-toggle`);
+    }
+
     // Update onclick handler
     const removeBtn = block.querySelector('.btn-remove');
     if (removeBtn) {
@@ -362,8 +432,15 @@ function updateDefendantReferences(block, oldNumber, newNumber) {
     }
 }
 
-// Update guardian selects when plaintiff names change
+// Initialize first plaintiff and defendant on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Add first plaintiff
+    addPlaintiff();
+
+    // Add first defendant
+    addDefendant();
+
+    // Update guardian selects when plaintiff names change
     document.getElementById('contingency-form').addEventListener('input', function(e) {
         if (e.target.matches('input[name*="plaintiff"][name*="-first-name"], input[name*="plaintiff"][name*="-last-name"]')) {
             updateGuardianSelects();

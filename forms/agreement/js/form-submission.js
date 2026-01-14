@@ -34,14 +34,28 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await response.json();
 
             if (result.success) {
-                showProgress('Generating documents...');
+                if (result.documentStatus === 'completed') {
+                    showProgress('Documents generated successfully!');
 
-                // TODO: Trigger document generation
-                // For now, just show success message after a delay
-                setTimeout(() => {
-                    hideProgress();
-                    showSuccessMessage(result);
-                }, 1500);
+                    // Trigger download after a short delay
+                    setTimeout(() => {
+                        hideProgress();
+                        downloadDocuments(result.id);
+                        showSuccessMessage(result);
+                    }, 1500);
+                } else if (result.documentStatus === 'failed') {
+                    showProgress('Form submitted, but document generation failed.');
+                    setTimeout(() => {
+                        hideProgress();
+                        showSuccessMessage(result);
+                    }, 1500);
+                } else {
+                    showProgress('Processing documents...');
+                    setTimeout(() => {
+                        hideProgress();
+                        showSuccessMessage(result);
+                    }, 1500);
+                }
             } else {
                 hideProgress();
                 showError('Submission failed: ' + (result.error || 'Unknown error'));
@@ -61,8 +75,16 @@ document.addEventListener('DOMContentLoaded', function() {
 function collectFormData() {
     const formData = {};
 
-    // Property address
-    formData['property-address'] = document.getElementById('property-address').value;
+    // Property address (now broken into separate fields)
+    const streetEl = document.getElementById('property-street');
+    const cityEl = document.getElementById('property-city');
+    const stateEl = document.getElementById('property-state');
+    const zipEl = document.getElementById('property-zip');
+
+    formData['property-street'] = streetEl ? streetEl.value : '';
+    formData['property-city'] = cityEl ? cityEl.value : '';
+    formData['property-state'] = stateEl ? stateEl.value : '';
+    formData['property-zip'] = zipEl ? zipEl.value : '';
 
     // Plaintiff count
     const plaintiffCount = parseInt(document.getElementById('plaintiff-count').value);
@@ -72,7 +94,6 @@ function collectFormData() {
     for (let i = 1; i <= plaintiffCount; i++) {
         formData[`plaintiff-${i}-first-name`] = document.getElementById(`plaintiff-${i}-first-name`)?.value || '';
         formData[`plaintiff-${i}-last-name`] = document.getElementById(`plaintiff-${i}-last-name`)?.value || '';
-        formData[`plaintiff-${i}-address`] = document.getElementById(`plaintiff-${i}-address`)?.value || '';
         formData[`plaintiff-${i}-unit`] = document.getElementById(`plaintiff-${i}-unit`)?.value || '';
         formData[`plaintiff-${i}-email`] = document.getElementById(`plaintiff-${i}-email`)?.value || '';
         formData[`plaintiff-${i}-phone`] = document.getElementById(`plaintiff-${i}-phone`)?.value || '';
@@ -134,7 +155,15 @@ function showSuccessMessage(result) {
     const plaintiffCount = parseInt(document.getElementById('plaintiff-count').value);
     const plural = plaintiffCount > 1 ? 's' : '';
 
-    alert(`Success! Your contingency agreement${plural} ha${plural === 's' ? 've' : 's'} been submitted.\n\nCase ID: ${result.id}\n\n${plaintiffCount} agreement${plural} will be generated (one per plaintiff).`);
+    let message = `Success! Your contingency agreement${plural} ha${plural === 's' ? 've' : 's'} been submitted.\n\nCase ID: ${result.id}`;
+
+    if (result.documentStatus === 'completed') {
+        message += `\n\n${result.generatedDocuments.length} agreement${plural} generated successfully!`;
+    } else if (result.documentStatus === 'failed') {
+        message += '\n\nNote: Document generation failed. Please contact support.';
+    }
+
+    alert(message);
 
     // Reset form
     document.getElementById('contingency-form').reset();
@@ -154,35 +183,47 @@ function showError(message) {
  * Reset form to default state (1 plaintiff, 1 defendant)
  */
 function resetFormToDefaults() {
-    // Remove all but first plaintiff
-    const plaintiffBlocks = document.querySelectorAll('.plaintiff-block');
-    for (let i = 1; i < plaintiffBlocks.length; i++) {
-        plaintiffBlocks[i].remove();
+    // Clear plaintiff container and re-add first plaintiff
+    const plaintiffContainer = document.getElementById('plaintiffs-container');
+    plaintiffContainer.innerHTML = '';
+
+    // Clear defendant container and re-add first defendant
+    const defendantContainer = document.getElementById('defendants-container');
+    defendantContainer.innerHTML = '';
+
+    // Reset counts in form-logic.js
+    if (typeof window.plaintiffCount !== 'undefined') {
+        window.plaintiffCount = 0;
+    }
+    if (typeof window.defendantCount !== 'undefined') {
+        window.defendantCount = 0;
     }
 
-    // Remove all but first defendant
-    const defendantBlocks = document.querySelectorAll('.defendant-block');
-    for (let i = 1; i < defendantBlocks.length; i++) {
-        defendantBlocks[i].remove();
+    document.getElementById('plaintiff-count').value = 0;
+    document.getElementById('defendant-count').value = 0;
+
+    // Re-add first plaintiff and defendant by calling the functions
+    if (typeof addPlaintiff === 'function') {
+        addPlaintiff();
     }
-
-    // Reset counts
-    plaintiffCount = 1;
-    defendantCount = 1;
-    document.getElementById('plaintiff-count').value = 1;
-    document.getElementById('defendant-count').value = 1;
-
-    // Hide remove buttons
-    const firstPlaintiffRemove = document.querySelector('[data-plaintiff-number="1"] .btn-remove');
-    if (firstPlaintiffRemove) {
-        firstPlaintiffRemove.style.display = 'none';
-    }
-
-    const firstDefendantRemove = document.querySelector('[data-defendant-number="1"] .btn-remove');
-    if (firstDefendantRemove) {
-        firstDefendantRemove.style.display = 'none';
+    if (typeof addDefendant === 'function') {
+        addDefendant();
     }
 
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/**
+ * Download documents for a case as a zip file
+ */
+function downloadDocuments(caseId) {
+    // Create a hidden link and trigger download
+    const downloadUrl = `/api/contingency-entries/${caseId}/download`;
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `ContingencyAgreements_${caseId}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }

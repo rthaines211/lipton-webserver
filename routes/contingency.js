@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Pool } = require('pg');
 const logger = require('../monitoring/logger');
+const ContingencyDocumentGenerator = require('../services/contingency-document-generator');
 
 // Database connection
 const pool = new Pool({
@@ -127,10 +128,44 @@ router.post('/contingency-entries', async (req, res) => {
 
     logger.info('Contingency agreement submitted', { caseId: dbCaseId });
 
+    // Generate documents for all plaintiffs
+    let generatedDocs = [];
+    let documentStatus = 'pending';
+
+    try {
+      const generator = new ContingencyDocumentGenerator();
+      generatedDocs = await generator.generateAgreements(formData);
+      documentStatus = 'completed';
+
+      // Update document status in database
+      await pool.query(
+        'UPDATE contingency_agreements SET document_status = $1, document_paths = $2 WHERE case_id = $3',
+        [documentStatus, JSON.stringify(generatedDocs), dbCaseId]
+      );
+
+      logger.info('Documents generated successfully', {
+        caseId: dbCaseId,
+        documentCount: generatedDocs.length
+      });
+    } catch (docError) {
+      logger.error('Failed to generate documents', {
+        caseId: dbCaseId,
+        error: docError.message
+      });
+
+      // Update status to failed but don't fail the entire request
+      await pool.query(
+        'UPDATE contingency_agreements SET document_status = $1 WHERE case_id = $2',
+        ['failed', dbCaseId]
+      );
+    }
+
     res.status(201).json({
       success: true,
       id: caseId,
       dbCaseId: dbCaseId,
+      documentStatus,
+      generatedDocuments: generatedDocs,
       message: 'Contingency agreement submitted successfully'
     });
 
@@ -372,6 +407,73 @@ router.delete('/contingency-entries/:caseId', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to delete contingency agreement'
+    });
+  }
+});
+
+/**
+ * GET /api/contingency-entries/:caseId/download
+ * Download all documents for a case as a zip file
+ */
+router.get('/contingency-entries/:caseId/download', async (req, res) => {
+  try {
+    const { caseId } = req.params;
+
+    // Get agreement to find document paths
+    const agreementResult = await pool.query(
+      'SELECT document_paths, case_id FROM contingency_agreements WHERE case_id = $1',
+      [caseId]
+    );
+
+    if (agreementResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Case not found'
+      });
+    }
+
+    const documentPaths = agreementResult.rows[0].document_paths;
+
+    if (!documentPaths || documentPaths.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'No documents found for this case'
+      });
+    }
+
+    const fs = require('fs');
+    const path = require('path');
+    const archiver = require('archiver');
+
+    // Create zip file
+    const archive = archiver('zip', {
+      zlib: { level: 9 }
+    });
+
+    // Set response headers for zip download
+    res.attachment(`ContingencyAgreements_${caseId}.zip`);
+    archive.pipe(res);
+
+    // Add each document to the zip
+    for (const docPath of documentPaths) {
+      if (fs.existsSync(docPath)) {
+        const filename = path.basename(docPath);
+        archive.file(docPath, { name: filename });
+      }
+    }
+
+    await archive.finalize();
+
+    logger.info('Documents downloaded', {
+      caseId,
+      documentCount: documentPaths.length
+    });
+
+  } catch (error) {
+    logger.error('Error downloading documents', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to download documents'
     });
   }
 });
