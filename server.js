@@ -102,6 +102,7 @@ const pipelineService = require('./services/pipeline-service');
 const { errorHandler } = require('./middleware/error-handler');
 const { requireAuth, getAuthConfig } = require('./middleware/auth');
 const { createPasswordAuth, createLogoutHandler } = require('./middleware/password-auth');
+const { restrictFormAccess } = require('./middleware/domain-restriction');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -416,6 +417,9 @@ app.get('/', (req, res) => {
     }
 });
 
+// Enforce domain-specific form access restrictions
+app.use(restrictFormAccess);
+
 // Password-protect document generation form
 app.use('/forms/docs', createPasswordAuth('docs'));
 
@@ -701,17 +705,6 @@ async function saveToDatabase(structuredData, rawPayload, documentTypes = ['srog
 
 // Removed pipeline routes - now in routes/pipeline.js
 // Previously started here at line 1165
-
-// Root route - serve the form
-// Redirect root to docs form
-app.get('/', (req, res) => {
-    res.redirect('/forms/docs/');
-});
-
-// Serve docs form
-app.get('/forms/docs/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'forms/docs/index.html'));
-});
 
 // Logout routes
 app.get('/forms/docs/logout', createLogoutHandler('docs'));
