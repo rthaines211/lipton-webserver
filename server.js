@@ -90,6 +90,7 @@ const {
 // Routes
 const healthRoutes = require('./routes/health');
 const formRoutes = require('./routes/forms');
+const contingencyRoutes = require('./routes/contingency');
 const pipelineRoutes = require('./routes/pipeline');
 const metricsRoutes = require('./routes/metrics');
 
@@ -422,6 +423,9 @@ formRoutes.initializeRouter({
     PIPELINE_CONFIG: pipelineService.getConfig()  // Get config from service
 });
 app.use('/api/form-entries', formRoutes);
+
+// Contingency agreement routes
+app.use('/api', contingencyRoutes);
 
 // Initialize and mount pipeline routes with helper function injection
 // Week 2 Day 3: Pipeline now uses pipelineService directly (imported in routes file)

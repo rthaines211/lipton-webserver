@@ -104,14 +104,20 @@ cp config/development.env .env
 
 ### Automated Deployment (Recommended)
 
-The application automatically deploys via GitHub Actions:
-- Push to `develop` → Deploys to development
-- Push to `main` → Deploys to staging (automatic) and production (manual approval)
+The application uses GitHub Actions for CI/CD with a **linear promotion model**:
+
+| Branch | Environment | Service | Approval |
+|--------|-------------|---------|----------|
+| `develop` | Development | `node-server-dev` | Automatic |
+| `main` | Staging | `node-server-staging` | Automatic |
+| `main` | Production | `node-server` | **Manual (GitHub)** |
+
+> **⚠️ Important:** Pushing to `main` deploys to **staging first**, then requires manual approval in GitHub Actions to promote to production.
 
 ### Manual Deployment
 
 ```bash
-# Deploy to production
+# Deploy to production (bypasses GitHub Actions)
 ./scripts/deploy.sh production
 
 # Deploy to staging

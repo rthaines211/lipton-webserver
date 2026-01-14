@@ -6,26 +6,45 @@ Complete guide for deploying the Legal Form Application to Google Cloud Run.
 
 ## Quick Start
 
-###Deploy to Production
+> **⚠️ IMPORTANT: Deployment Flow**
+>
+> **Pushing to `main` does NOT deploy directly to production.** The CI/CD pipeline follows a linear progression:
+>
+> 1. `develop` → **Development** (automatic)
+> 2. `main` → **Staging** (automatic) → **Production** (requires manual approval in GitHub)
+
+### Deploy to Development
 
 ```bash
-# Automated (GitHub Actions)
-git push origin main  # Triggers automatic deployment
-
-# Manual
-./scripts/deploy.sh production
+git push origin develop  # Auto-deploys to node-server-dev
 ```
 
 ### Deploy to Staging
 
 ```bash
-git push origin main  # Auto-deploys to staging first
+git push origin main  # Auto-deploys to node-server-staging
 ```
 
-### Deploy to Development
+### Deploy to Production
+
+Production deployment requires **manual approval** in GitHub Actions:
 
 ```bash
-git push origin develop  # Auto-deploys to development
+# Step 1: Push to main (triggers staging deployment first)
+git push origin main
+
+# Step 2: Wait for staging deployment to complete
+
+# Step 3: Approve production deployment in GitHub:
+#   1. Go to GitHub Actions tab
+#   2. Find the running "CI/CD Pipeline" workflow
+#   3. Click "Review deployments" for the production environment
+#   4. Approve the deployment
+```
+
+Alternatively, use manual deployment script (bypasses GitHub Actions):
+```bash
+./scripts/deploy.sh production
 ```
 
 ---
@@ -155,11 +174,13 @@ The application uses GitHub Actions for automated deployments. The workflow is d
 
 ### Deployment Triggers
 
-| Branch | Event | Environment | Approval Required |
-|--------|-------|-------------|-------------------|
-| `develop` | Push | Development | No |
-| `main` | Push | Staging | No |
-| `main` | Manual | Production | **Yes** |
+| Branch | Event | Environment | Service Name | Approval Required |
+|--------|-------|-------------|--------------|-------------------|
+| `develop` | Push | Development | `node-server-dev` | No |
+| `main` | Push | Staging | `node-server-staging` | No |
+| `main` | Push (after staging) | Production | `node-server` | **Yes** (GitHub Environment) |
+
+> **Note:** Production deployment is part of the same workflow triggered by pushing to `main`. After staging completes successfully, the production job waits for manual approval via GitHub's environment protection rules. This is NOT a separate manual trigger - it's a gated step in the pipeline.
 
 ### Workflow Steps
 
