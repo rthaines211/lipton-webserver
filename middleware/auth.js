@@ -44,6 +44,11 @@ function requireAuth(req, res, next) {
         return next();
     }
 
+    // Skip auth for API endpoints used by forms - forms handle their own password authentication
+    if (req.path.startsWith('/api/entries') || req.path.startsWith('/api/contingency-entries')) {
+        return next();
+    }
+
     // Skip auth for static assets (JS, CSS, images, fonts, etc.)
     // These files contain no sensitive data and are needed for the browser to render the page
     const staticFileExtensions = [
