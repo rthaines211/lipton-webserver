@@ -175,10 +175,25 @@ router.post('/contingency-entries', async (req, res) => {
 
   } catch (error) {
     await client.query('ROLLBACK');
-    logger.error('Error submitting contingency agreement', { error: error.message, stack: error.stack });
+    logger.error('Error submitting contingency agreement', {
+      error: error.message,
+      stack: error.stack,
+      code: error.code,
+      detail: error.detail,
+      formDataSample: {
+        plaintiffCount: req.body.plaintiffCount,
+        defendantCount: req.body.defendantCount,
+        hasPropertyStreet: !!req.body['property-street']
+      }
+    });
     res.status(500).json({
       success: false,
-      error: 'Failed to submit contingency agreement'
+      error: 'Failed to submit contingency agreement',
+      // Include error details in non-production for debugging
+      ...(process.env.NODE_ENV !== 'production' && {
+        details: error.message,
+        code: error.code
+      })
     });
   } finally {
     client.release();
