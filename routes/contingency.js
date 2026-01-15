@@ -436,7 +436,9 @@ router.delete('/contingency-entries/:caseId', async (req, res) => {
 
 /**
  * GET /api/contingency-entries/:caseId/download
- * Download all documents for a case as a zip file
+ * Download documents for a case
+ * - Single plaintiff: Direct .docx download
+ * - Multiple plaintiffs: Zip file with all documents
  */
 router.get('/contingency-entries/:caseId/download', async (req, res) => {
   try {
@@ -466,31 +468,67 @@ router.get('/contingency-entries/:caseId/download', async (req, res) => {
 
     const fs = require('fs');
     const path = require('path');
-    const archiver = require('archiver');
 
-    // Create zip file
-    const archive = archiver('zip', {
-      zlib: { level: 9 }
+    // Filter out any template files and only include generated agreements
+    const generatedDocs = documentPaths.filter(docPath => {
+      const filename = path.basename(docPath);
+      // Exclude template files (containing "Template" in name) and only include generated agreements
+      return !filename.includes('Template') && filename.startsWith('ContingencyAgreement_');
     });
 
-    // Set response headers for zip download
-    res.attachment(`ContingencyAgreements_${caseId}.zip`);
-    archive.pipe(res);
-
-    // Add each document to the zip
-    for (const docPath of documentPaths) {
-      if (fs.existsSync(docPath)) {
-        const filename = path.basename(docPath);
-        archive.file(docPath, { name: filename });
-      }
+    if (generatedDocs.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'No generated documents found for this case'
+      });
     }
 
-    await archive.finalize();
+    // Single plaintiff: Download the .docx file directly
+    if (generatedDocs.length === 1) {
+      const docPath = generatedDocs[0];
 
-    logger.info('Documents downloaded', {
-      caseId,
-      documentCount: documentPaths.length
-    });
+      if (!fs.existsSync(docPath)) {
+        return res.status(404).json({
+          success: false,
+          error: 'Document file not found'
+        });
+      }
+
+      const filename = path.basename(docPath);
+      res.download(docPath, filename, (err) => {
+        if (err) {
+          logger.error('Error downloading single document', { error: err.message });
+        } else {
+          logger.info('Single document downloaded', { caseId, filename });
+        }
+      });
+
+    } else {
+      // Multiple plaintiffs: Create zip file
+      const archiver = require('archiver');
+      const archive = archiver('zip', {
+        zlib: { level: 9 }
+      });
+
+      // Set response headers for zip download
+      res.attachment(`ContingencyAgreements_${caseId}.zip`);
+      archive.pipe(res);
+
+      // Add each generated document to the zip
+      for (const docPath of generatedDocs) {
+        if (fs.existsSync(docPath)) {
+          const filename = path.basename(docPath);
+          archive.file(docPath, { name: filename });
+        }
+      }
+
+      await archive.finalize();
+
+      logger.info('Documents downloaded as zip', {
+        caseId,
+        documentCount: generatedDocs.length
+      });
+    }
 
   } catch (error) {
     logger.error('Error downloading documents', { error: error.message });

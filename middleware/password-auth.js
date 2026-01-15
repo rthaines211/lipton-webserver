@@ -53,14 +53,25 @@ function createPasswordAuth(formType) {
                 // Set session flag for this form
                 req.session[sessionKey] = true;
 
+                // Build full redirect URL including base path
+                const fullPath = req.baseUrl + req.path;
+
                 logger.info('User authenticated successfully', {
                     formType,
                     ip: req.ip,
-                    sessionId: req.sessionID
+                    sessionId: req.sessionID,
+                    redirectTo: fullPath,
+                    debug: {
+                        baseUrl: req.baseUrl,
+                        path: req.path,
+                        url: req.url,
+                        originalUrl: req.originalUrl
+                    }
                 });
 
                 // Redirect to the form page (GET request)
-                return res.redirect(req.originalUrl);
+                // Use full path constructed from baseUrl + path
+                return res.redirect(fullPath);
             } else {
                 logger.warn('Failed login attempt', {
                     formType,

@@ -432,6 +432,11 @@ app.use(restrictFormAccess);
 // Password-protect document generation form
 app.use('/forms/docs', createPasswordAuth('docs'));
 
+// Redirect /forms/agreement/ to index.html (before password auth)
+app.get('/forms/agreement/', (req, res) => {
+    res.redirect('/forms/agreement/index.html');
+});
+
 // Password-protect contingency agreement form
 app.use('/forms/agreement', createPasswordAuth('agreement'));
 

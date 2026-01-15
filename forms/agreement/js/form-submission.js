@@ -182,13 +182,10 @@ function resetFormToDefaults() {
     const defendantContainer = document.getElementById('defendants-container');
     defendantContainer.innerHTML = '';
 
-    // Reset counts in form-logic.js
-    if (typeof window.plaintiffCount !== 'undefined') {
-        window.plaintiffCount = 0;
-    }
-    if (typeof window.defendantCount !== 'undefined') {
-        window.defendantCount = 0;
-    }
+    // CRITICAL: Reset global counters in form-logic.js to 0 BEFORE calling add functions
+    // The add functions will increment from 0 to 1
+    window.plaintiffCount = 0;
+    window.defendantCount = 0;
 
     document.getElementById('plaintiff-count').value = 0;
     document.getElementById('defendant-count').value = 0;
@@ -206,14 +203,15 @@ function resetFormToDefaults() {
 }
 
 /**
- * Download documents for a case as a zip file
+ * Download documents for a case
+ * Backend returns either a single .docx or a zip depending on plaintiff count
  */
 function downloadDocuments(caseId) {
     // Create a hidden link and trigger download
+    // The backend will determine the appropriate file type and name
     const downloadUrl = `/api/contingency-entries/${caseId}/download`;
     const link = document.createElement('a');
     link.href = downloadUrl;
-    link.download = `ContingencyAgreements_${caseId}.zip`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

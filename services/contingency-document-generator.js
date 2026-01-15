@@ -18,6 +18,7 @@ const logger = require('../monitoring/logger');
 class ContingencyDocumentGenerator {
     constructor() {
         this.templatePath = path.join(__dirname, '../templates/LLG Contingency Fee Agreement - Template.docx');
+        this.minorTemplatePath = path.join(__dirname, '../templates/LLG Contingency Fee Agreement - Minor.docx');
 
         // Use /tmp for Cloud Run compatibility (ephemeral storage)
         // In production, files are temporary and will be downloaded immediately
@@ -40,17 +41,39 @@ class ContingencyDocumentGenerator {
         const { propertyInfo, plaintiffs, defendants } = this.parseFormData(formData);
         const generatedDocs = [];
 
+        // Filter out empty plaintiffs (no name)
+        const validPlaintiffs = plaintiffs.filter(p => p.firstName || p.lastName);
+
         logger.info('Starting contingency agreement generation', {
-            plaintiffCount: plaintiffs.length,
+            plaintiffCount: validPlaintiffs.length,
             defendantCount: defendants.length,
             property: propertyInfo.fullAddress
         });
 
         // Populate guardian data for minors
-        this.populateGuardianData(plaintiffs);
+        this.populateGuardianData(validPlaintiffs);
 
-        // Generate one document per plaintiff
-        for (const plaintiff of plaintiffs) {
+        // Build set of plaintiff IDs who are guardians (they shouldn't get their own document)
+        const guardianIds = new Set();
+        validPlaintiffs.forEach(plaintiff => {
+            if (plaintiff.isMinor && plaintiff.guardianId) {
+                guardianIds.add(parseInt(plaintiff.guardianId));
+            }
+        });
+
+        // Generate documents only for:
+        // 1. Adult plaintiffs who are NOT guardians of minors
+        // 2. Minor plaintiffs (they get the minor template with guardian info)
+        for (const plaintiff of validPlaintiffs) {
+            // Skip if this plaintiff is a guardian for a minor
+            if (guardianIds.has(plaintiff.id)) {
+                logger.info('Skipping document generation for guardian', {
+                    plaintiff: plaintiff.fullName,
+                    reason: 'Guardian covered by minor\'s agreement'
+                });
+                continue;
+            }
+
             try {
                 const docPath = await this.generateSingleAgreement(plaintiff, propertyInfo, defendants);
                 generatedDocs.push(docPath);
@@ -81,8 +104,12 @@ class ContingencyDocumentGenerator {
      * @returns {string} Path to generated document
      */
     async generateSingleAgreement(plaintiff, propertyInfo, defendants) {
-        // Load template
-        const templateContent = fs.readFileSync(this.templatePath, 'binary');
+        // Determine which template to use based on whether plaintiff is a minor
+        const isMinor = plaintiff.isMinor;
+        const templateToUse = isMinor ? this.minorTemplatePath : this.templatePath;
+
+        // Load appropriate template
+        const templateContent = fs.readFileSync(templateToUse, 'binary');
         const zip = new PizZip(templateContent);
         const doc = new Docxtemplater(zip, {
             paragraphLoop: true,
@@ -93,13 +120,44 @@ class ContingencyDocumentGenerator {
             }
         });
 
+        // Prepare defendant names (comma-separated list)
+        const defendantNames = defendants.map(d => d.fullName).join(', ');
+
         // Prepare template data
-        const templateData = {
-            'Plaintiff Full Name': plaintiff.fullName,
-            'Plaintiff Full Address': this.buildFullAddress(plaintiff, propertyInfo),
-            'Plaintiff Email Address': plaintiff.email,
-            'Plaintiff Phone Number': plaintiff.phone
-        };
+        let templateData;
+
+        if (isMinor && plaintiff.guardian) {
+            // For minors: Use guardian's contact info, include both guardian and minor names
+            templateData = {
+                'Guardian\'s Full Name': plaintiff.guardian.fullName,
+                'Minor\'s Full Name': plaintiff.fullName,
+                'Client\'s Full Name': plaintiff.guardian.fullName, // Straight apostrophe
+                "Client's Full Name": plaintiff.guardian.fullName, // Curly apostrophe
+                'Client Full Name': plaintiff.guardian.fullName, // No apostrophe
+                'Clients Full Name': plaintiff.guardian.fullName, // Plural possessive
+                'Plaintiff Full Name': plaintiff.guardian.fullName, // Guardian signs
+                'Plaintiff Full Address': this.buildFullAddress(plaintiff.guardian, propertyInfo),
+                'Plaintiff Email Address': plaintiff.guardian.email,
+                'Plaintiff Phone Number': plaintiff.guardian.phone,
+                'Defendant Full Name': defendantNames
+            };
+        } else {
+            // For adults: Use plaintiff's own information
+            templateData = {
+                'Plaintiff Full Name': plaintiff.fullName,
+                'Plaintiff Full Address': this.buildFullAddress(plaintiff, propertyInfo),
+                'Plaintiff Email Address': plaintiff.email,
+                'Plaintiff Phone Number': plaintiff.phone,
+                'Defendant Full Name': defendantNames
+            };
+        }
+
+        // Debug: Log template data to verify all fields are populated
+        logger.info('Template data being used for document generation', {
+            plaintiff: plaintiff.fullName,
+            isMinor: plaintiff.isMinor,
+            templateData: templateData
+        });
 
         // Fill template
         doc.render(templateData);
@@ -223,8 +281,16 @@ class ContingencyDocumentGenerator {
      */
     generateFilename(propertyStreet, plaintiff) {
         const streetPart = this.sanitizeForFilename(propertyStreet);
-        const lastNamePart = this.sanitizeForFilename(plaintiff.lastName);
-        const firstNamePart = this.sanitizeForFilename(plaintiff.firstName);
+
+        // For minors, use guardian's name in filename (they're the signer)
+        let lastNamePart, firstNamePart;
+        if (plaintiff.isMinor && plaintiff.guardian) {
+            lastNamePart = this.sanitizeForFilename(plaintiff.guardian.lastName);
+            firstNamePart = this.sanitizeForFilename(plaintiff.guardian.firstName);
+        } else {
+            lastNamePart = this.sanitizeForFilename(plaintiff.lastName);
+            firstNamePart = this.sanitizeForFilename(plaintiff.firstName);
+        }
 
         return `ContingencyAgreement_${streetPart}_${lastNamePart}_${firstNamePart}.docx`;
     }
@@ -252,16 +318,22 @@ class ContingencyDocumentGenerator {
             plaintiffMap[p.id] = p;
         });
 
-        // For each minor plaintiff, copy email and phone from guardian
+        // For each minor plaintiff, attach the full guardian object
         plaintiffs.forEach(plaintiff => {
             if (plaintiff.isMinor && plaintiff.guardianId) {
                 const guardian = plaintiffMap[plaintiff.guardianId];
 
                 if (guardian) {
-                    // Use guardian's email and phone for the minor
-                    plaintiff.email = guardian.email;
-                    plaintiff.phone = guardian.phone;
-                    plaintiff.guardianName = guardian.fullName;
+                    // Attach the complete guardian object for template population
+                    plaintiff.guardian = {
+                        fullName: guardian.fullName,
+                        firstName: guardian.firstName,
+                        lastName: guardian.lastName,
+                        address: guardian.address,
+                        unitNumber: guardian.unitNumber,
+                        email: guardian.email,
+                        phone: guardian.phone
+                    };
 
                     logger.info('Populated guardian data for minor', {
                         minor: plaintiff.fullName,
