@@ -31,6 +31,8 @@ This application provides comprehensive legal forms for document generation and 
 - **Job Queue System**: Asynchronous PDF generation with pg-boss for reliable background processing
 - **Dropbox Integration**: ✅ Automatic cloud backup with folder structure preservation - **ACTIVE IN PRODUCTION** (see [DROPBOX_SETUP_COMPLETE.md](DROPBOX_SETUP_COMPLETE.md))
 - **Domain Restriction**: Prevents cross-form access between domains
+- **Session-Based Authentication**: Password-protected forms with Cloud Run-compatible session management
+- **SSE Progress Streaming**: Real-time document generation progress updates
 - **Cloud Run Deployment**: Serverless deployment with auto-scaling
 - **Health Monitoring**: Health check endpoints and Prometheus metrics
 - **Automated Testing**: Playwright tests for form functionality

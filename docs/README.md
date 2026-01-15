@@ -88,6 +88,14 @@ This directory contains comprehensive documentation for the Legal Form Applicati
   - Security operations
   - Incident response
 
+- **[Authentication Guide](AUTHENTICATION_GUIDE.md)** - Authentication architecture and troubleshooting
+  - Session-based vs token-based authentication
+  - Middleware chain and exemptions
+  - Domain restriction enforcement
+  - SSE streaming authentication
+  - Common authentication issues
+  - Cloud Run session management
+
 ---
 
 ## 🚀 Quick Links
