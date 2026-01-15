@@ -70,6 +70,10 @@ router.post('/contingency-entries', async (req, res) => {
     const formData = req.body;
     const caseId = formData.id || `CA-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+    // Build property address from separate fields
+    const propertyAddress = formData.propertyAddress || formData['property-address'] ||
+      `${formData['property-street'] || ''}, ${formData['property-city'] || ''}, ${formData['property-state'] || ''} ${formData['property-zip'] || ''}`.trim();
+
     // Insert main agreement record
     const agreementResult = await client.query(`
       INSERT INTO contingency_agreements (
@@ -79,7 +83,7 @@ router.post('/contingency-entries', async (req, res) => {
       RETURNING id, case_id
     `, [
       caseId,
-      formData.propertyAddress || formData['property-address'] || '',
+      propertyAddress,
       formData.notificationEmail || null,
       formData.notificationName || null,
       JSON.stringify(formData)
@@ -295,6 +299,10 @@ router.put('/contingency-entries/:caseId', async (req, res) => {
     const { caseId } = req.params;
     const formData = req.body;
 
+    // Build property address from separate fields
+    const propertyAddress = formData.propertyAddress || formData['property-address'] ||
+      `${formData['property-street'] || ''}, ${formData['property-city'] || ''}, ${formData['property-state'] || ''} ${formData['property-zip'] || ''}`.trim();
+
     // Update main agreement
     await client.query(`
       UPDATE contingency_agreements
@@ -306,7 +314,7 @@ router.put('/contingency-entries/:caseId', async (req, res) => {
         updated_at = CURRENT_TIMESTAMP
       WHERE case_id = $5
     `, [
-      formData.propertyAddress || formData['property-address'] || '',
+      propertyAddress,
       formData.notificationEmail || null,
       formData.notificationName || null,
       JSON.stringify(formData),
