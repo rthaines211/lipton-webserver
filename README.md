@@ -1,21 +1,38 @@
 # Legal Form Application
 
-This application provides a comprehensive legal form for collecting plaintiff and defendant information, along with detailed issue tracking. The form generates structured output that matches a specific JSON format suitable for legal document processing.
+This application provides comprehensive legal forms for document generation and contingency agreement management. The system serves multiple forms on separate domains with password-protected access and automated document generation.
+
+## Active Forms
+
+- **Document Generation Form**: `https://docs.liptonlegal.com` - Discovery document generation (SROGs, PODs, Admissions)
+- **Contingency Agreement Form**: `https://agreement.liptonlegal.com` - Client contingency fee agreements with multi-party support
 
 ## Features
 
+### Core Functionality
+- **Multi-Form Support**: Multiple forms on separate domains with hostname-based routing
+- **Password Authentication**: Session-based authentication for each form
 - **Dynamic Form Sections**: Add/remove multiple plaintiffs and defendants
-- **Comprehensive Issue Tracking**: Detailed categories for housing, safety, and legal issues
+- **Minor Plaintiff Support**: Guardian selection for minors in contingency agreements
+- **Document Generation**: Automated DOCX generation from templates
+- **ZIP Downloads**: Bundled document downloads for multi-party agreements
+- **Dual Storage System**: JSON files and PostgreSQL database storage
+- **REST API**: Full CRUD API for form management
+
+### Document Generation Forms
+- **Comprehensive Issue Tracking**: Detailed categories for housing, safety, and legal issues (docs form)
+- **CM-110 PDF Generation**: Automated filling of California CM-110 court forms (docs form)
+- **Contingency Agreements**: Multi-plaintiff/defendant fee agreements (agreement form)
 - **Form Submitter Tracking**: Optional submitter name and email capture with notification opt-in
 - **Review Before Submit**: Users can review their submission and make changes before finalizing
-- **Structured Data Output**: Generates JSON output matching the goalOutput.md specification
-- **At a Glance Summary**: Real-time case overview with filing details, party metadata, and household indicators
-- **Accessible Accordions**: Repeatable sections and issue categories use aria-synced accordion controls with collapse-all shortcuts
-- **Dual Storage System**: JSON files and PostgreSQL database storage
-- **Dropbox Integration**: ✅ Automatic cloud backup with folder structure preservation - **ACTIVE IN PRODUCTION** (see [DROPBOX_SETUP_COMPLETE.md](DROPBOX_SETUP_COMPLETE.md))
-- **CM-110 PDF Generation**: ✨ **NEW** - Automated filling of California CM-110 court forms with real-time progress tracking
+- **Structured Data Output**: Generates JSON output matching specifications
+
+### Technical Features
 - **Job Queue System**: Asynchronous PDF generation with pg-boss for reliable background processing
-- **REST API**: Backend API for managing form submissions
+- **Dropbox Integration**: ✅ Automatic cloud backup with folder structure preservation - **ACTIVE IN PRODUCTION** (see [DROPBOX_SETUP_COMPLETE.md](DROPBOX_SETUP_COMPLETE.md))
+- **Domain Restriction**: Prevents cross-form access between domains
+- **Cloud Run Deployment**: Serverless deployment with auto-scaling
+- **Health Monitoring**: Health check endpoints and Prometheus metrics
 - **Automated Testing**: Playwright tests for form functionality
 
 ## Quick Start
@@ -142,26 +159,35 @@ The application uses GitHub Actions for CI/CD with a **linear promotion model**:
 
 ## API Endpoints
 
-### Form Management
-- `GET /` - Main form page
-- `GET /review.html` - Review page for submission preview
-- `GET /success` - Success confirmation page
-- `POST /api/form-entries` - Submit form data
-- `GET /api/form-entries` - List all form entries
-- `GET /api/form-entries/:id` - Get specific form entry
-- `PUT /api/form-entries/:id` - Update form entry
-- `DELETE /api/form-entries/:id` - Delete form entry
-- `DELETE /api/form-entries/clear-all` - Delete all entries
+### Document Generation Form (docs.liptonlegal.com)
+- `POST /api/form-entries` - Submit document generation form
+- `GET /api/form-entries` - List all document generation entries
+- `GET /api/form-entries/:id` - Get specific entry
+- `PUT /api/form-entries/:id` - Update entry
+- `DELETE /api/form-entries/:id` - Delete entry
 
-### PDF Generation (NEW)
+### Contingency Agreement Form (agreement.liptonlegal.com)
+- `POST /api/contingency-entries` - Submit contingency agreement
+- `GET /api/contingency-entries` - List all agreements
+- `GET /api/contingency-entries/:caseId` - Get specific agreement
+- `PUT /api/contingency-entries/:caseId` - Update agreement
+- `DELETE /api/contingency-entries/:caseId` - Delete agreement
+- `GET /api/contingency-entries/:caseId/download` - Download all documents as ZIP
+
+### PDF Generation
 - `POST /api/pdf/generate` - Generate CM-110 PDF from form data
 - `GET /api/pdf/status/:jobId` - Get PDF generation job status
 - `GET /api/pdf/download/:jobId` - Download generated PDF
 - `POST /api/pdf/retry/:jobId` - Retry failed PDF generation
 - `GET /api/pdf/events/:jobId` - Server-Sent Events for real-time progress
 
+### Authentication
+- `GET /forms/docs/logout` - Logout from docs form
+- `GET /forms/agreement/logout` - Logout from agreement form
+
 ### Health & Monitoring
-- `GET /api/health` - Health check
+- `GET /health` - Basic health check
+- `GET /health/ready` - Readiness probe
 - `GET /health/detailed` - Detailed health status with dependencies
 - `GET /metrics` - Prometheus metrics
 
