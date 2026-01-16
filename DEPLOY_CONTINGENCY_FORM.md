@@ -252,6 +252,15 @@ Cloud Run charges per request:
 
 Estimated cost for typical usage: **$5-10/month**
 
+## Recent Feature Updates
+
+### Custom Address Support (✅ Deployed Jan 2026)
+- **Feature**: Each plaintiff can use a different address from the property
+- **UI**: "Address is different from property address" checkbox
+- **Minor Handling**: Minors inherit guardian's address settings (checkbox disabled)
+- **Simplified Entry**: Combined City, State, Zip into single field
+- **Documentation**: See [CONTINGENCY_FORM_ADDRESS_FEATURE.md](CONTINGENCY_FORM_ADDRESS_FEATURE.md)
+
 ## Success Checklist
 
 - [ ] Deployment script runs successfully
@@ -263,8 +272,11 @@ Estimated cost for typical usage: **$5-10/month**
 - [ ] Form loads at https://agreement.liptonlegal.com/forms/agreement/
 - [ ] Can login with password
 - [ ] Form submission works
+- [ ] Custom address checkbox shows/hides fields correctly (NEW)
+- [ ] Minor plaintiffs inherit guardian address settings (NEW)
 - [ ] ZIP download works
 - [ ] Documents contain correct data
+- [ ] Custom addresses appear correctly in generated documents (NEW)
 
 ## Support
 

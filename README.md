@@ -14,6 +14,8 @@ This application provides comprehensive legal forms for document generation and 
 - **Password Authentication**: Session-based authentication for each form
 - **Dynamic Form Sections**: Add/remove multiple plaintiffs and defendants
 - **Minor Plaintiff Support**: Guardian selection for minors in contingency agreements
+- **Custom Address Support**: Each plaintiff can use different address from property (✅ **NEW**)
+- **Simplified Address Entry**: Combined City, State, Zip fields for faster data entry (✅ **NEW**)
 - **Document Generation**: Automated DOCX generation from templates
 - **ZIP Downloads**: Bundled document downloads for multi-party agreements
 - **Dual Storage System**: JSON files and PostgreSQL database storage
