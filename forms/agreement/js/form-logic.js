@@ -327,18 +327,14 @@ function togglePlaintiffAddress(plaintiffNumber) {
 
     if (checkbox.checked) {
         container.style.display = 'block';
-        // Make fields required when checked
-        if (streetField) streetField.required = true;
-        if (cityStateZipField) cityStateZipField.required = true;
+        // Don't make fields required - they can cause validation issues when sections are collapsed
     } else {
         container.style.display = 'none';
-        // Remove required and clear values when unchecked
+        // Clear values when unchecked
         if (streetField) {
-            streetField.required = false;
             streetField.value = '';
         }
         if (cityStateZipField) {
-            cityStateZipField.required = false;
             cityStateZipField.value = '';
         }
     }
