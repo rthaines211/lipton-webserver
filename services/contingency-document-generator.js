@@ -156,6 +156,18 @@ class ContingencyDocumentGenerator {
         logger.info('Template data being used for document generation', {
             plaintiff: plaintiff.fullName,
             isMinor: plaintiff.isMinor,
+            plaintiffData: {
+                hasDifferentAddress: plaintiff.hasDifferentAddress,
+                customStreet: plaintiff.customStreet,
+                customCityStateZip: plaintiff.customCityStateZip,
+                unit: plaintiff.unit,
+                guardianData: plaintiff.guardian ? {
+                    hasDifferentAddress: plaintiff.guardian.hasDifferentAddress,
+                    customStreet: plaintiff.guardian.customStreet,
+                    customCityStateZip: plaintiff.guardian.customCityStateZip,
+                    unit: plaintiff.guardian.unit
+                } : null
+            },
             templateData: templateData
         });
 
@@ -195,18 +207,14 @@ class ContingencyDocumentGenerator {
         // Extract property information
         const propertyInfo = {
             street: formData['property-street'] || '',
-            city: formData['property-city'] || '',
-            state: formData['property-state'] || '',
-            zip: formData['property-zip'] || '',
+            cityStateZip: formData['property-city-state-zip'] || '',
             fullAddress: ''
         };
 
         // Build full address
         propertyInfo.fullAddress = [
             propertyInfo.street,
-            propertyInfo.city,
-            propertyInfo.state,
-            propertyInfo.zip
+            propertyInfo.cityStateZip
         ].filter(Boolean).join(', ');
 
         // Extract plaintiffs
@@ -222,6 +230,11 @@ class ContingencyDocumentGenerator {
             const isMinor = formData[`plaintiff-${i}-is-minor`] === 'on' || formData[`plaintiff-${i}-is-minor`] === true;
             const guardianId = formData[`plaintiff-${i}-guardian`] || '';
 
+            // Check if plaintiff has different address
+            const hasDifferentAddress = formData[`plaintiff-${i}-different-address`] === 'on' || formData[`plaintiff-${i}-different-address`] === true;
+            const customStreet = formData[`plaintiff-${i}-street`] || '';
+            const customCityStateZip = formData[`plaintiff-${i}-city-state-zip`] || '';
+
             plaintiffs.push({
                 id: i,
                 firstName,
@@ -231,7 +244,10 @@ class ContingencyDocumentGenerator {
                 phone,
                 unit,
                 isMinor,
-                guardianId
+                guardianId,
+                hasDifferentAddress,
+                customStreet,
+                customCityStateZip
             });
         }
 
@@ -260,17 +276,22 @@ class ContingencyDocumentGenerator {
      * @returns {string} Full formatted address
      */
     buildFullAddress(plaintiff, propertyInfo) {
-        const parts = [propertyInfo.street];
-
-        if (plaintiff.unit) {
-            parts[0] += ` #${plaintiff.unit}`;
+        // Check if plaintiff has a custom address
+        if (plaintiff.hasDifferentAddress && plaintiff.customStreet && plaintiff.customCityStateZip) {
+            // Use plaintiff's custom address
+            let street = plaintiff.customStreet;
+            if (plaintiff.unit) {
+                street += ` #${plaintiff.unit}`;
+            }
+            return [street, plaintiff.customCityStateZip].filter(Boolean).join(', ');
         }
 
-        parts.push(propertyInfo.city);
-        parts.push(propertyInfo.state);
-        parts.push(propertyInfo.zip);
-
-        return parts.filter(Boolean).join(', ');
+        // Otherwise use property address
+        let street = propertyInfo.street;
+        if (plaintiff.unit) {
+            street += ` #${plaintiff.unit}`;
+        }
+        return [street, propertyInfo.cityStateZip].filter(Boolean).join(', ');
     }
 
     /**
@@ -329,17 +350,25 @@ class ContingencyDocumentGenerator {
                         fullName: guardian.fullName,
                         firstName: guardian.firstName,
                         lastName: guardian.lastName,
-                        address: guardian.address,
-                        unitNumber: guardian.unitNumber,
                         email: guardian.email,
-                        phone: guardian.phone
+                        phone: guardian.phone,
+                        unit: guardian.unit,
+                        hasDifferentAddress: guardian.hasDifferentAddress,
+                        customStreet: guardian.customStreet,
+                        customCityStateZip: guardian.customCityStateZip
                     };
+
+                    // Minor inherits guardian's address settings
+                    plaintiff.hasDifferentAddress = guardian.hasDifferentAddress;
+                    plaintiff.customStreet = guardian.customStreet;
+                    plaintiff.customCityStateZip = guardian.customCityStateZip;
 
                     logger.info('Populated guardian data for minor', {
                         minor: plaintiff.fullName,
                         guardian: guardian.fullName,
                         email: guardian.email,
-                        phone: guardian.phone
+                        phone: guardian.phone,
+                        inheritedAddress: guardian.hasDifferentAddress ? 'custom' : 'property'
                     });
                 } else {
                     logger.warn('Guardian not found for minor plaintiff', {

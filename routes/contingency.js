@@ -68,6 +68,18 @@ router.post('/contingency-entries', async (req, res) => {
     await client.query('BEGIN');
 
     const formData = req.body;
+
+    // Debug: Log raw form data to see checkbox values
+    logger.info('Raw form data received', {
+      plaintiffCount: formData.plaintiffCount,
+      plaintiff1: {
+        firstName: formData['plaintiff-1-first-name'],
+        differentAddress: formData['plaintiff-1-different-address'],
+        street: formData['plaintiff-1-street'],
+        cityStateZip: formData['plaintiff-1-city-state-zip']
+      }
+    });
+
     const caseId = formData.id || `CA-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     // Build property address from separate fields

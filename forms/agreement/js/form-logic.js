@@ -73,6 +73,29 @@ function addPlaintiff() {
                     </select>
                 </div>
             </div>
+
+            <div class="form-grid" style="margin-top: 15px;">
+                <div class="form-group" style="display: flex; align-items: center; margin-bottom: 0;">
+                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; margin: 0; font-weight: normal;">
+                        <input type="checkbox" id="plaintiff-${plaintiffCount}-different-address" name="plaintiff-${plaintiffCount}-different-address"
+                               onchange="togglePlaintiffAddress(${plaintiffCount})" style="margin: 0; width: auto;">
+                        <span>Address is different from property address</span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="plaintiff-${plaintiffCount}-address-container" class="plaintiff-address-container" style="display: none; margin-top: 15px;">
+                <div class="form-group">
+                    <label for="plaintiff-${plaintiffCount}-street">Street Address</label>
+                    <input type="text" id="plaintiff-${plaintiffCount}-street" name="plaintiff-${plaintiffCount}-street"
+                           placeholder="123 Main Street">
+                </div>
+                <div class="form-group">
+                    <label for="plaintiff-${plaintiffCount}-city-state-zip">City, State, Zip</label>
+                    <input type="text" id="plaintiff-${plaintiffCount}-city-state-zip" name="plaintiff-${plaintiffCount}-city-state-zip"
+                           placeholder="Concord, NC, 28027">
+                </div>
+            </div>
         </div>
     `;
 
@@ -193,15 +216,25 @@ function updatePlaintiffReferences(block, oldNumber, newNumber) {
         removeBtn.setAttribute('onclick', `removePlaintiff(${newNumber})`);
     }
 
-    const minorCheckbox = block.querySelector('input[type="checkbox"]');
+    const minorCheckbox = block.querySelector('input[name$="-is-minor"]');
     if (minorCheckbox) {
         minorCheckbox.setAttribute('onchange', `toggleGuardianSelect(${newNumber})`);
+    }
+
+    const differentAddressCheckbox = block.querySelector('input[name$="-different-address"]');
+    if (differentAddressCheckbox) {
+        differentAddressCheckbox.setAttribute('onchange', `togglePlaintiffAddress(${newNumber})`);
     }
 
     // Update container IDs
     const guardianContainer = block.querySelector('.guardian-select-container');
     if (guardianContainer) {
         guardianContainer.id = `plaintiff-${newNumber}-guardian-container`;
+    }
+
+    const addressContainer = block.querySelector('.plaintiff-address-container');
+    if (addressContainer) {
+        addressContainer.id = `plaintiff-${newNumber}-address-container`;
     }
 }
 
@@ -216,6 +249,9 @@ function toggleGuardianSelect(plaintiffNumber) {
     const phoneField = document.getElementById(`plaintiff-${plaintiffNumber}-phone`);
     const emailGroup = emailField?.closest('.form-group');
     const phoneGroup = phoneField?.closest('.form-group');
+
+    // Get the different address checkbox
+    const differentAddressCheckbox = document.getElementById(`plaintiff-${plaintiffNumber}-different-address`);
 
     if (checkbox.checked) {
         container.style.display = 'block';
@@ -239,6 +275,17 @@ function toggleGuardianSelect(plaintiffNumber) {
             phoneField.value = '';
             phoneField.required = false;
         }
+
+        // Disable and uncheck the different address checkbox for minors
+        if (differentAddressCheckbox) {
+            differentAddressCheckbox.checked = false;
+            differentAddressCheckbox.disabled = true;
+            // Hide the address container if it was open
+            const addressContainer = document.getElementById(`plaintiff-${plaintiffNumber}-address-container`);
+            if (addressContainer) {
+                addressContainer.style.display = 'none';
+            }
+        }
     } else {
         container.style.display = 'none';
         select.required = false;
@@ -261,9 +308,41 @@ function toggleGuardianSelect(plaintiffNumber) {
             phoneField.required = true;
             phoneField.value = '';
         }
+
+        // Re-enable the different address checkbox for adults
+        if (differentAddressCheckbox) {
+            differentAddressCheckbox.disabled = false;
+        }
     }
 }
 
+/**
+ * Toggle plaintiff address fields visibility
+ */
+function togglePlaintiffAddress(plaintiffNumber) {
+    const checkbox = document.getElementById(`plaintiff-${plaintiffNumber}-different-address`);
+    const container = document.getElementById(`plaintiff-${plaintiffNumber}-address-container`);
+    const streetField = document.getElementById(`plaintiff-${plaintiffNumber}-street`);
+    const cityStateZipField = document.getElementById(`plaintiff-${plaintiffNumber}-city-state-zip`);
+
+    if (checkbox.checked) {
+        container.style.display = 'block';
+        // Make fields required when checked
+        if (streetField) streetField.required = true;
+        if (cityStateZipField) cityStateZipField.required = true;
+    } else {
+        container.style.display = 'none';
+        // Remove required and clear values when unchecked
+        if (streetField) {
+            streetField.required = false;
+            streetField.value = '';
+        }
+        if (cityStateZipField) {
+            cityStateZipField.required = false;
+            cityStateZipField.value = '';
+        }
+    }
+}
 
 /**
  * Update all guardian select dropdowns with current plaintiffs

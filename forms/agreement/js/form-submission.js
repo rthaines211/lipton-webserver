@@ -76,16 +76,12 @@ document.addEventListener('DOMContentLoaded', function() {
 function collectFormData() {
     const formData = {};
 
-    // Property address (now broken into separate fields)
+    // Property address
     const streetEl = document.getElementById('property-street');
-    const cityEl = document.getElementById('property-city');
-    const stateEl = document.getElementById('property-state');
-    const zipEl = document.getElementById('property-zip');
+    const cityStateZipEl = document.getElementById('property-city-state-zip');
 
     formData['property-street'] = streetEl ? streetEl.value : '';
-    formData['property-city'] = cityEl ? cityEl.value : '';
-    formData['property-state'] = stateEl ? stateEl.value : '';
-    formData['property-zip'] = zipEl ? zipEl.value : '';
+    formData['property-city-state-zip'] = cityStateZipEl ? cityStateZipEl.value : '';
 
     // Plaintiff count
     const plaintiffCount = parseInt(document.getElementById('plaintiff-count').value);
@@ -104,6 +100,15 @@ function collectFormData() {
 
         if (isMinorCheckbox?.checked) {
             formData[`plaintiff-${i}-guardian`] = document.getElementById(`plaintiff-${i}-guardian`)?.value || '';
+        }
+
+        // Collect different address checkbox and custom address fields
+        const differentAddressCheckbox = document.getElementById(`plaintiff-${i}-different-address`);
+        formData[`plaintiff-${i}-different-address`] = differentAddressCheckbox?.checked || false;
+
+        if (differentAddressCheckbox?.checked) {
+            formData[`plaintiff-${i}-street`] = document.getElementById(`plaintiff-${i}-street`)?.value || '';
+            formData[`plaintiff-${i}-city-state-zip`] = document.getElementById(`plaintiff-${i}-city-state-zip`)?.value || '';
         }
     }
 
