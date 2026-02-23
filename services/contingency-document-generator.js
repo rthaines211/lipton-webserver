@@ -19,6 +19,8 @@ class ContingencyDocumentGenerator {
     constructor() {
         this.templatePath = path.join(__dirname, '../templates/LLG Contingency Fee Agreement - Template.docx');
         this.minorTemplatePath = path.join(__dirname, '../templates/LLG Contingency Fee Agreement - Minor.docx');
+        this.spanishTemplatePath = path.join(__dirname, '../templates/LLG Contingency Fee Agreement - Template - Spanish.docx');
+        this.spanishMinorTemplatePath = path.join(__dirname, '../templates/LLG Contingency Fee Agreement - Minor - Spanish.docx');
 
         // Use /tmp for Cloud Run compatibility (ephemeral storage)
         // In production, files are temporary and will be downloaded immediately
@@ -104,9 +106,20 @@ class ContingencyDocumentGenerator {
      * @returns {string} Path to generated document
      */
     async generateSingleAgreement(plaintiff, propertyInfo, defendants) {
-        // Determine which template to use based on whether plaintiff is a minor
+        // Determine which template to use based on minor status and language
         const isMinor = plaintiff.isMinor;
-        const templateToUse = isMinor ? this.minorTemplatePath : this.templatePath;
+        const isSpanish = plaintiff.language === 'spanish';
+
+        let templateToUse;
+        if (isMinor && isSpanish) {
+            templateToUse = this.spanishMinorTemplatePath;
+        } else if (isMinor) {
+            templateToUse = this.minorTemplatePath;
+        } else if (isSpanish) {
+            templateToUse = this.spanishTemplatePath;
+        } else {
+            templateToUse = this.templatePath;
+        }
 
         // Load appropriate template
         const templateContent = fs.readFileSync(templateToUse, 'binary');
@@ -229,6 +242,7 @@ class ContingencyDocumentGenerator {
             const unit = formData[`plaintiff-${i}-unit`] || '';
             const isMinor = formData[`plaintiff-${i}-is-minor`] === 'on' || formData[`plaintiff-${i}-is-minor`] === true;
             const guardianId = formData[`plaintiff-${i}-guardian`] || '';
+            const language = formData[`plaintiff-${i}-language`] || 'english';
 
             // Check if plaintiff has different address
             const hasDifferentAddress = formData[`plaintiff-${i}-different-address`] === 'on' || formData[`plaintiff-${i}-different-address`] === true;
@@ -245,6 +259,7 @@ class ContingencyDocumentGenerator {
                 unit,
                 isMinor,
                 guardianId,
+                language,
                 hasDifferentAddress,
                 customStreet,
                 customCityStateZip

@@ -94,6 +94,7 @@ function collectFormData() {
         formData[`plaintiff-${i}-unit`] = document.getElementById(`plaintiff-${i}-unit`)?.value || '';
         formData[`plaintiff-${i}-email`] = document.getElementById(`plaintiff-${i}-email`)?.value || '';
         formData[`plaintiff-${i}-phone`] = document.getElementById(`plaintiff-${i}-phone`)?.value || '';
+        formData[`plaintiff-${i}-language`] = document.getElementById(`plaintiff-${i}-language`)?.value || 'english';
 
         const isMinorCheckbox = document.getElementById(`plaintiff-${i}-is-minor`);
         formData[`plaintiff-${i}-is-minor`] = isMinorCheckbox?.checked || false;

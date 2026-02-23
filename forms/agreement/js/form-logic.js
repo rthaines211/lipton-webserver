@@ -37,6 +37,16 @@ function addPlaintiff() {
                 </div>
             </div>
 
+            <div class="form-grid" style="margin-top: 15px;">
+                <div class="form-group">
+                    <label for="plaintiff-${plaintiffCount}-language">Agreement Language</label>
+                    <select id="plaintiff-${plaintiffCount}-language" name="plaintiff-${plaintiffCount}-language">
+                        <option value="english" selected>English</option>
+                        <option value="spanish">Spanish</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="form-grid">
                 <div class="form-group" style="flex: 9;">
                     <label for="plaintiff-${plaintiffCount}-email">Email Address <span class="required">*</span></label>
