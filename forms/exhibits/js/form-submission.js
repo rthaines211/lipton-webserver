@@ -1,6 +1,6 @@
 /**
  * Form Submission Module
- * Orchestrates: upload all files → generate → SSE progress → duplicate resolution → download.
+ * Orchestrates: validate → gap check → upload all files → generate → SSE progress → duplicate resolution → download.
  */
 
 const FormSubmission = (() => {
@@ -8,11 +8,80 @@ const FormSubmission = (() => {
     function init() {
         const btn = document.getElementById('btn-generate');
         btn.addEventListener('click', handleGenerate);
+
+        // Blur validation for required fields
+        const caseName = document.getElementById('case-name');
+        const caseDesc = document.getElementById('case-description');
+
+        caseName.addEventListener('blur', () => validateField(caseName, 'case-name-error'));
+        caseDesc.addEventListener('blur', () => validateField(caseDesc, 'case-description-error'));
+
+        // Clear error on input
+        caseName.addEventListener('input', () => clearFieldError(caseName, 'case-name-error'));
+        caseDesc.addEventListener('input', () => clearFieldError(caseDesc, 'case-description-error'));
+    }
+
+    /**
+     * Validate a required field. Returns true if valid.
+     */
+    function validateField(inputEl, errorId) {
+        const value = inputEl.value.trim();
+        const errorEl = document.getElementById(errorId);
+        if (!value) {
+            inputEl.classList.add('input-error');
+            errorEl.textContent = 'This field is required.';
+            return false;
+        }
+        inputEl.classList.remove('input-error');
+        errorEl.textContent = '';
+        return true;
+    }
+
+    function clearFieldError(inputEl, errorId) {
+        if (inputEl.value.trim()) {
+            inputEl.classList.remove('input-error');
+            document.getElementById(errorId).textContent = '';
+        }
+    }
+
+    /**
+     * Validate all required fields. Returns true if all valid.
+     */
+    function validateRequiredFields() {
+        const caseName = document.getElementById('case-name');
+        const caseDesc = document.getElementById('case-description');
+
+        const nameValid = validateField(caseName, 'case-name-error');
+        const descValid = validateField(caseDesc, 'case-description-error');
+
+        if (!nameValid) {
+            caseName.focus();
+            caseName.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (!descValid) {
+            caseDesc.focus();
+            caseDesc.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        return nameValid && descValid;
     }
 
     async function handleGenerate() {
+        // Step 1: Validate required fields
+        if (!validateRequiredFields()) return;
+
         const btn = document.getElementById('btn-generate');
         btn.disabled = true;
+
+        // Step 2: Gap detection
+        if (typeof GapDetector !== 'undefined') {
+            const gapResult = await GapDetector.checkOnSubmit();
+            if (gapResult === 'collapse') {
+                // Gaps were collapsed — re-enable button, let user review and re-submit
+                btn.disabled = false;
+                return;
+            }
+            // 'continue' or 'none' — proceed with generation
+        }
 
         const sessionId = ExhibitManager.getSessionId();
         const caseName = document.getElementById('case-name').value.trim();
@@ -65,7 +134,6 @@ const FormSubmission = (() => {
 
             evtSource.addEventListener('progress', (e) => {
                 const data = JSON.parse(e.data);
-                // Map server 0-100 to our 20-100 range (first 20% was upload)
                 const displayPct = 20 + Math.round(data.progress * 0.8);
                 updateProgress(displayPct, data.message);
             });
@@ -74,11 +142,9 @@ const FormSubmission = (() => {
                 const data = JSON.parse(e.data);
                 evtSource.close();
 
-                // Hide progress, show duplicate modal
                 hideProgress();
                 const resolutions = await DuplicateUI.showModal(data.duplicates);
 
-                // Send resolutions and reconnect SSE
                 showProgress('Processing Exhibits', 30, 'Resuming after duplicate resolution...');
 
                 const resolveResponse = await fetch(`/api/exhibits/jobs/${jobId}/resolve`, {
@@ -91,7 +157,6 @@ const FormSubmission = (() => {
                     throw new Error('Failed to resolve duplicates');
                 }
 
-                // Reconnect SSE for remaining progress
                 connectSSE(jobId).then(resolve).catch(reject);
             });
 
@@ -100,7 +165,6 @@ const FormSubmission = (() => {
                 evtSource.close();
                 updateProgress(100, 'Complete! Downloading...');
 
-                // Trigger download
                 setTimeout(() => {
                     window.location.href = `/api/exhibits/jobs/${jobId}/download`;
                     hideProgress();
@@ -111,12 +175,9 @@ const FormSubmission = (() => {
             });
 
             evtSource.addEventListener('error', (e) => {
-                // SSE error event (not our custom error)
                 if (evtSource.readyState === EventSource.CLOSED) return;
-                // Try to read error data if it's our custom event
             });
 
-            // Custom error event from server
             evtSource.addEventListener('error', (e) => {
                 try {
                     const data = JSON.parse(e.data);
@@ -134,7 +195,6 @@ const FormSubmission = (() => {
 
             evtSource.onerror = () => {
                 // Connection lost - don't reject immediately, SSE may reconnect
-                // If it's permanently closed, the user will see stale progress
             };
         });
     }
