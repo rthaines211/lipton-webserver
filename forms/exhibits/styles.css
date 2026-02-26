@@ -773,25 +773,24 @@ textarea.input-error:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
     width: 100%;
-    padding: 14px;
+    padding: 14px 40px;
     margin-top: 12px;
-    border: 2px dashed #C0C8D0;
-    border-radius: 8px;
-    background: transparent;
-    color: #666;
-    font-size: 1rem;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--primary-navy) 0%, #2A3F5F 100%);
+    color: white;
+    font-size: 1.1rem;
     font-weight: 600;
     font-family: 'Open Sans', sans-serif;
     cursor: pointer;
-    transition: border-color 0.2s, color 0.2s, background 0.2s;
+    transition: all 0.2s;
 }
 
 .btn-add-exhibit:hover {
-    border-color: var(--secondary-teal);
-    color: var(--secondary-teal);
-    background: rgba(0, 174, 239, 0.05);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(31, 42, 68, 0.3);
 }
 
 .btn-add-exhibit:disabled {
@@ -832,6 +831,7 @@ textarea.input-error:focus {
     width: 95%;
     max-height: 85vh;
     overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .gap-list {
