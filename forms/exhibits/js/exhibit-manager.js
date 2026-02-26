@@ -1,11 +1,13 @@
 /**
  * Exhibit Manager
- * Manages 26 exhibit cards (A-Z), file state, drag-and-drop, and UI rendering.
+ * Manages exhibit cards progressively (starts with A, user adds more).
+ * File state, drag-and-drop, and UI rendering.
  */
 
 const ExhibitManager = (() => {
     const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     const exhibits = {}; // { A: [{ file, name, size, type }], B: [...], ... }
+    const renderedLetters = []; // tracks which letters have cards in the DOM
     let sessionId = null;
 
     function init() {
@@ -13,7 +15,11 @@ const ExhibitManager = (() => {
         LETTERS.forEach(letter => {
             exhibits[letter] = [];
         });
-        renderGrid();
+
+        // Render only Exhibit A, expanded
+        addExhibitCard('A');
+        expandCard('A');
+        updateAddButton();
         updateGenerateButton();
     }
 
@@ -29,72 +35,115 @@ const ExhibitManager = (() => {
         return LETTERS.filter(l => exhibits[l].length > 0);
     }
 
-    function renderGrid() {
+    function getRenderedLetters() {
+        return [...renderedLetters];
+    }
+
+    /**
+     * Create and append a single exhibit card for the given letter.
+     */
+    function addExhibitCard(letter) {
+        if (renderedLetters.includes(letter)) return;
+
         const grid = document.getElementById('exhibit-grid');
-        grid.innerHTML = '';
-
-        LETTERS.forEach(letter => {
-            const card = document.createElement('div');
-            card.className = 'exhibit-card';
-            card.id = `exhibit-${letter}`;
-            card.innerHTML = `
-                <div class="exhibit-card-header" data-letter="${letter}">
-                    <div class="letter-badge">${letter}</div>
-                    <span class="exhibit-card-title">Exhibit ${letter}</span>
-                    <span class="file-count-badge" id="badge-${letter}">0</span>
-                    <span class="duplicate-badges" id="dup-badges-${letter}"></span>
-                    <i class="fas fa-chevron-down exhibit-card-chevron"></i>
+        const card = document.createElement('div');
+        card.className = 'exhibit-card';
+        card.id = `exhibit-${letter}`;
+        card.innerHTML = `
+            <div class="exhibit-card-header" data-letter="${letter}">
+                <div class="letter-badge">${letter}</div>
+                <span class="exhibit-card-title">Exhibit ${letter}</span>
+                <span class="file-count-badge" id="badge-${letter}">0</span>
+                <span class="duplicate-badges" id="dup-badges-${letter}"></span>
+                <i class="fas fa-chevron-down exhibit-card-chevron"></i>
+            </div>
+            <div class="exhibit-card-body">
+                <input type="text" class="exhibit-label-input"
+                       id="label-${letter}"
+                       placeholder="Exhibit description (e.g., Lease Agreement)">
+                <div class="drop-zone" id="drop-${letter}">
+                    <div class="drop-zone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                    <p class="drop-zone-text">Drag files here or <strong>browse</strong></p>
+                    <input type="file" id="file-input-${letter}"
+                           multiple
+                           accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif,.heic">
                 </div>
-                <div class="exhibit-card-body">
-                    <input type="text" class="exhibit-label-input"
-                           id="label-${letter}"
-                           placeholder="Exhibit description (e.g., Lease Agreement)">
-                    <div class="drop-zone" id="drop-${letter}">
-                        <div class="drop-zone-icon"><i class="fas fa-cloud-upload-alt"></i></div>
-                        <p class="drop-zone-text">Drag files here or <strong>browse</strong></p>
-                        <input type="file" id="file-input-${letter}"
-                               multiple
-                               accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif,.heic">
-                    </div>
-                    <div class="file-list" id="files-${letter}"></div>
-                </div>
-            `;
-            grid.appendChild(card);
+                <div class="file-list" id="files-${letter}"></div>
+            </div>
+        `;
+        grid.appendChild(card);
+        renderedLetters.push(letter);
 
-            // Header click → expand/collapse
-            const header = card.querySelector('.exhibit-card-header');
-            header.addEventListener('click', () => toggleCard(letter));
+        // Header click → expand/collapse
+        const header = card.querySelector('.exhibit-card-header');
+        header.addEventListener('click', () => toggleCard(letter));
 
-            // Drop zone events
-            const dropZone = card.querySelector('.drop-zone');
-            const fileInput = card.querySelector(`#file-input-${letter}`);
+        // Drop zone events
+        const dropZone = card.querySelector('.drop-zone');
+        const fileInput = card.querySelector(`#file-input-${letter}`);
 
-            dropZone.addEventListener('click', (e) => {
-                if (e.target.tagName !== 'INPUT') fileInput.click();
-            });
-
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('drag-over');
-            });
-
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.classList.remove('drag-over');
-            });
-
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('drag-over');
-                const files = Array.from(e.dataTransfer.files);
-                addFiles(letter, files);
-            });
-
-            fileInput.addEventListener('change', (e) => {
-                const files = Array.from(e.target.files);
-                addFiles(letter, files);
-                e.target.value = ''; // reset for re-upload
-            });
+        dropZone.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'INPUT') fileInput.click();
         });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const files = Array.from(e.dataTransfer.files);
+            addFiles(letter, files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            addFiles(letter, files);
+            e.target.value = ''; // reset for re-upload
+        });
+    }
+
+    /**
+     * Add the next exhibit letter card. Called by the "Add Exhibit" button.
+     */
+    function addNextExhibit() {
+        const nextIndex = renderedLetters.length;
+        if (nextIndex >= LETTERS.length) return;
+
+        const letter = LETTERS[nextIndex];
+        addExhibitCard(letter);
+        expandCard(letter);
+        updateAddButton();
+
+        // Scroll the new card into view
+        const card = document.getElementById(`exhibit-${letter}`);
+        if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    /**
+     * Update the "Add Exhibit" button label and disabled state.
+     */
+    function updateAddButton() {
+        const btn = document.getElementById('btn-add-exhibit');
+        if (!btn) return;
+
+        const nextIndex = renderedLetters.length;
+        if (nextIndex >= LETTERS.length) {
+            btn.disabled = true;
+            return;
+        }
+
+        btn.disabled = false;
+        const nextLetter = LETTERS[nextIndex];
+        document.getElementById('add-exhibit-label').textContent = `Add Exhibit ${nextLetter}`;
     }
 
     function toggleCard(letter) {
@@ -104,7 +153,7 @@ const ExhibitManager = (() => {
 
     function expandCard(letter) {
         const card = document.getElementById(`exhibit-${letter}`);
-        if (!card.classList.contains('expanded')) {
+        if (card && !card.classList.contains('expanded')) {
             card.classList.add('expanded');
         }
     }
@@ -130,6 +179,11 @@ const ExhibitManager = (() => {
         updateCardUI(letter);
         updateGenerateButton();
         updateSummary();
+
+        // Trigger real-time gap detection
+        if (typeof GapDetector !== 'undefined') {
+            GapDetector.checkRealTime();
+        }
     }
 
     function removeFile(letter, index) {
@@ -137,10 +191,16 @@ const ExhibitManager = (() => {
         updateCardUI(letter);
         updateGenerateButton();
         updateSummary();
+
+        // Trigger real-time gap detection
+        if (typeof GapDetector !== 'undefined') {
+            GapDetector.checkRealTime();
+        }
     }
 
     function updateCardUI(letter) {
         const card = document.getElementById(`exhibit-${letter}`);
+        if (!card) return;
         const badge = document.getElementById(`badge-${letter}`);
         const fileListEl = document.getElementById(`files-${letter}`);
         const count = exhibits[letter].length;
@@ -224,29 +284,124 @@ const ExhibitManager = (() => {
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     }
 
+    /**
+     * Collapse gaps: shift exhibits to fill empty slots.
+     * Returns the list of letters that were moved (for UI feedback).
+     */
+    function collapseGaps() {
+        const rendered = getRenderedLetters();
+        const nonEmpty = rendered.filter(l => exhibits[l].length > 0);
+
+        // Build new mapping: nonEmpty[0] → rendered[0], nonEmpty[1] → rendered[1], etc.
+        const moves = [];
+        for (let i = 0; i < nonEmpty.length; i++) {
+            const targetLetter = LETTERS[i];
+            const sourceLetter = nonEmpty[i];
+            if (sourceLetter !== targetLetter) {
+                moves.push({ from: sourceLetter, to: targetLetter });
+            }
+        }
+
+        if (moves.length === 0) return [];
+
+        // Collect all data first (files, labels)
+        const fileData = {};
+        const labelData = {};
+        for (const letter of rendered) {
+            fileData[letter] = [...exhibits[letter]];
+            const labelEl = document.getElementById(`label-${letter}`);
+            labelData[letter] = labelEl ? labelEl.value : '';
+        }
+
+        // Clear all rendered exhibits
+        for (const letter of rendered) {
+            exhibits[letter] = [];
+        }
+
+        // Place non-empty exhibits into sequential slots
+        for (let i = 0; i < nonEmpty.length; i++) {
+            const targetLetter = LETTERS[i];
+            const sourceLetter = nonEmpty[i];
+            exhibits[targetLetter] = fileData[sourceLetter];
+
+            const labelEl = document.getElementById(`label-${targetLetter}`);
+            if (labelEl) {
+                labelEl.value = labelData[sourceLetter];
+            }
+        }
+
+        // Clear labels on now-empty slots
+        for (let i = nonEmpty.length; i < rendered.length; i++) {
+            const letter = rendered[i];
+            const labelEl = document.getElementById(`label-${letter}`);
+            if (labelEl) labelEl.value = '';
+        }
+
+        // Remove trailing empty cards from DOM
+        const keepCount = nonEmpty.length;
+        while (renderedLetters.length > keepCount) {
+            const removeLetter = renderedLetters.pop();
+            const card = document.getElementById(`exhibit-${removeLetter}`);
+            if (card) card.remove();
+        }
+
+        // Update UI for all remaining cards
+        for (const letter of renderedLetters) {
+            updateCardUI(letter);
+        }
+
+        updateAddButton();
+        updateGenerateButton();
+        updateSummary();
+
+        return moves;
+    }
+
     function clearAll() {
         LETTERS.forEach(letter => {
             exhibits[letter] = [];
-            updateCardUI(letter);
         });
+        // Remove all cards except A
+        while (renderedLetters.length > 1) {
+            const removeLetter = renderedLetters.pop();
+            const card = document.getElementById(`exhibit-${removeLetter}`);
+            if (card) card.remove();
+        }
+        updateCardUI('A');
+        updateAddButton();
         updateGenerateButton();
         updateSummary();
     }
 
     // Initialize on DOM ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', () => {
+            init();
+            // Wire up "Add Exhibit" button
+            const addBtn = document.getElementById('btn-add-exhibit');
+            if (addBtn) addBtn.addEventListener('click', addNextExhibit);
+        });
     } else {
         init();
+        const addBtn = document.getElementById('btn-add-exhibit');
+        if (addBtn) addBtn.addEventListener('click', addNextExhibit);
     }
 
     return {
         getSessionId,
         getExhibits,
         getActiveExhibits,
+        getRenderedLetters,
         addFiles,
+        addNextExhibit,
+        addExhibitCard,
         removeFile,
+        collapseGaps,
         clearAll,
         expandCard,
+        updateCardUI,
+        updateAddButton,
+        updateGenerateButton,
+        updateSummary,
     };
 })();
