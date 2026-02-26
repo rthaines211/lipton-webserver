@@ -440,6 +440,9 @@ app.get('/forms/agreement/', (req, res) => {
 // Password-protect contingency agreement form
 app.use('/forms/agreement', createPasswordAuth('agreement'));
 
+// Password-protect exhibit collector form
+app.use('/forms/exhibits', createPasswordAuth('exhibits'));
+
 // Serve static files from forms directory structure (after password auth)
 app.use('/forms', express.static(path.join(__dirname, 'forms')));
 
@@ -463,6 +466,10 @@ app.use('/api/form-entries', formRoutes);
 
 // Contingency agreement routes
 app.use('/api', contingencyRoutes);
+
+// Exhibit collector routes
+const exhibitRoutes = require('./routes/exhibits');
+app.use('/api/exhibits', exhibitRoutes);
 
 // Initialize and mount pipeline routes with helper function injection
 // Week 2 Day 3: Pipeline now uses pipelineService directly (imported in routes file)
