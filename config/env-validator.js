@@ -100,6 +100,24 @@ const ENV_VARS = {
             description: 'GCP project ID',
             example: 'docmosis-tornado',
             default: 'Auto-detected'
+        },
+        'AGREEMENT_FORM_PASSWORD': {
+            description: 'Password for contingency agreement form access',
+            example: '[secret]',
+            sensitive: true,
+            default: 'Built-in default'
+        },
+        'DOCS_FORM_PASSWORD': {
+            description: 'Password for document generation form access',
+            example: '[secret]',
+            sensitive: true,
+            default: 'Built-in default'
+        },
+        'EXHIBITS_FORM_PASSWORD': {
+            description: 'Password for exhibit collector form access',
+            example: '[secret]',
+            sensitive: true,
+            default: 'Built-in default'
         }
     }
 };
