@@ -427,6 +427,8 @@ class PipelineService {
                     }
 
                     // Store success status in cache
+                    const outputUrl = webhookSummary?.output_url || response.data?.output_url || '';
+                    console.log(`🔗 Dropbox output_url for ${caseId}: ${outputUrl}`);
                     this.setPipelineStatus(caseId, {
                         status: 'success',
                         phase: 'complete',
@@ -437,7 +439,7 @@ class PipelineService {
                         endTime: Date.now(),
                         executionTime: executionTime,
                         error: null,
-                        result: response.data,
+                        result: { ...response.data, output_url: outputUrl },
                         webhookSummary: webhookSummary
                     });
 
