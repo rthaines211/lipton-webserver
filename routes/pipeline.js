@@ -202,6 +202,11 @@ router.get('/jobs/:jobId/stream', (req, res) => {
             const event = status.status === 'success' ? 'complete' :
                          status.status === 'failed' ? 'error' : 'progress';
 
+            // Log what result contains on completion to diagnose output_url presence
+            if (event === 'complete') {
+                console.log(`🔍 SSE complete event for ${jobId} - result.output_url:`, status.result?.output_url, '| result keys:', status.result ? Object.keys(status.result) : 'null');
+            }
+
             res.write(`event: ${event}\n`);
             res.write(`data: ${JSON.stringify({
                 jobId,
@@ -210,7 +215,8 @@ router.get('/jobs/:jobId/stream', (req, res) => {
                 progress: status.progress || 0,
                 currentPhase: status.currentPhase,
                 error: status.error,
-                result: status.result
+                result: status.result,
+                outputUrl: status.result?.output_url || ''
             })}\n\n`);
 
             // ============================================================
