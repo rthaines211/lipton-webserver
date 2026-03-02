@@ -144,21 +144,23 @@ router.get('/jobs/:jobId/stream', (req, res) => {
     // Check if job exists before setting up stream
     const initialStatus = pipelineService.getPipelineStatus(jobId);
 
-    // If no status found, assume job is complete or doesn't exist
+    // If no status found, the job either doesn't exist, expired from cache,
+    // or hasn't started yet. Send an error event so the client doesn't
+    // interpret this as a successful completion.
     if (!initialStatus) {
-        console.log(`📡 No status found for job ${jobId}, sending completion signal`);
+        console.log(`📡 No status found for job ${jobId}, sending not-found error`);
 
-        // Send completion event indicating job is done or not found
-        res.write('event: complete\n');
+        res.write('event: error\n');
         res.write(`data: ${JSON.stringify({
             jobId,
-            status: 'complete',
-            message: 'Job completed or not found',
-            phase: 'complete',
-            progress: 100
+            status: 'failed',
+            message: 'Job not found or status expired',
+            phase: 'not_found',
+            progress: 0,
+            error: 'Job status not found. The job may have expired or does not exist.'
         })}\n\n`);
 
-        // Flush completion message immediately
+        // Flush message immediately
         if (res.flush) res.flush();
         if (res.socket && !res.socket.destroyed) {
             res.socket.uncork();
