@@ -36,6 +36,7 @@ import os
 import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
+import time
 import dropbox
 from dropbox.files import WriteMode
 from dropbox.exceptions import ApiError, AuthError
@@ -280,13 +281,34 @@ def upload_file(local_file_path: str, file_content: Optional[bytes] = None) -> D
 
         # Upload file to Dropbox (overwrite if exists)
         # Token refresh happens automatically here if needed
-        _dbx_client.files_upload(
-            file_content,
-            dropbox_path,
-            mode=WriteMode('overwrite'),
-            autorename=False,
-            mute=False
-        )
+        # Retry up to 3 times for transient connection errors
+        max_retries = 3
+        for attempt in range(1, max_retries + 1):
+            try:
+                _dbx_client.files_upload(
+                    file_content,
+                    dropbox_path,
+                    mode=WriteMode('overwrite'),
+                    autorename=False,
+                    mute=False
+                )
+                break  # Success, exit retry loop
+            except (ConnectionError, ConnectionResetError, ConnectionAbortedError) as conn_err:
+                if attempt < max_retries:
+                    logger.warning(f"⚠️  Dropbox upload attempt {attempt}/{max_retries} failed for {local_file_path}: {conn_err}")
+                    time.sleep(attempt)  # Backoff: 1s, 2s
+                else:
+                    raise  # Let outer exception handler deal with it
+            except Exception as e:
+                # Check for RemoteDisconnected or similar urllib3 errors
+                if 'RemoteDisconnected' in str(type(e).__name__) or 'RemoteDisconnected' in str(e):
+                    if attempt < max_retries:
+                        logger.warning(f"⚠️  Dropbox upload attempt {attempt}/{max_retries} failed for {local_file_path}: {e}")
+                        time.sleep(attempt)
+                    else:
+                        raise
+                else:
+                    raise  # Non-transient error, don't retry
 
         result['success'] = True
         logger.info(f"☁️  Uploaded to Dropbox: {local_file_path} → {dropbox_path}")

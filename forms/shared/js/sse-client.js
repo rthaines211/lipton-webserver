@@ -188,7 +188,8 @@ class JobProgressStream {
 
             // Update progress state
             if (typeof markJobComplete === 'function') {
-                markJobComplete(this.jobId, data.total, data.outputUrl);
+                const outputUrl = data.outputUrl || data.result?.output_url || data.result?.outputUrl;
+                markJobComplete(this.jobId, data.total, outputUrl);
             }
 
             // Toast notification removed - check console for completion status
