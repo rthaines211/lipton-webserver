@@ -135,6 +135,8 @@ The application uses GitHub Actions for CI/CD with a **linear promotion model**:
 
 > **⚠️ Important:** Pushing to `main` deploys to **staging first**, then requires manual approval in GitHub Actions to promote to production.
 
+> **⚠️ Python Pipeline:** The `Python Pipeline CI/CD` workflow runs code quality checks and tests but **does not deploy**. The deploy step is commented out. To update the Python pipeline in production, deploy manually — see [Deploying the Python Pipeline](#deploying-the-python-pipeline) above.
+
 ### Manual Deployment
 
 ```bash
@@ -303,7 +305,7 @@ For complete form submission details, see the SQL queries section in the project
 
 The application **automatically uploads all generated legal documents to Dropbox** for cloud backup and storage. This feature is **fully operational** in both development and production (GCP Cloud Run).
 
-**Production Status:** ✅ **Working** - Documents are automatically uploaded with folder creation and shared link generation.
+**Production Status:** ✅ **Working** - Documents are automatically uploaded with folder creation, and the shared folder link is displayed in the UI after generation completes.
 
 ### Quick Setup
 
@@ -325,11 +327,36 @@ The application **automatically uploads all generated legal documents to Dropbox
 - ✅ Automatic upload after document generation
 - ✅ Preserves folder structure: `/Current Clients/[Address]/[Name]/Discovery Propounded/`
 - ✅ Automatic folder creation in Dropbox
-- ✅ Shared link generation for each case
+- ✅ Shared link generation for each case folder
+- ✅ DOCX download link displayed in UI after generation completes
+- ✅ Upload retry logic (3 attempts with backoff) for transient connection errors
 - ✅ Non-blocking (doesn't delay form submission)
 - ✅ Error resilient (continues if upload fails)
 - ✅ Comprehensive logging
 - ✅ Long-lived access token (never expires)
+
+### Architecture Note: SSE Data Flow for Dropbox Links
+
+The Dropbox shared link travels through two services:
+
+1. **Python pipeline** (`webhook_sender.py`) — creates the shared link and returns it in `webhook_summary.output_url`
+2. **Node.js pipeline service** (`services/pipeline-service.js`) — extracts `webhookSummary.output_url` and stores it as `result.output_url` in the status cache
+3. **Node.js SSE route** (`routes/pipeline.js`) — sends `result.output_url` and `outputUrl` in the completion event
+4. **Frontend** (`form-submission.js`) — reads `data.outputUrl || data.result?.output_url` to display the DOCX link
+
+> **Important:** The Python pipeline is a **separate Cloud Run service** (`python-pipeline`) that must be manually deployed via `gcloud run deploy` from the `normalization work/` directory. The GitHub Actions `python-pipeline-ci.yml` workflow runs CI checks but the deploy step is currently commented out.
+
+### Deploying the Python Pipeline
+
+```bash
+cd "normalization work"
+gcloud run deploy python-pipeline \
+  --source=. \
+  --region=us-central1 \
+  --project=docmosis-tornado \
+  --platform=managed \
+  --allow-unauthenticated
+```
 
 **Documentation:**
 - **Setup Guide:** [DROPBOX_QUICK_START.md](DROPBOX_QUICK_START.md)
