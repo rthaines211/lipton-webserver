@@ -456,11 +456,11 @@ def send_all_sets_with_progress(
                     print(f"❌ {output_name} failed: {result.get('error', 'Unknown error')}")
     
     # Final progress update with completion status
+    dropbox_link = ""
     if case_id:
         if failed == 0:
             # All succeeded - mark as complete
             # Try to create Dropbox shared link to address-level folder
-            dropbox_link = ""
             if DROPBOX_AVAILABLE and dropbox_service.is_enabled():
                 try:
                     # Extract address-level folder from first successful result
@@ -498,7 +498,8 @@ def send_all_sets_with_progress(
         'total_sets': total_sets,
         'succeeded': succeeded,
         'failed': failed,
-        'results': results
+        'results': results,
+        'output_url': dropbox_link or ''
     }
 
 def send_all_sets(

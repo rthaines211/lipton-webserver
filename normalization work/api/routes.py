@@ -355,6 +355,9 @@ def run_complete_pipeline(form_json: Dict[str, Any], send_webhooks: bool = True)
 
         if webhook_summary:
             response['webhook_summary'] = webhook_summary
+            # Include Dropbox shared link so Node.js SSE can forward it to the frontend
+            if webhook_summary.get('output_url'):
+                response['output_url'] = webhook_summary['output_url']
 
         logger.info(f"Pipeline complete in {execution_time_ms}ms")
         return response
