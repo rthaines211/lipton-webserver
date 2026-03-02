@@ -1211,12 +1211,14 @@ function showDownloadLinks(data) {
     }
 
     // Show DOCX documents link if available
-    if (data && data.outputUrl) {
+    // Check both data.outputUrl and data.result.output_url (Python pipeline returns snake_case nested in result)
+    const docxUrl = data?.outputUrl || data?.result?.output_url || data?.result?.outputUrl;
+    if (docxUrl) {
         if (docxLinkElement && docxLinkContainer) {
-            docxLinkElement.href = data.outputUrl;
+            docxLinkElement.href = docxUrl;
             docxLinkContainer.style.display = 'block';
             hasLinks = true;
-            console.log('📎 Added DOCX documents download link:', data.outputUrl);
+            console.log('📎 Added DOCX documents download link:', docxUrl);
         }
     }
 

@@ -69,6 +69,8 @@ if (DROPBOX_CONFIG.enabled) {
             });
             console.log('✅ Dropbox service initialized (OAuth refresh token)');
             console.log(`   Base path: ${DROPBOX_CONFIG.basePath}`);
+            console.log(`   App key: ${DROPBOX_CONFIG.appKey.substring(0, 4)}...${DROPBOX_CONFIG.appKey.slice(-4)}`);
+            console.log(`   Refresh token length: ${DROPBOX_CONFIG.refreshToken.length} chars`);
             console.log('   🔄 Token auto-refresh enabled (never expires)');
         }
         // Fall back to legacy access token (will expire)
@@ -172,10 +174,12 @@ async function ensureFolderExists(folderPath) {
                 return true;
             } catch (createError) {
                 console.error(`❌ Failed to create Dropbox folder ${folderPath}:`, createError.message);
+                if (createError.error) console.error(`   Dropbox error detail:`, JSON.stringify(createError.error));
                 return false;
             }
         } else {
-            console.error(`❌ Error checking Dropbox folder ${folderPath}:`, error.message);
+            console.error(`❌ Error checking Dropbox folder ${folderPath}: [${error.status}]`, error.message);
+            if (error.error) console.error(`   Dropbox error detail:`, JSON.stringify(error.error));
             return false;
         }
     }
@@ -288,7 +292,8 @@ async function uploadFile(localFilePath, fileContent = null) {
 
     } catch (error) {
         result.error = error.message;
-        console.error(`❌ Dropbox upload failed for ${localFilePath}:`, error.message);
+        console.error(`❌ Dropbox upload failed for ${localFilePath}: [${error.status}]`, error.message);
+        if (error.error) console.error(`   Dropbox error detail:`, JSON.stringify(error.error));
 
         if (!DROPBOX_CONFIG.continueOnFailure) {
             throw error;
