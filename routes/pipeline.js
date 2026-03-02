@@ -204,7 +204,11 @@ router.get('/jobs/:jobId/stream', (req, res) => {
 
             // Log what result contains on completion to diagnose output_url presence
             if (event === 'complete') {
-                console.log(`🔍 SSE complete event for ${jobId} - result.output_url:`, status.result?.output_url, '| result keys:', status.result ? Object.keys(status.result) : 'null');
+                const keys = status.result ? Object.keys(status.result).join(',') : 'null';
+                const outputUrl = status.result?.output_url;
+                const webhookSummary = status.result?.webhook_summary;
+                const wsOutputUrl = webhookSummary?.output_url;
+                console.log(`🔍 SSE complete [${jobId}] result.keys=${keys} output_url=${outputUrl} webhook_summary.output_url=${wsOutputUrl}`);
             }
 
             res.write(`event: ${event}\n`);
