@@ -74,6 +74,7 @@ jobs:
 
       - name: 🚀 Deploy to Cloud Run
         run: |
+          set -euo pipefail
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --source=. \
             --region=${{ env.GCP_REGION }} \
@@ -93,6 +94,7 @@ jobs:
 
       - name: ✅ Verify deployment
         run: |
+          set -euo pipefail
           URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region=${{ env.GCP_REGION }} \
             --project=${{ env.GCP_PROJECT_ID }} \
