@@ -62,14 +62,14 @@ jobs:
       - name: 📋 Load environment configuration
         id: load-config
         run: |
-          ENV_VARS=$(cat config/exhibits-production.env \
-            | grep -v '^#' \
+          set -euo pipefail
+          ENV_VARS=$(grep -v '^#' config/exhibits-production.env \
             | grep -v '^$' \
             | grep -v '^PORT=' \
             | tr '\n' ',' \
             | sed 's/,$//')
           echo "env_vars=$ENV_VARS" >> $GITHUB_OUTPUT
-          VAR_COUNT=$(echo "$ENV_VARS" | tr ',' '\n' | wc -l)
+          VAR_COUNT=$(echo "$ENV_VARS" | tr ',' '\n' | grep -c '.' || true)
           echo "📊 Loaded $VAR_COUNT environment variables"
 
       - name: 🚀 Deploy to Cloud Run
@@ -91,7 +91,7 @@ jobs:
 
           echo "✅ Deployed ${{ env.SERVICE_NAME }}"
 
-      - name: 🔍 Get service URL
+      - name: ✅ Verify deployment
         run: |
           URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region=${{ env.GCP_REGION }} \
@@ -99,15 +99,9 @@ jobs:
             --format='value(status.url)')
           echo "✅ Service URL: $URL"
 
-      - name: ✅ Health check
-        run: |
-          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
-            --region=${{ env.GCP_REGION }} \
-            --project=${{ env.GCP_PROJECT_ID }} \
-            --format='value(status.url)')
           HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL/health" || echo "000")
-          if [ "$HTTP_STATUS" == "200" ]; then
-            echo "✅ Health check passed (HTTP $HTTP_STATUS)"
-          else
-            echo "⚠️  Health check returned HTTP $HTTP_STATUS (service may still be warming up)"
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "❌ Health check failed (HTTP $HTTP_STATUS)"
+            exit 1
           fi
+          echo "✅ Health check passed (HTTP $HTTP_STATUS)"
