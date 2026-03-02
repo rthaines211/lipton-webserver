@@ -11,15 +11,23 @@ const logger = require('../monitoring/logger');
 // Get passwords from environment
 const DOCS_PASSWORD = process.env.DOCS_FORM_PASSWORD || 'lipton-discovery-2026';
 const AGREEMENT_PASSWORD = process.env.AGREEMENT_FORM_PASSWORD || 'lipton-discovery-2026';
+const EXHIBITS_PASSWORD = process.env.EXHIBITS_FORM_PASSWORD || 'lipton-discovery-2026';
+
+const FORM_CONFIG = {
+    docs: { password: DOCS_PASSWORD, name: 'Document Generation Portal' },
+    agreement: { password: AGREEMENT_PASSWORD, name: 'Contingency Agreement Portal' },
+    exhibits: { password: EXHIBITS_PASSWORD, name: 'Exhibit Collector' },
+};
 
 /**
  * Create password authentication middleware for a specific form
- * @param {string} formType - Form type ('docs' or 'agreement')
+ * @param {string} formType - Form type ('docs', 'agreement', or 'exhibits')
  * @returns {Function} Express middleware function
  */
 function createPasswordAuth(formType) {
-    const expectedPassword = formType === 'docs' ? DOCS_PASSWORD : AGREEMENT_PASSWORD;
-    const formName = formType === 'docs' ? 'Document Generation Portal' : 'Contingency Agreement Portal';
+    const config = FORM_CONFIG[formType] || FORM_CONFIG.docs;
+    const expectedPassword = config.password;
+    const formName = config.name;
 
     return (req, res, next) => {
         // Skip auth for static assets (JS, CSS, images)
