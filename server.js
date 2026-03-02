@@ -422,6 +422,8 @@ app.get('/', (req, res) => {
         res.redirect('/forms/agreement/');
     } else if (hostname.includes('docs.liptonlegal.com')) {
         res.redirect('/forms/docs/');
+    } else if (hostname.includes('exhibits.liptonlegal.com')) {
+        res.redirect('/forms/exhibits/');
     } else {
         // Default fallback (for localhost or unknown domains)
         res.redirect('/forms/docs/');
