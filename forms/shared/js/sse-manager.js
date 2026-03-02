@@ -9,6 +9,9 @@ class SSEConnectionManager {
     constructor() {
         // Map to store active connections by job ID
         this.activeConnections = new Map();
+        // Set of job IDs that have reached a terminal state (completed or failed)
+        // Prevents creating new connections for jobs that are already done
+        this.terminalJobIds = new Set();
         console.log('📡 SSE Connection Manager initialized');
     }
 
@@ -19,6 +22,16 @@ class SSEConnectionManager {
      * @returns {JobProgressStream} The SSE stream instance
      */
     getConnection(jobId, sseUrl = '') {
+        // Refuse to create connections for jobs that already reached a terminal state
+        if (this.terminalJobIds.has(jobId)) {
+            console.log(`🚫 Job ${jobId} already completed/failed, not creating new SSE connection`);
+            // Return a no-op stream that won't connect
+            const noopStream = new JobProgressStream(jobId, sseUrl);
+            noopStream.jobCompleted = true;
+            noopStream.isDestroyed = true;
+            return noopStream;
+        }
+
         // Check if we already have an active connection for this job
         if (this.activeConnections.has(jobId)) {
             const existing = this.activeConnections.get(jobId);
@@ -44,6 +57,10 @@ class SSEConnectionManager {
         // Override the close method to clean up our reference
         const originalClose = connection.close.bind(connection);
         connection.close = () => {
+            // Record terminal state before cleanup
+            if (connection.jobCompleted) {
+                this.terminalJobIds.add(jobId);
+            }
             originalClose();
             this.activeConnections.delete(jobId);
             console.log(`🗑️ Removed SSE connection from manager for job: ${jobId}`);
