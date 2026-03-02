@@ -24,7 +24,7 @@ on:
       - 'server.js'
       - 'package*.json'
       - 'Dockerfile'
-      - 'config/exhibits-production.env'
+      - 'config/production.env'
       - '.github/workflows/deploy-exhibit-collector.yml'
 
   workflow_dispatch:
@@ -63,7 +63,7 @@ jobs:
         id: load-config
         run: |
           set -euo pipefail
-          ENV_VARS=$(grep -v '^#' config/exhibits-production.env \
+          ENV_VARS=$(grep -v '^#' config/production.env \
             | grep -v '^$' \
             | grep -v '^PORT=' \
             | tr '\n' ',' \
@@ -81,9 +81,10 @@ jobs:
             --project=${{ env.GCP_PROJECT_ID }} \
             --platform=managed \
             --allow-unauthenticated \
-            --update-secrets="ACCESS_TOKEN=ACCESS_TOKEN:latest" \
+            --update-secrets="DB_PASSWORD=DB_PASSWORD:latest,ACCESS_TOKEN=ACCESS_TOKEN:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DOCMOSIS_ACCESS_KEY=docmosis-key:latest" \
             --set-env-vars="${{ steps.load-config.outputs.env_vars }}" \
             --service-account=${{ env.SERVICE_ACCOUNT }} \
+            --add-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db" \
             --memory=2Gi \
             --cpu=1 \
             --timeout=300 \
