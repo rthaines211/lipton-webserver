@@ -372,7 +372,7 @@ jobs:
             --project=${{ env.GCP_PROJECT_ID }} \
             --platform=managed \
             --allow-unauthenticated \
-            --update-secrets="DB_PASSWORD=DB_PASSWORD_STAGING:latest,ACCESS_TOKEN=ACCESS_TOKEN_STAGING:latest,SENDGRID_API_KEY=sendgrid-api-key-staging:latest,DROPBOX_ACCESS_TOKEN=dropbox-token-staging:latest,DOCMOSIS_ACCESS_KEY=docmosis-key:latest" \
+            --update-secrets="DB_PASSWORD=DB_PASSWORD_STAGING:latest,ACCESS_TOKEN=ACCESS_TOKEN_STAGING:latest,SENDGRID_API_KEY=sendgrid-api-key-staging:latest,DROPBOX_ACCESS_TOKEN=dropbox-token-staging:latest,DROPBOX_APP_KEY=dropbox-app-key:latest,DROPBOX_APP_SECRET=dropbox-app-secret:latest,DROPBOX_REFRESH_TOKEN=dropbox-refresh-token:latest,DOCMOSIS_ACCESS_KEY=docmosis-key:latest" \
             --set-env-vars="${{ steps.load-config.outputs.env_vars }}" \
             --add-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db-staging" \
             --service-account=945419684329-compute@developer.gserviceaccount.com \
@@ -436,7 +436,7 @@ jobs:
             --project=${{ env.GCP_PROJECT_ID }} \
             --platform=managed \
             --allow-unauthenticated \
-            --update-secrets="DB_PASSWORD=DB_PASSWORD:latest,ACCESS_TOKEN=ACCESS_TOKEN:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DOCMOSIS_ACCESS_KEY=docmosis-key:latest" \
+            --update-secrets="DB_PASSWORD=DB_PASSWORD:latest,ACCESS_TOKEN=ACCESS_TOKEN:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DROPBOX_APP_KEY=dropbox-app-key:latest,DROPBOX_APP_SECRET=dropbox-app-secret:latest,DROPBOX_REFRESH_TOKEN=dropbox-refresh-token:latest,DOCMOSIS_ACCESS_KEY=docmosis-key:latest" \
             --set-env-vars="${{ steps.load-config.outputs.env_vars }}" \
             --add-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db" \
             --service-account=945419684329-compute@developer.gserviceaccount.com \
