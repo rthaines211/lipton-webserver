@@ -1236,7 +1236,7 @@ function handleSubmissionError(data) {
     // Update progress message with error
     const messageElement = document.getElementById('submission-progress-message');
     if (messageElement) {
-        messageElement.innerHTML = `<span style="color: #DC2626;">❌ Error: ${data.message || 'Document generation failed'}</span>`;
+        messageElement.innerHTML = `<span style="color: #DC2626;">❌ Error: ${data.error || data.message || 'Document generation failed'}</span>`;
     }
 
     // Update title
