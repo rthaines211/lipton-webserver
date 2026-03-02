@@ -14,8 +14,8 @@ const sharp = require('sharp');
 const logger = require('../monitoring/logger');
 
 const THUMB_SIZE = 64;
-const VISUAL_MATCH_THRESHOLD = 0.85;
-const VISUAL_MAYBE_LOW = 0.60;
+const VISUAL_MATCH_THRESHOLD = 0.95;
+const VISUAL_MAYBE_LOW = 0.80;
 const OCR_MATCH_THRESHOLD = 0.80;
 
 class DuplicateDetector {
@@ -93,10 +93,15 @@ class DuplicateDetector {
         const matches = [];
         const maybePairs = [];
 
+        const IMAGE_TYPES_SET = new Set(['png', 'jpg', 'jpeg', 'tiff', 'heic']);
+
         for (let i = 0; i < files.length; i++) {
             for (let j = i + 1; j < files.length; j++) {
                 const pairKey = `${files[i].name}|${files[j].name}`;
                 if (alreadyMatchedPairs.has(pairKey)) continue;
+
+                // Skip visual comparison if either file is not an image (e.g. PDF)
+                if (!IMAGE_TYPES_SET.has(files[i].type) || !IMAGE_TYPES_SET.has(files[j].type)) continue;
 
                 try {
                     const similarity = await DuplicateDetector.computeVisualSimilarity(

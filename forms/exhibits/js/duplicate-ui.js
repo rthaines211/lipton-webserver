@@ -61,6 +61,13 @@ const DuplicateUI = (() => {
                         ? `Visual Match (${pair.confidence}%)`
                         : `Content Match (${pair.confidence}%)`;
 
+                const getThumb = (name) => {
+                    const ext = name.split('.').pop().toLowerCase();
+                    const isImage = ['png', 'jpg', 'jpeg', 'tiff', 'tif', 'heic'].includes(ext);
+                    const icon = isImage ? 'fa-file-image' : 'fa-file-pdf';
+                    return `<i class="fas ${icon}" style="font-size:1.5rem;color:#999;"></i>`;
+                };
+
                 card.innerHTML = `
                     <div class="duplicate-pair-header">
                         <span>Exhibit ${letter}:</span>
@@ -71,11 +78,11 @@ const DuplicateUI = (() => {
                     </div>
                     <div class="duplicate-pair-files">
                         <div class="duplicate-file-card">
-                            <i class="fas fa-file" style="font-size: 1.5rem; color: #999;"></i>
+                            ${getThumb(pair.file1)}
                             <div class="file-name">${pair.file1}</div>
                         </div>
                         <div class="duplicate-file-card">
-                            <i class="fas fa-file" style="font-size: 1.5rem; color: #999;"></i>
+                            ${getThumb(pair.file2)}
                             <div class="file-name">${pair.file2}</div>
                         </div>
                     </div>

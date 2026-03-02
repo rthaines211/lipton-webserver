@@ -106,7 +106,9 @@ class ExhibitProcessor {
             const pct = 10 + Math.round((i / activeLetters.length) * 20);
             progress(pct, `Scanning Exhibit ${letter} for duplicates...`);
 
+            logger.info(`[exhibit-processor] Starting dup detect Exhibit ${letter} files: ${exhibits[letter].map(f=>f.name+'/'+f.type).join(', ')}`);
             const result = await DuplicateDetector.detectDuplicates(exhibits[letter]);
+            logger.info(`[exhibit-processor] Finished dup detect Exhibit ${letter}, dupes: ${result.duplicates.length}`);
             if (result.duplicates.length > 0) {
                 duplicateReport[letter] = result.duplicates;
                 hasDuplicates = true;
@@ -165,6 +167,7 @@ class ExhibitProcessor {
             const letter = activeLetters[li];
             const files = exhibits[letter];
             const basePct = 30 + Math.round((li / activeLetters.length) * 50);
+            logger.info(`[exhibit-processor] _buildPdf: Processing Exhibit ${letter}, ${files.length} files`);
             progress(basePct, `Processing Exhibit ${letter}...`);
 
             // Add separator page
@@ -178,26 +181,31 @@ class ExhibitProcessor {
             let pageNum = 1;
             for (const file of files) {
                 const ext = file.type.toLowerCase();
-                let fileDoc;
 
+                logger.info(`[exhibit-processor] Processing file: ${file.name} type=${ext}`);
                 if (IMAGE_TYPES.has(ext)) {
-                    const pagePdfBytes = await PdfPageBuilder.imageToPdfPage(file.buffer, ext);
-                    fileDoc = await PDFDocument.load(pagePdfBytes);
-                } else {
-                    fileDoc = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
-                }
-
-                const pageIndices = fileDoc.getPageIndices();
-                const copiedPages = await finalDoc.copyPages(fileDoc, pageIndices);
-
-                for (const page of copiedPages) {
-                    finalDoc.addPage(page);
+                    // Embed image directly into finalDoc to avoid pdf-lib copyPages
+                    // re-serializing large PNG blobs on save (causes hang)
+                    logger.info(`[exhibit-processor] addImagePage start: buffer type=${file.buffer?.constructor?.name} size=${file.buffer?.length}`);
+                    await PdfPageBuilder.addImagePage(finalDoc, file.buffer, ext);
+                    logger.info('[exhibit-processor] addImagePage complete');
                     pageMetadata.push({ type: 'content', letter, pageNum });
                     pageNum++;
+                } else {
+                    const fileDoc = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
+                    const pageIndices = fileDoc.getPageIndices();
+                    logger.info(`[exhibit-processor] Loaded PDF ${file.name}, pages=${fileDoc.getPageCount()}`);
+                    const copiedPages = await finalDoc.copyPages(fileDoc, pageIndices);
+                    for (const page of copiedPages) {
+                        finalDoc.addPage(page);
+                        pageMetadata.push({ type: 'content', letter, pageNum });
+                        pageNum++;
+                    }
                 }
             }
         }
 
+        logger.info('[exhibit-processor] All exhibits processed, starting Bates stamp pass');
         // Second pass: Bates stamps on content pages only
         progress(85, 'Applying Bates stamps...');
         const font = await finalDoc.embedFont(StandardFonts.Helvetica);
@@ -231,11 +239,18 @@ class ExhibitProcessor {
             });
         }
 
-        // Save
+        // Save — run in a child process to avoid blocking the event loop
+        logger.info('[exhibit-processor] Saving final PDF...');
+        const saveStart = Date.now();
         progress(95, 'Saving exhibit package...');
         const filename = ExhibitProcessor.generateOutputFilename(caseName);
         const outputPath = path.join(outputDir, filename);
-        const pdfBytes = await finalDoc.save();
+
+        const pdfBytes = await Promise.race([
+            finalDoc.save(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('pdf-lib save() timed out after 30s')), 30000)),
+        ]);
+        logger.info(`[exhibit-processor] Save complete in ${Date.now()-saveStart}ms, bytes=${pdfBytes.length}`);
         fs.writeFileSync(outputPath, pdfBytes);
 
         progress(100, 'Complete!');

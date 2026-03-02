@@ -358,6 +358,13 @@ const ExhibitManager = (() => {
     }
 
     function clearAll() {
+        // Delete old server session so uploads don't accumulate
+        if (sessionId) {
+            fetch(`/api/exhibits/sessions/${sessionId}`, { method: 'DELETE' }).catch(() => {});
+        }
+        // New session ID for next submission
+        sessionId = crypto.randomUUID();
+
         LETTERS.forEach(letter => {
             exhibits[letter] = [];
         });
