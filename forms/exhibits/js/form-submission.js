@@ -143,7 +143,17 @@ const FormSubmission = (() => {
                 evtSource.close();
 
                 hideProgress();
-                const resolutions = await DuplicateUI.showModal(data.duplicates);
+                console.log('[duplicates] showing modal, report:', JSON.stringify(data.duplicates));
+                let resolutions;
+                try {
+                    resolutions = await DuplicateUI.showModal(data.duplicates);
+                } catch (modalErr) {
+                    console.error('[duplicates] modal error:', modalErr);
+                    alert('Error showing duplicate modal: ' + modalErr.message);
+                    document.getElementById('btn-generate').disabled = false;
+                    return;
+                }
+                console.log('[duplicates] modal resolved, resolutions:', JSON.stringify(resolutions));
 
                 showProgress('Processing Exhibits', 30, 'Resuming after duplicate resolution...');
 
@@ -169,6 +179,10 @@ const FormSubmission = (() => {
                     window.location.href = `/api/exhibits/jobs/${jobId}/download`;
                     hideProgress();
                     document.getElementById('btn-generate').disabled = false;
+                    // Reset form to default state
+                    document.getElementById('case-name').value = '';
+                    document.getElementById('case-description').value = '';
+                    ExhibitManager.clearAll();
                 }, 500);
 
                 resolve();

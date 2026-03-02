@@ -66,16 +66,14 @@ class PdfPageBuilder {
      * @returns {Promise<Uint8Array>} PDF bytes
      */
     static async imageToPdfPage(imageBuffer, format) {
-        const normalizedFormat = format.toLowerCase().replace('jpeg', 'jpg');
-
-        // Convert to PNG for embedding (handles HEIC, TIFF, etc.)
-        let pngBuffer;
-        if (normalizedFormat === 'jpg') {
-            // Keep as JPG for pdf-lib embedJpg
-            pngBuffer = null;
-        } else {
-            pngBuffer = await sharp(imageBuffer).toColorspace('srgb').png().toBuffer();
-        }
+        // Always convert to JPEG for embedding — pdf-lib's pure-JS PNG decoder hangs
+        // on large RGBA images (e.g. retina screenshots). JPEG embedding is fast and
+        // handles all input formats including HEIC, TIFF, and alpha-channel PNGs.
+        const jpgBuffer = await sharp(imageBuffer)
+            .flatten({ background: { r: 255, g: 255, b: 255 } })
+            .toColorspace('srgb')
+            .jpeg({ quality: 92 })
+            .toBuffer();
 
         const doc = await PDFDocument.create();
         const page = doc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
@@ -93,14 +91,44 @@ class PdfPageBuilder {
         const y = (PAGE_HEIGHT - scaledHeight) / 2;
 
         let image;
-        if (pngBuffer) {
-            image = await doc.embedPng(pngBuffer);
-        } else {
-            image = await doc.embedJpg(imageBuffer);
+        {
+            image = await doc.embedJpg(jpgBuffer);
         }
 
         page.drawImage(image, { x, y, width: scaledWidth, height: scaledHeight });
         return doc.save();
+    }
+
+    /**
+     * Embed an image directly into an existing PDFDocument as a new page.
+     * Avoids the intermediate PDF + copyPages path which causes pdf-lib to hang
+     * on save when large PNG blobs are involved.
+     * @param {PDFDocument} doc - The target PDFDocument to add the page to
+     * @param {Buffer} imageBuffer - Raw image data
+     * @param {string} format - Image format: 'png', 'jpg', 'jpeg', 'tiff', 'heic'
+     */
+    static async addImagePage(doc, imageBuffer, format) {
+        const jpgBuffer = await sharp(imageBuffer)
+            .flatten({ background: { r: 255, g: 255, b: 255 } })
+            .toColorspace('srgb')
+            .jpeg({ quality: 92 })
+            .toBuffer();
+
+        const metadata = await sharp(imageBuffer).metadata();
+        const imgWidth = metadata.width;
+        const imgHeight = metadata.height;
+
+        const maxWidth = PAGE_WIDTH - (MARGIN * 2);
+        const maxHeight = PAGE_HEIGHT - (MARGIN * 2);
+        const scale = Math.min(maxWidth / imgWidth, maxHeight / imgHeight, 1);
+        const scaledWidth = imgWidth * scale;
+        const scaledHeight = imgHeight * scale;
+        const x = (PAGE_WIDTH - scaledWidth) / 2;
+        const y = (PAGE_HEIGHT - scaledHeight) / 2;
+
+        const image = await doc.embedJpg(jpgBuffer);
+        const page = doc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+        page.drawImage(image, { x, y, width: scaledWidth, height: scaledHeight });
     }
 
     /**

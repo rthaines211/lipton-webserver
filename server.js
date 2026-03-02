@@ -375,10 +375,12 @@ app.use(express.urlencoded({ extended: true }));
  * Impact: 95% reduction in bandwidth for returning users
  */
 app.use((req, res, next) => {
-    // Cache static assets for 1 year (immutable)
-    if (req.url.match(/\.(js|css|png|jpg|jpeg|svg|woff|woff2|ttf|eot|ico)$/)) {
+    // Cache static assets for 1 year (immutable) — skip /forms/ so dev changes are live
+    if (req.url.match(/\.(js|css|png|jpg|jpeg|svg|woff|woff2|ttf|eot|ico)$/) && !req.url.startsWith('/forms/')) {
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
         res.setHeader('Expires', new Date(Date.now() + 31536000000).toUTCString());
+    } else if (req.url.startsWith('/forms/') && req.url.match(/\.(js|css)$/)) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     }
     // Cache HTML for 5 minutes with revalidation
     else if (req.url.endsWith('.html') || req.url === '/') {

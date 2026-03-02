@@ -60,6 +60,7 @@ function broadcastJobEvent(jobId, event, data) {
     for (const res of job.sseClients) {
         try {
             res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+            if (res.flush) res.flush();
         } catch (e) {
             // Client disconnected
         }
@@ -246,16 +247,22 @@ router.get('/jobs/:jobId/stream', (req, res) => {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
     });
+    res.flushHeaders();
 
     res.write(`event: progress\ndata: ${JSON.stringify({ progress: job.progress, message: job.message })}\n\n`);
+    if (res.flush) res.flush();
 
     if (job.status === 'completed') {
         res.write(`event: complete\ndata: ${JSON.stringify({ filename: job.filename })}\n\n`);
+        if (res.flush) res.flush();
     } else if (job.status === 'awaiting_resolution') {
         res.write(`event: duplicates\ndata: ${JSON.stringify({ duplicates: job.duplicates })}\n\n`);
+        if (res.flush) res.flush();
     } else if (job.status === 'failed') {
         res.write(`event: error\ndata: ${JSON.stringify({ error: job.message })}\n\n`);
+        if (res.flush) res.flush();
     }
 
     job.sseClients.push(res);
