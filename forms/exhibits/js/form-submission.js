@@ -175,8 +175,23 @@ const FormSubmission = (() => {
                 evtSource.close();
                 updateProgress(100, 'Complete! Downloading...');
 
-                setTimeout(() => {
-                    window.location.href = `/api/exhibits/jobs/${jobId}/download`;
+                setTimeout(async () => {
+                    try {
+                        const resp = await fetch(`/api/exhibits/jobs/${jobId}/download`);
+                        if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
+                        const blob = await resp.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = data.filename || 'exhibit-package.pdf';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(url);
+                    } catch (err) {
+                        console.error('Download error:', err);
+                        alert('Failed to download the exhibit package. Please try again.');
+                    }
                     hideProgress();
                     document.getElementById('btn-generate').disabled = false;
                     // Reset form to default state
