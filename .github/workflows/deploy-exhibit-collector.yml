@@ -21,6 +21,7 @@ on:
       - 'services/exhibit-processor.js'
       - 'services/duplicate-detector.js'
       - 'services/pdf-page-builder.js'
+      - 'middleware/**'
       - 'server.js'
       - 'package*.json'
       - 'Dockerfile'
