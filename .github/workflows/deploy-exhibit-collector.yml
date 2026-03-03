@@ -90,7 +90,8 @@ jobs:
             --cpu=1 \
             --timeout=300 \
             --max-instances=5 \
-            --min-instances=0
+            --min-instances=0 \
+            --session-affinity
 
           echo "✅ Deployed ${{ env.SERVICE_NAME }}"
 
