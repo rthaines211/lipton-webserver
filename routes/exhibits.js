@@ -13,6 +13,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const Sentry = require('@sentry/node');
 const ExhibitProcessor = require('../services/exhibit-processor');
 const logger = require('../monitoring/logger');
 const { asyncHandler } = require('../middleware/error-handler');
@@ -95,7 +96,29 @@ router.post('/upload', upload.array('files', 50), asyncHandler(async (req, res) 
             size: file.size,
         });
         uploadedFiles.push({ name: file.originalname, size: file.size, type: ext });
+
+        Sentry.addBreadcrumb({
+            category: 'exhibit.upload',
+            message: `File uploaded to Exhibit ${upperLetter}`,
+            level: 'info',
+            data: {
+                fileName: file.originalname,
+                fileSize: file.size,
+                fileType: ext,
+                exhibit: upperLetter,
+                sessionId,
+            },
+        });
     }
+
+    // Set Sentry context for this upload batch
+    Sentry.setContext('exhibit_upload', {
+        sessionId,
+        exhibit: upperLetter,
+        fileCount: uploadedFiles.length,
+        totalSize: uploadedFiles.reduce((sum, f) => sum + f.size, 0),
+        totalFilesInExhibit: session.exhibits[upperLetter].length,
+    });
 
     logger.info(`Uploaded ${uploadedFiles.length} file(s) to Exhibit ${upperLetter}`, { sessionId });
 
@@ -135,43 +158,96 @@ router.post('/generate', asyncHandler(async (req, res) => {
         sseClients: [],
     });
 
+    // Count exhibits and files for Sentry context
+    const exhibitSummary = {};
+    let totalFiles = 0;
+    for (const [letter, files] of Object.entries(session.exhibits)) {
+        if (files && files.length > 0) {
+            exhibitSummary[letter] = files.length;
+            totalFiles += files.length;
+        }
+    }
+
+    Sentry.addBreadcrumb({
+        category: 'exhibit.generate',
+        message: `Started exhibit generation`,
+        level: 'info',
+        data: { jobId, sessionId, caseName: session.caseName, totalFiles, exhibits: exhibitSummary },
+    });
+
     res.json({ success: true, jobId });
 
-    ExhibitProcessor.process({
-        caseName: session.caseName,
-        exhibits: session.exhibits,
-        outputDir,
-        onProgress: (pct, msg) => {
-            const job = jobs.get(jobId);
-            if (job) {
-                job.progress = pct;
-                job.message = msg;
-                broadcastJobEvent(jobId, 'progress', { progress: pct, message: msg });
-            }
+    Sentry.startSpan(
+        {
+            op: 'exhibit.process',
+            name: `Generate exhibit package: ${session.caseName || 'unnamed'}`,
+            attributes: {
+                'exhibit.job_id': jobId,
+                'exhibit.session_id': sessionId,
+                'exhibit.case_name': session.caseName || '',
+                'exhibit.total_files': totalFiles,
+                'exhibit.exhibit_count': Object.keys(exhibitSummary).length,
+            },
         },
-    }).then(result => {
-        const job = jobs.get(jobId);
-        if (!job) return;
+        async (span) => {
+            try {
+                const result = await ExhibitProcessor.process({
+                    caseName: session.caseName,
+                    exhibits: session.exhibits,
+                    outputDir,
+                    onProgress: (pct, msg) => {
+                        const job = jobs.get(jobId);
+                        if (job) {
+                            job.progress = pct;
+                            job.message = msg;
+                            broadcastJobEvent(jobId, 'progress', { progress: pct, message: msg });
+                        }
+                    },
+                });
 
-        if (result.paused && result.duplicates) {
-            job.status = 'awaiting_resolution';
-            job.duplicates = result.duplicates;
-            broadcastJobEvent(jobId, 'duplicates', { duplicates: result.duplicates });
-        } else {
-            job.status = 'completed';
-            job.outputPath = result.outputPath;
-            job.filename = result.filename;
-            broadcastJobEvent(jobId, 'complete', { filename: result.filename });
+                const job = jobs.get(jobId);
+                if (!job) return;
+
+                if (result.paused && result.duplicates) {
+                    job.status = 'awaiting_resolution';
+                    job.duplicates = result.duplicates;
+                    span.setAttribute('exhibit.outcome', 'duplicates_found');
+                    span.setAttribute('exhibit.duplicate_exhibits', Object.keys(result.duplicates).length);
+                    broadcastJobEvent(jobId, 'duplicates', { duplicates: result.duplicates });
+                } else {
+                    job.status = 'completed';
+                    job.outputPath = result.outputPath;
+                    job.filename = result.filename;
+                    span.setAttribute('exhibit.outcome', 'completed');
+                    span.setAttribute('exhibit.output_filename', result.filename);
+                    broadcastJobEvent(jobId, 'complete', { filename: result.filename });
+                }
+            } catch (err) {
+                logger.error('Exhibit processing failed', { jobId, error: err.message, stack: err.stack });
+                span.setStatus({ code: 2, message: err.message });
+
+                Sentry.withScope(scope => {
+                    scope.setTag('exhibit.job_id', jobId);
+                    scope.setTag('exhibit.stage', 'process');
+                    scope.setContext('exhibit_job', {
+                        jobId,
+                        sessionId,
+                        caseName: session.caseName,
+                        totalFiles,
+                        exhibits: exhibitSummary,
+                    });
+                    Sentry.captureException(err);
+                });
+
+                const job = jobs.get(jobId);
+                if (job) {
+                    job.status = 'failed';
+                    job.message = err.message;
+                    broadcastJobEvent(jobId, 'error', { error: err.message });
+                }
+            }
         }
-    }).catch(err => {
-        logger.error('Exhibit processing failed', { jobId, error: err.message, stack: err.stack });
-        const job = jobs.get(jobId);
-        if (job) {
-            job.status = 'failed';
-            job.message = err.message;
-            broadcastJobEvent(jobId, 'error', { error: err.message });
-        }
-    });
+    );
 }));
 
 // POST /jobs/:jobId/resolve
@@ -211,27 +287,48 @@ router.post('/jobs/:jobId/resolve', asyncHandler(async (req, res) => {
     job.duplicates = null;
     res.json({ success: true, message: 'Resuming pipeline...' });
 
-    const outputDir = path.join(UPLOAD_BASE, job.sessionId);
-    ExhibitProcessor.resume({
-        caseName: session.caseName,
-        exhibits: session.exhibits,
-        outputDir,
-        onProgress: (pct, msg) => {
-            job.progress = pct;
-            job.message = msg;
-            broadcastJobEvent(jobId, 'progress', { progress: pct, message: msg });
-        },
-    }).then(result => {
-        job.status = 'completed';
-        job.outputPath = result.outputPath;
-        job.filename = result.filename;
-        broadcastJobEvent(jobId, 'complete', { filename: result.filename });
-    }).catch(err => {
-        logger.error('Exhibit resume failed', { jobId, error: err.message });
-        job.status = 'failed';
-        job.message = err.message;
-        broadcastJobEvent(jobId, 'error', { error: err.message });
+    Sentry.addBreadcrumb({
+        category: 'exhibit.resolve',
+        message: 'Resuming after duplicate resolution',
+        level: 'info',
+        data: { jobId, sessionId: job.sessionId },
     });
+
+    const outputDir = path.join(UPLOAD_BASE, job.sessionId);
+    Sentry.startSpan(
+        {
+            op: 'exhibit.resume',
+            name: `Resume exhibit package: ${session.caseName || 'unnamed'}`,
+            attributes: { 'exhibit.job_id': jobId },
+        },
+        async (span) => {
+            try {
+                const result = await ExhibitProcessor.resume({
+                    caseName: session.caseName,
+                    exhibits: session.exhibits,
+                    outputDir,
+                    onProgress: (pct, msg) => {
+                        job.progress = pct;
+                        job.message = msg;
+                        broadcastJobEvent(jobId, 'progress', { progress: pct, message: msg });
+                    },
+                });
+
+                job.status = 'completed';
+                job.outputPath = result.outputPath;
+                job.filename = result.filename;
+                span.setAttribute('exhibit.outcome', 'completed');
+                broadcastJobEvent(jobId, 'complete', { filename: result.filename });
+            } catch (err) {
+                logger.error('Exhibit resume failed', { jobId, error: err.message });
+                span.setStatus({ code: 2, message: err.message });
+                Sentry.captureException(err);
+                job.status = 'failed';
+                job.message = err.message;
+                broadcastJobEvent(jobId, 'error', { error: err.message });
+            }
+        }
+    );
 }));
 
 // GET /jobs/:jobId/stream (SSE)

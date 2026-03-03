@@ -27,6 +27,6 @@ COPY . .
 EXPOSE 8080
 
 # Start Node.js application
+# --require @sentry/node/preload enables auto-instrumentation for Express, HTTP, etc.
 # Using server.js as main entry point (monolithic server with email feature)
-# Note: server/index.js refactoring is incomplete - requires form-routes.js
-CMD ["node", "server.js"]
+CMD ["node", "--require", "@sentry/node/preload", "server.js"]

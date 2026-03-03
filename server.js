@@ -40,6 +40,9 @@
  * - Added automatic array deduplication to prevent duplicate values when multiple checkboxes map to the same consolidated value
  */
 
+// Sentry MUST be initialized before all other imports
+const Sentry = require('./monitoring/instrument');
+
 // Load environment variables from .env file
 require('dotenv').config();
 
@@ -753,6 +756,10 @@ app.use('*', (req, res) => {
         path: req.originalUrl
     });
 });
+
+// Sentry error handler — must be before other error middleware
+// Captures unhandled errors and sends them to Sentry
+Sentry.setupExpressErrorHandler(app);
 
 // Error logging middleware (logs errors before handling)
 app.use(errorLoggingMiddleware);

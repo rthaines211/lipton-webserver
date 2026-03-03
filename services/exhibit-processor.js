@@ -15,6 +15,7 @@
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 const path = require('path');
 const fs = require('fs');
+const Sentry = require('@sentry/node');
 const PdfPageBuilder = require('./pdf-page-builder');
 const DuplicateDetector = require('./duplicate-detector');
 const logger = require('../monitoring/logger');
@@ -101,19 +102,28 @@ class ExhibitProcessor {
         const duplicateReport = {};
         let hasDuplicates = false;
 
-        for (let i = 0; i < activeLetters.length; i++) {
-            const letter = activeLetters[i];
-            const pct = 10 + Math.round((i / activeLetters.length) * 20);
-            progress(pct, `Scanning Exhibit ${letter} for duplicates...`);
+        await Sentry.startSpan({ op: 'exhibit.duplicate_detection', name: 'Duplicate detection' }, async () => {
+            for (let i = 0; i < activeLetters.length; i++) {
+                const letter = activeLetters[i];
+                const pct = 10 + Math.round((i / activeLetters.length) * 20);
+                progress(pct, `Scanning Exhibit ${letter} for duplicates...`);
 
-            logger.info(`[exhibit-processor] Starting dup detect Exhibit ${letter} files: ${exhibits[letter].map(f=>f.name+'/'+f.type).join(', ')}`);
-            const result = await DuplicateDetector.detectDuplicates(exhibits[letter]);
-            logger.info(`[exhibit-processor] Finished dup detect Exhibit ${letter}, dupes: ${result.duplicates.length}`);
-            if (result.duplicates.length > 0) {
-                duplicateReport[letter] = result.duplicates;
-                hasDuplicates = true;
+                logger.info(`[exhibit-processor] Starting dup detect Exhibit ${letter} files: ${exhibits[letter].map(f=>f.name+'/'+f.type).join(', ')}`);
+                const result = await DuplicateDetector.detectDuplicates(exhibits[letter]);
+                logger.info(`[exhibit-processor] Finished dup detect Exhibit ${letter}, dupes: ${result.duplicates.length}`);
+                if (result.duplicates.length > 0) {
+                    duplicateReport[letter] = result.duplicates;
+                    hasDuplicates = true;
+
+                    Sentry.addBreadcrumb({
+                        category: 'exhibit.duplicates',
+                        message: `Duplicates found in Exhibit ${letter}`,
+                        level: 'warning',
+                        data: { exhibit: letter, count: result.duplicates.length },
+                    });
+                }
             }
-        }
+        });
 
         if (hasDuplicates) {
             return { duplicates: duplicateReport, paused: true };
@@ -163,47 +173,50 @@ class ExhibitProcessor {
         // Each entry: { type: 'separator' | 'content', letter, pageNum }
         const pageMetadata = [];
 
-        for (let li = 0; li < activeLetters.length; li++) {
-            const letter = activeLetters[li];
-            const files = exhibits[letter];
-            const basePct = 30 + Math.round((li / activeLetters.length) * 50);
-            logger.info(`[exhibit-processor] _buildPdf: Processing Exhibit ${letter}, ${files.length} files`);
-            progress(basePct, `Processing Exhibit ${letter}...`);
+        await Sentry.startSpan({ op: 'exhibit.pdf_assembly', name: 'PDF assembly' }, async (assemblySpan) => {
+            for (let li = 0; li < activeLetters.length; li++) {
+                const letter = activeLetters[li];
+                const files = exhibits[letter];
+                const basePct = 30 + Math.round((li / activeLetters.length) * 50);
+                logger.info(`[exhibit-processor] _buildPdf: Processing Exhibit ${letter}, ${files.length} files`);
+                progress(basePct, `Processing Exhibit ${letter}...`);
 
-            // Add separator page
-            const separatorBytes = await PdfPageBuilder.createSeparatorPage(letter);
-            const separatorDoc = await PDFDocument.load(separatorBytes);
-            const [separatorPage] = await finalDoc.copyPages(separatorDoc, [0]);
-            finalDoc.addPage(separatorPage);
-            pageMetadata.push({ type: 'separator' });
+                // Add separator page
+                const separatorBytes = await PdfPageBuilder.createSeparatorPage(letter);
+                const separatorDoc = await PDFDocument.load(separatorBytes);
+                const [separatorPage] = await finalDoc.copyPages(separatorDoc, [0]);
+                finalDoc.addPage(separatorPage);
+                pageMetadata.push({ type: 'separator' });
 
-            // Process each file
-            let pageNum = 1;
-            for (const file of files) {
-                const ext = file.type.toLowerCase();
+                // Process each file
+                let pageNum = 1;
+                for (const file of files) {
+                    const ext = file.type.toLowerCase();
 
-                logger.info(`[exhibit-processor] Processing file: ${file.name} type=${ext}`);
-                if (IMAGE_TYPES.has(ext)) {
-                    // Embed image directly into finalDoc to avoid pdf-lib copyPages
-                    // re-serializing large PNG blobs on save (causes hang)
-                    logger.info(`[exhibit-processor] addImagePage start: buffer type=${file.buffer?.constructor?.name} size=${file.buffer?.length}`);
-                    await PdfPageBuilder.addImagePage(finalDoc, file.buffer, ext);
-                    logger.info('[exhibit-processor] addImagePage complete');
-                    pageMetadata.push({ type: 'content', letter, pageNum });
-                    pageNum++;
-                } else {
-                    const fileDoc = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
-                    const pageIndices = fileDoc.getPageIndices();
-                    logger.info(`[exhibit-processor] Loaded PDF ${file.name}, pages=${fileDoc.getPageCount()}`);
-                    const copiedPages = await finalDoc.copyPages(fileDoc, pageIndices);
-                    for (const page of copiedPages) {
-                        finalDoc.addPage(page);
+                    logger.info(`[exhibit-processor] Processing file: ${file.name} type=${ext}`);
+                    if (IMAGE_TYPES.has(ext)) {
+                        logger.info(`[exhibit-processor] addImagePage start: buffer type=${file.buffer?.constructor?.name} size=${file.buffer?.length}`);
+                        await PdfPageBuilder.addImagePage(finalDoc, file.buffer, ext);
+                        logger.info('[exhibit-processor] addImagePage complete');
                         pageMetadata.push({ type: 'content', letter, pageNum });
                         pageNum++;
+                    } else {
+                        const fileDoc = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
+                        const pageIndices = fileDoc.getPageIndices();
+                        logger.info(`[exhibit-processor] Loaded PDF ${file.name}, pages=${fileDoc.getPageCount()}`);
+                        const copiedPages = await finalDoc.copyPages(fileDoc, pageIndices);
+                        for (const page of copiedPages) {
+                            finalDoc.addPage(page);
+                            pageMetadata.push({ type: 'content', letter, pageNum });
+                            pageNum++;
+                        }
                     }
                 }
             }
-        }
+
+            assemblySpan.setAttribute('exhibit.total_pages', pageMetadata.length);
+            assemblySpan.setAttribute('exhibit.content_pages', pageMetadata.filter(m => m.type === 'content').length);
+        });
 
         logger.info('[exhibit-processor] All exhibits processed, starting Bates stamp pass');
         // Second pass: Bates stamps on content pages only
@@ -246,12 +259,33 @@ class ExhibitProcessor {
         const filename = ExhibitProcessor.generateOutputFilename(caseName);
         const outputPath = path.join(outputDir, filename);
 
-        const pdfBytes = await Promise.race([
-            finalDoc.save(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('pdf-lib save() timed out after 30s')), 30000)),
-        ]);
-        logger.info(`[exhibit-processor] Save complete in ${Date.now()-saveStart}ms, bytes=${pdfBytes.length}`);
-        fs.writeFileSync(outputPath, pdfBytes);
+        const pdfBytes = await Sentry.startSpan(
+            { op: 'exhibit.pdf_save', name: 'PDF save to disk' },
+            async (saveSpan) => {
+                const bytes = await Promise.race([
+                    finalDoc.save(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('pdf-lib save() timed out after 30s')), 30000)),
+                ]);
+                const saveDuration = Date.now() - saveStart;
+                logger.info(`[exhibit-processor] Save complete in ${saveDuration}ms, bytes=${bytes.length}`);
+                saveSpan.setAttribute('exhibit.pdf_size_bytes', bytes.length);
+                saveSpan.setAttribute('exhibit.save_duration_ms', saveDuration);
+                fs.writeFileSync(outputPath, bytes);
+                return bytes;
+            }
+        );
+
+        Sentry.addBreadcrumb({
+            category: 'exhibit.complete',
+            message: `Exhibit package saved: ${filename}`,
+            level: 'info',
+            data: {
+                filename,
+                sizeBytes: pdfBytes.length,
+                saveDurationMs: Date.now() - saveStart,
+                totalPages: pageMetadata.length,
+            },
+        });
 
         progress(100, 'Complete!');
         return { outputPath, filename };

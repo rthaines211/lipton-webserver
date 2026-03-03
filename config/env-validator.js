@@ -118,6 +118,12 @@ const ENV_VARS = {
             example: '[secret]',
             sensitive: true,
             default: 'Built-in default'
+        },
+        'SENTRY_DSN': {
+            description: 'Sentry DSN for error tracking and performance monitoring',
+            example: 'https://xxxxx@o12345.ingest.sentry.io/12345',
+            sensitive: true,
+            default: 'Disabled if not set'
         }
     }
 };

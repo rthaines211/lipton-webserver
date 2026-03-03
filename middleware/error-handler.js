@@ -8,6 +8,7 @@
  */
 
 const logger = require('../monitoring/logger');
+const Sentry = require('@sentry/node');
 
 /**
  * Error types and their HTTP status codes
@@ -92,6 +93,17 @@ function errorHandler(err, req, res, next) {
 
     if (statusCode >= 500) {
         logger.error('Server error', logData);
+        // Ensure server errors reach Sentry with request context
+        Sentry.withScope(scope => {
+            scope.setTag('error.code', err.code || 'INTERNAL_ERROR');
+            scope.setTag('http.status_code', statusCode);
+            scope.setContext('request', {
+                method: req.method,
+                path: req.path,
+                query: req.query,
+            });
+            Sentry.captureException(err);
+        });
     } else if (statusCode >= 400) {
         logger.warn('Client error', logData);
     }

@@ -22,6 +22,7 @@ on:
       - 'services/duplicate-detector.js'
       - 'services/pdf-page-builder.js'
       - 'middleware/**'
+      - 'monitoring/instrument.js'
       - 'server.js'
       - 'package*.json'
       - 'Dockerfile'
@@ -82,7 +83,7 @@ jobs:
             --project=${{ env.GCP_PROJECT_ID }} \
             --platform=managed \
             --allow-unauthenticated \
-            --update-secrets="DB_PASSWORD=DB_PASSWORD:latest,ACCESS_TOKEN=ACCESS_TOKEN:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DOCMOSIS_ACCESS_KEY=docmosis-key:latest" \
+            --update-secrets="DB_PASSWORD=DB_PASSWORD:latest,ACCESS_TOKEN=ACCESS_TOKEN:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DOCMOSIS_ACCESS_KEY=docmosis-key:latest,SENTRY_DSN=SENTRY_DSN:latest" \
             --set-env-vars="${{ steps.load-config.outputs.env_vars }}" \
             --service-account=${{ env.SERVICE_ACCOUNT }} \
             --add-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db" \
