@@ -119,6 +119,12 @@ const ENV_VARS = {
             sensitive: true,
             default: 'Built-in default'
         },
+        'COMPLAINT_FORM_PASSWORD': {
+            description: 'Password for complaint creator form access',
+            example: '[secret]',
+            sensitive: true,
+            default: 'Built-in default'
+        },
         'SENTRY_DSN': {
             description: 'Sentry DSN for error tracking and performance monitoring',
             example: 'https://xxxxx@o12345.ingest.sentry.io/12345',
