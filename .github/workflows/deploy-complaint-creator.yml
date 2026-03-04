@@ -1,0 +1,111 @@
+# =============================================================================
+# Deploy Complaint Creator — Cloud Run
+# =============================================================================
+#
+# Deploys the complaint-creator service to Cloud Run on push to main
+# for complaint-relevant paths, or on manual dispatch.
+#
+# Service: complaint-creator
+# Domain:  complaints.liptonlegal.com (mapped separately after first deploy)
+# =============================================================================
+
+name: Deploy Complaint Creator
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'forms/complaint/**'
+      - 'routes/complaint.js'
+      - 'services/complaint-document-generator.js'
+      - 'middleware/**'
+      - 'monitoring/instrument.js'
+      - 'server.js'
+      - 'package*.json'
+      - 'Dockerfile'
+      - 'config/production.env'
+      - '.github/workflows/deploy-complaint-creator.yml'
+
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-complaint-creator
+  cancel-in-progress: true
+
+env:
+  GCP_PROJECT_ID: docmosis-tornado
+  GCP_REGION: us-central1
+  SERVICE_NAME: complaint-creator
+  SERVICE_ACCOUNT: 945419684329-compute@developer.gserviceaccount.com
+
+jobs:
+  deploy:
+    name: Deploy Complaint Creator
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://complaints.liptonlegal.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Load environment configuration
+        id: load-config
+        run: |
+          set -euo pipefail
+          ENV_VARS=$(grep -v '^#' config/production.env \
+            | grep -v '^$' \
+            | grep -v '^PORT=' \
+            | tr '\n' ',' \
+            | sed 's/,$//')
+          echo "env_vars=$ENV_VARS" >> $GITHUB_OUTPUT
+          VAR_COUNT=$(echo "$ENV_VARS" | tr ',' '\n' | grep -c '.' || true)
+          echo "Loaded $VAR_COUNT environment variables"
+
+      - name: Deploy to Cloud Run
+        run: |
+          set -euo pipefail
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --source=. \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --update-secrets="DB_PASSWORD=DB_PASSWORD:latest,ACCESS_TOKEN=ACCESS_TOKEN:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DOCMOSIS_ACCESS_KEY=docmosis-key:latest,SENTRY_DSN=SENTRY_DSN:latest" \
+            --set-env-vars="${{ steps.load-config.outputs.env_vars }}" \
+            --service-account=${{ env.SERVICE_ACCOUNT }} \
+            --add-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db" \
+            --memory=1Gi \
+            --cpu=1 \
+            --timeout=300 \
+            --max-instances=5 \
+            --min-instances=0 \
+            --session-affinity
+
+          echo "Deployed ${{ env.SERVICE_NAME }}"
+
+      - name: Verify deployment
+        run: |
+          set -euo pipefail
+          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --format='value(status.url)')
+          echo "Service URL: $URL"
+
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL/health" || echo "000")
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "Health check failed (HTTP $HTTP_STATUS)"
+            exit 1
+          fi
+          echo "Health check passed (HTTP $HTTP_STATUS)"
