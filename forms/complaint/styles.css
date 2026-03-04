@@ -1,0 +1,442 @@
+/**
+ * Legal Complaint Generator Styles
+ * Lipton Legal - Professional Legal Services
+ */
+
+:root {
+    --primary-navy: #1F2A44;
+    --secondary-teal: #00AEEF;
+    --neutral-gray: #F5F5F5;
+    --text-dark: #333333;
+    --white: #FFFFFF;
+    --border-color: #E0E0E0;
+    --error-color: #dc3545;
+    --success-color: #28a745;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Open Sans', sans-serif;
+    line-height: 1.6;
+    color: var(--text-dark);
+    background: var(--neutral-gray);
+    padding: 20px;
+}
+
+/* Container */
+.form-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Header */
+.form-header {
+    background: linear-gradient(135deg, var(--primary-navy) 0%, #2A3F5F 100%);
+    color: white;
+    padding: 30px 40px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.form-header .logo {
+    height: 70px;
+    width: auto;
+    filter: brightness(0) invert(1);
+}
+
+.form-header .header-text {
+    text-align: left;
+}
+
+.form-header h1 {
+    font-family: 'Merriweather', serif;
+    font-size: 1.8rem;
+    margin: 0;
+    font-weight: 700;
+}
+
+.form-header .subtitle {
+    margin: 4px 0 0 0;
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+/* Form Sections */
+.form-section {
+    padding: 30px 40px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.form-section:last-child {
+    border-bottom: none;
+}
+
+.form-section h2 {
+    font-family: 'Merriweather', serif;
+    color: var(--primary-navy);
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-section h2 i {
+    color: var(--secondary-teal);
+}
+
+.section-description {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+}
+
+.section-note {
+    color: #888;
+    font-size: 0.85rem;
+    margin-top: 15px;
+    font-style: italic;
+}
+
+.section-note i {
+    color: var(--secondary-teal);
+    margin-right: 4px;
+}
+
+/* Form Groups & Rows */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text-dark);
+    font-size: 0.9rem;
+}
+
+.required {
+    color: var(--error-color);
+}
+
+.form-row {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+.form-row.two-col {
+    grid-template-columns: 1fr 1fr;
+}
+
+.form-row.three-col {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* Inputs */
+input[type="text"],
+input[type="date"],
+select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-family: 'Open Sans', sans-serif;
+    transition: border-color 0.2s;
+    background: var(--white);
+}
+
+input[type="text"]:focus,
+input[type="date"]:focus,
+select:focus {
+    outline: none;
+    border-color: var(--secondary-teal);
+    box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+}
+
+input::placeholder {
+    color: #aaa;
+}
+
+/* Party Blocks */
+.party-block {
+    background: #FAFAFA;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+    position: relative;
+}
+
+.party-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.party-header h3 {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary-navy);
+    margin: 0;
+}
+
+.btn-remove {
+    background: none;
+    border: 1px solid var(--error-color);
+    color: var(--error-color);
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+}
+
+.btn-remove:hover {
+    background: var(--error-color);
+    color: white;
+}
+
+/* Add Button */
+.btn-add {
+    background: none;
+    border: 2px dashed var(--secondary-teal);
+    color: var(--secondary-teal);
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    width: 100%;
+    transition: all 0.2s;
+    margin-top: 8px;
+}
+
+.btn-add:hover {
+    background: rgba(0, 174, 239, 0.05);
+    border-color: #0098D4;
+}
+
+.btn-add i {
+    margin-right: 6px;
+}
+
+/* Causes of Action */
+.cause-option {
+    background: #FAFAFA;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.cause-option:hover {
+    border-color: var(--secondary-teal);
+}
+
+.cause-option.selected {
+    border-color: var(--secondary-teal);
+    background: rgba(0, 174, 239, 0.03);
+}
+
+.cause-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--primary-navy);
+    font-size: 0.95rem;
+}
+
+.cause-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--secondary-teal);
+    cursor: pointer;
+}
+
+.cause-name {
+    flex: 1;
+}
+
+.cause-preview {
+    margin-top: 8px;
+    padding-left: 28px;
+    color: #888;
+    font-size: 0.85rem;
+    font-style: italic;
+    line-height: 1.5;
+}
+
+/* Submit Button */
+.submit-section {
+    text-align: center;
+    padding: 30px 40px;
+}
+
+.btn-submit {
+    background: linear-gradient(135deg, var(--secondary-teal) 0%, #0098D4 100%);
+    color: white;
+    border: none;
+    padding: 14px 48px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.2s;
+}
+
+.btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 174, 239, 0.3);
+}
+
+.btn-submit:active {
+    transform: translateY(0);
+}
+
+.btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-submit i {
+    margin-right: 8px;
+}
+
+/* Progress Overlay */
+.progress-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(31, 42, 68, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+.progress-content {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.progress-content h2 {
+    font-family: 'Merriweather', serif;
+    color: var(--primary-navy);
+    font-size: 1.3rem;
+    margin: 20px 0 10px;
+}
+
+.progress-content p {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.progress-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--secondary-teal);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: var(--neutral-gray);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--secondary-teal), #0098D4);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-percent {
+    font-weight: 600;
+    color: var(--secondary-teal);
+    font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .form-header {
+        flex-direction: column;
+        text-align: center;
+        padding: 24px;
+    }
+
+    .form-header .logo {
+        height: 50px;
+    }
+
+    .form-header h1 {
+        font-size: 1.4rem;
+    }
+
+    .form-section {
+        padding: 20px;
+    }
+
+    .form-row.two-col,
+    .form-row.three-col {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-submit {
+        width: 100%;
+    }
+
+    .progress-content {
+        padding: 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-header h1 {
+        font-size: 1.2rem;
+    }
+
+    .party-block {
+        padding: 14px;
+    }
+}
