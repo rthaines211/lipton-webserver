@@ -12,11 +12,13 @@ const logger = require('../monitoring/logger');
 const DOCS_PASSWORD = process.env.DOCS_FORM_PASSWORD || 'lipton-discovery-2026';
 const AGREEMENT_PASSWORD = process.env.AGREEMENT_FORM_PASSWORD || 'lipton-discovery-2026';
 const EXHIBITS_PASSWORD = process.env.EXHIBITS_FORM_PASSWORD || 'lipton-discovery-2026';
+const COMPLAINT_PASSWORD = process.env.COMPLAINT_FORM_PASSWORD || 'lipton-discovery-2026';
 
 const FORM_CONFIG = {
     docs: { password: DOCS_PASSWORD, name: 'Document Generation Portal' },
     agreement: { password: AGREEMENT_PASSWORD, name: 'Contingency Agreement Portal' },
     exhibits: { password: EXHIBITS_PASSWORD, name: 'Exhibit Collector' },
+    complaint: { password: COMPLAINT_PASSWORD, name: 'Legal Complaint Generator' },
 };
 
 /**

@@ -56,7 +56,8 @@ function requireAuth(req, res, next) {
         req.path.startsWith('/api/pipeline-') ||
         req.path.startsWith('/api/jobs/') ||
         req.path.startsWith('/api/regenerate-documents/') ||
-        req.path.startsWith('/api/exhibits')) {
+        req.path.startsWith('/api/exhibits') ||
+        req.path.startsWith('/api/complaint-entries')) {
         return next();
     }
 

@@ -54,6 +54,20 @@ function restrictFormAccess(req, res, next) {
         });
     }
 
+    // Check if complaints domain is trying to access other forms
+    if (hostname.includes('complaints.liptonlegal.com') && !path.startsWith('/forms/complaint')) {
+        logger.warn('Domain restriction: complaints domain attempted to access other form', {
+            forwardedHost,
+            hostname,
+            path,
+            ip: req.ip
+        });
+        return res.status(403).json({
+            error: 'Access Denied',
+            message: 'This form is not available on this domain. Please visit complaints.liptonlegal.com'
+        });
+    }
+
     // Allow access
     next();
 }

@@ -96,6 +96,7 @@ const formRoutes = require('./routes/forms');
 const contingencyRoutes = require('./routes/contingency');
 const pipelineRoutes = require('./routes/pipeline');
 const metricsRoutes = require('./routes/metrics');
+const complaintRoutes = require('./routes/complaint');
 
 // Services
 const FormTransformer = require('./services/form-transformer');
@@ -427,6 +428,8 @@ app.get('/', (req, res) => {
         res.redirect('/forms/docs/');
     } else if (hostname.includes('exhibits.liptonlegal.com')) {
         res.redirect('/forms/exhibits/');
+    } else if (hostname.includes('complaints.liptonlegal.com')) {
+        res.redirect('/forms/complaint/');
     } else {
         // Default fallback (for localhost or unknown domains)
         res.redirect('/forms/docs/');
@@ -449,6 +452,9 @@ app.use('/forms/agreement', createPasswordAuth('agreement'));
 
 // Password-protect exhibit collector form
 app.use('/forms/exhibits', createPasswordAuth('exhibits'));
+
+// Password-protect complaint creator form
+app.use('/forms/complaint', createPasswordAuth('complaint'));
 
 // Serve static files from forms directory structure (after password auth)
 app.use('/forms', express.static(path.join(__dirname, 'forms')));
@@ -477,6 +483,9 @@ app.use('/api', contingencyRoutes);
 // Exhibit collector routes
 const exhibitRoutes = require('./routes/exhibits');
 app.use('/api/exhibits', exhibitRoutes);
+
+// Complaint creator routes
+app.use('/api', complaintRoutes);
 
 // Initialize and mount pipeline routes with helper function injection
 // Week 2 Day 3: Pipeline now uses pipelineService directly (imported in routes file)
@@ -737,6 +746,7 @@ async function saveToDatabase(structuredData, rawPayload, documentTypes = ['srog
 // Logout routes
 app.get('/forms/docs/logout', createLogoutHandler('docs'));
 app.get('/forms/agreement/logout', createLogoutHandler('agreement'));
+app.get('/forms/complaint/logout', createLogoutHandler('complaint'));
 
 // Review page route
 app.get('/review.html', (req, res) => {
