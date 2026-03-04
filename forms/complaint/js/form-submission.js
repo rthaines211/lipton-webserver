@@ -92,9 +92,9 @@
             if (type) data[`defendant-${num}-type`] = type.value;
         });
 
-        // Causes of action (checked checkboxes)
+        // Causes of action from all sections (general + special + city)
         const causes = [];
-        document.querySelectorAll('#causes-container input[type="checkbox"]:checked').forEach(cb => {
+        document.querySelectorAll('#page-2 .cause-option input[type="checkbox"]:checked').forEach(cb => {
             causes.push(cb.value);
         });
         data.causesOfAction = causes;
