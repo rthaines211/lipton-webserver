@@ -46,5 +46,29 @@
 
 ---
 
+## Migration 004: Create Complaint Entries Tables
+- **File:** `004_create_complaint_entries_table.sql`
+- **Date Created:** 2026-03-04
+- **Status:** Pending (not yet run)
+
+### What Will Be Created
+**Tables (3 total):**
+1. `complaint_entries` - Main table for legal complaint form submissions
+2. `complaint_plaintiffs` - Plaintiff information for legal complaints
+3. `complaint_defendants` - Defendant information for legal complaints
+
+**Indexes (5 total):**
+- `idx_complaint_entries_case_id` - case_id lookup on complaint_entries
+- `idx_complaint_entries_submitted_at` - submitted_at ordering on complaint_entries
+- `idx_complaint_entries_status` - document_status filtering on complaint_entries
+- `idx_complaint_plaintiffs_case_id` - case_id lookup on complaint_plaintiffs
+- `idx_complaint_defendants_case_id` - case_id lookup on complaint_defendants
+
+| Migration | Date | Description | Tables |
+|-----------|------|-------------|--------|
+| 004 | 2026-03-04 | Create complaint entries tables | complaint_entries, complaint_plaintiffs, complaint_defendants |
+
+---
+
 ## Future Migrations
 (Migrations will be logged here as they are run)
