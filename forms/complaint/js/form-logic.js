@@ -12,11 +12,58 @@
         document.getElementById('add-plaintiff-btn').addEventListener('click', addPlaintiff);
         document.getElementById('add-defendant-btn').addEventListener('click', addDefendant);
 
+        // City dropdown controls which causes of action are visible
+        const citySelect = document.getElementById('city');
+        if (citySelect) {
+            citySelect.addEventListener('change', filterCausesByCity);
+        }
+
         // Toggle cause-option selected class
         document.querySelectorAll('.cause-option input[type="checkbox"]').forEach(cb => {
             cb.addEventListener('change', function() {
                 this.closest('.cause-option').classList.toggle('selected', this.checked);
             });
+        });
+    }
+
+    /**
+     * Show/hide causes of action based on selected city.
+     * Each .cause-option has a data-cities attribute:
+     *   "all"              → always visible
+     *   "Los Angeles"      → only when LA selected
+     *   "Los Angeles,Santa Monica" → visible for either
+     */
+    function filterCausesByCity() {
+        const city = document.getElementById('city').value;
+        const hint = document.getElementById('causes-city-hint');
+        const cityName = document.getElementById('causes-city-name');
+
+        if (city) {
+            hint.style.display = 'block';
+            cityName.textContent = city;
+        } else {
+            hint.style.display = 'none';
+        }
+
+        document.querySelectorAll('#causes-container .cause-option').forEach(option => {
+            const allowedCities = option.dataset.cities || 'all';
+
+            if (allowedCities === 'all' || !city) {
+                option.style.display = '';
+            } else {
+                const cityList = allowedCities.split(',').map(c => c.trim());
+                const visible = cityList.includes(city) || city === 'Other';
+                option.style.display = visible ? '' : 'none';
+
+                // Uncheck hidden causes
+                if (!visible) {
+                    const cb = option.querySelector('input[type="checkbox"]');
+                    if (cb) {
+                        cb.checked = false;
+                        option.classList.remove('selected');
+                    }
+                }
+            }
         });
     }
 

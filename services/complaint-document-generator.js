@@ -75,6 +75,7 @@ class ComplaintDocumentGenerator {
             'Case Name': caseInfo.caseName || '',
             'Case Number': caseInfo.caseNumber || '',
             'Filing Date': caseInfo.filingDate || '',
+            'City': caseInfo.city || '',
             'County': caseInfo.county || '',
             'Plaintiff Names': plaintiffNames,
             'Defendant Names': defendantNames,
@@ -122,6 +123,7 @@ class ComplaintDocumentGenerator {
             caseName: formData['case-name'] || formData.caseName || '',
             caseNumber: formData['case-number'] || formData.caseNumber || '',
             filingDate: formData['filing-date'] || formData.filingDate || '',
+            city: formData['city'] || '',
             county: formData['county'] || '',
         };
 

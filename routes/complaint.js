@@ -101,14 +101,15 @@ router.post('/complaint-entries', async (req, res) => {
         await client.query(`
             INSERT INTO complaint_entries (
                 case_id, case_name, case_number, filing_date,
-                county, causes_of_action, form_data
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                city, county, causes_of_action, form_data
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING id, case_id
         `, [
             caseId,
             formData['case-name'] || formData.caseName || null,
             formData['case-number'] || formData.caseNumber || null,
             formData['filing-date'] || formData.filingDate || null,
+            formData['city'] || null,
             formData['county'] || null,
             JSON.stringify(formData.causesOfAction || formData['causes-of-action'] || []),
             JSON.stringify(formData),

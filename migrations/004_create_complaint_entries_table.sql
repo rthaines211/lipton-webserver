@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS complaint_entries (
   filing_date DATE,
 
   -- Jurisdiction & Venue
+  city VARCHAR(255),
   county VARCHAR(255),
 
   -- Causes of Action (selected checkbox keys)

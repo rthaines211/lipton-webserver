@@ -59,6 +59,7 @@
         data['case-name'] = document.getElementById('case-name').value;
         data['case-number'] = document.getElementById('case-number').value;
         data['filing-date'] = document.getElementById('filing-date').value;
+        data['city'] = document.getElementById('city').value;
         data['county'] = document.getElementById('county').value;
 
         // Plaintiff count

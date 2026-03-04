@@ -123,7 +123,16 @@
                     <h2><i class="fas fa-gavel"></i> Jurisdiction & Venue</h2>
                     <p class="section-description">Enter the filing jurisdiction.</p>
 
-                    <div class="form-row">
+                    <div class="form-row two-col">
+                        <div class="form-group">
+                            <label for="city">City <span class="required">*</span></label>
+                            <select id="city" name="city" required>
+                                <option value="" disabled selected>Select a city...</option>
+                                <option value="Los Angeles">Los Angeles</option>
+                                <option value="Santa Monica">Santa Monica</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
                         <div class="form-group">
                             <label for="county">County <span class="required">*</span></label>
                             <input type="text" id="county" name="county" required placeholder="e.g., Los Angeles County">
@@ -136,8 +145,10 @@
                     <h2><i class="fas fa-scale-balanced"></i> Causes of Action</h2>
                     <p class="section-description">Select the applicable causes of action. Preview text shows what will appear in the complaint document.</p>
 
+                    <p id="causes-city-hint" class="section-note" style="display: none;"><i class="fas fa-filter"></i> Showing causes of action applicable to <strong id="causes-city-name"></strong>.</p>
+
                     <div id="causes-container">
-                        <div class="cause-option">
+                        <div class="cause-option" data-cities="all">
                             <label class="cause-label">
                                 <input type="checkbox" name="cause-1" value="breach-of-habitability">
                                 <span class="cause-name">Breach of Implied Warranty of Habitability</span>
@@ -145,7 +156,7 @@
                             <p class="cause-preview">Defendants failed to maintain the premises in a habitable condition as required by California Civil Code...</p>
                         </div>
 
-                        <div class="cause-option">
+                        <div class="cause-option" data-cities="all">
                             <label class="cause-label">
                                 <input type="checkbox" name="cause-2" value="negligence">
                                 <span class="cause-name">Negligence</span>
@@ -153,7 +164,7 @@
                             <p class="cause-preview">Defendants owed a duty of care to Plaintiffs and breached that duty by failing to maintain...</p>
                         </div>
 
-                        <div class="cause-option">
+                        <div class="cause-option" data-cities="all">
                             <label class="cause-label">
                                 <input type="checkbox" name="cause-3" value="breach-of-quiet-enjoyment">
                                 <span class="cause-name">Breach of Covenant of Quiet Enjoyment</span>
@@ -161,7 +172,7 @@
                             <p class="cause-preview">Defendants breached the covenant of quiet enjoyment by allowing conditions that substantially impaired...</p>
                         </div>
 
-                        <div class="cause-option">
+                        <div class="cause-option" data-cities="all">
                             <label class="cause-label">
                                 <input type="checkbox" name="cause-4" value="nuisance">
                                 <span class="cause-name">Nuisance</span>

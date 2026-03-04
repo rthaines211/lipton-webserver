@@ -6,7 +6,7 @@ Placeholders use angle-bracket syntax: <Placeholder Name>
 
 Required placeholders:
 - <Case Name>, <Case Number>, <Filing Date>
-- <County>
+- <City>, <County>
 - <Plaintiff Names>, <Defendant Names>
 - <Causes of Action>
 
