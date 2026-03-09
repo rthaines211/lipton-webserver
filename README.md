@@ -6,7 +6,7 @@ This application provides comprehensive legal forms for document generation and 
 
 - **Document Generation Form**: `https://docs.liptonlegal.com` - Discovery document generation (SROGs, PODs, Admissions)
 - **Contingency Agreement Form**: `https://agreement.liptonlegal.com` - Client contingency fee agreements with multi-party support
-- **Exhibit Collector**: `https://exhibits.liptonlegal.com` - Exhibit package assembly with Bates stamping, duplicate detection, parallel processing, and PDF generation
+- **Exhibit Collector**: `https://exhibits.liptonlegal.com` - Exhibit package assembly with Bates stamping, duplicate detection with image/PDF previews, parallel processing, and PDF generation
 
 ## Features
 
@@ -428,7 +428,7 @@ The test suite includes:
 │       ├── exhibit-manager.js        # Exhibit card state & file tracking
 │       ├── file-upload.js            # Parallel file upload handler (3 concurrent)
 │       ├── form-submission.js        # Form submission & SSE progress
-│       ├── duplicate-ui.js           # Duplicate warning display
+│       ├── duplicate-ui.js           # Duplicate resolution with image/PDF previews
 │       └── gap-detector.js           # Exhibit gap detection
 ├── routes/exhibits.js  # Exhibit API routes
 ├── utils/              # Shared utilities
