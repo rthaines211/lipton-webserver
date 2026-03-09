@@ -175,15 +175,18 @@ const FormSubmission = (() => {
                 evtSource.close();
                 updateProgress(100, 'Complete! Downloading...');
 
-                (async () => {
-                    const maxRetries = 3;
-                    let lastErr;
-                    for (let attempt = 0; attempt < maxRetries; attempt++) {
+                // Use signed GCS URL directly (works across Cloud Run instances)
+                if (data.downloadUrl) {
+                    const a = document.createElement('a');
+                    a.href = data.downloadUrl;
+                    a.download = data.filename || 'exhibit-package.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else {
+                    // Fallback: fetch from server (local dev)
+                    (async () => {
                         try {
-                            if (attempt > 0) {
-                                updateProgress(100, `Retrying download (attempt ${attempt + 1})...`);
-                                await new Promise(r => setTimeout(r, 1000 * attempt));
-                            }
                             const resp = await fetch(`/api/exhibits/jobs/${jobId}/download`);
                             if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
                             const blob = await resp.blob();
@@ -195,22 +198,18 @@ const FormSubmission = (() => {
                             a.click();
                             a.remove();
                             URL.revokeObjectURL(url);
-                            lastErr = null;
-                            break;
                         } catch (err) {
-                            console.error(`Download attempt ${attempt + 1} failed:`, err);
-                            lastErr = err;
+                            console.error('Download failed:', err);
+                            alert('Failed to download the exhibit package. Please try again.');
                         }
-                    }
-                    if (lastErr) {
-                        alert('Failed to download the exhibit package. Please try again.');
-                    }
-                    hideProgress();
-                    document.getElementById('btn-generate').disabled = false;
-                    document.getElementById('case-name').value = '';
-                    document.getElementById('case-description').value = '';
-                    ExhibitManager.clearAll();
-                })();
+                    })();
+                }
+
+                hideProgress();
+                document.getElementById('btn-generate').disabled = false;
+                document.getElementById('case-name').value = '';
+                document.getElementById('case-description').value = '';
+                ExhibitManager.clearAll();
 
                 resolve();
             });

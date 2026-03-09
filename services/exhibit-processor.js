@@ -308,7 +308,7 @@ class ExhibitProcessor {
         });
 
         progress(100, 'Complete!', 'finalizing');
-        return { outputPath, filename };
+        return { outputPath, filename, pdfBuffer: Buffer.from(pdfBytes) };
     }
 }
 

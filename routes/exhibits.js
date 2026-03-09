@@ -14,9 +14,13 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const Sentry = require('@sentry/node');
+const { Storage } = require('@google-cloud/storage');
 const ExhibitProcessor = require('../services/exhibit-processor');
 const logger = require('../monitoring/logger');
 const { asyncHandler } = require('../middleware/error-handler');
+
+const gcs = new Storage();
+const GCS_BUCKET = process.env.GCS_BUCKET_NAME || 'docmosis-tornado-form-submissions';
 
 const UPLOAD_BASE = path.join(require('os').tmpdir(), 'exhibits');
 const CLEANUP_TTL = 60 * 60 * 1000; // 1 hour
@@ -222,12 +226,25 @@ router.post('/generate', asyncHandler(async (req, res) => {
                     span.setAttribute('exhibit.duplicate_exhibits', Object.keys(result.duplicates).length);
                     broadcastJobEvent(jobId, 'duplicates', { duplicates: result.duplicates });
                 } else {
+                    // Upload PDF to GCS so download works across Cloud Run instances
+                    const gcsPath = `exhibits/${sessionId}/${result.filename}`;
+                    const bucket = gcs.bucket(GCS_BUCKET);
+                    const file = bucket.file(gcsPath);
+                    await file.save(result.pdfBuffer, { contentType: 'application/pdf' });
+
+                    const [downloadUrl] = await file.getSignedUrl({
+                        action: 'read',
+                        expires: Date.now() + 60 * 60 * 1000, // 1 hour
+                        responseDisposition: `attachment; filename="${result.filename}"`,
+                    });
+
                     job.status = 'completed';
                     job.outputPath = result.outputPath;
                     job.filename = result.filename;
+                    job.downloadUrl = downloadUrl;
                     span.setAttribute('exhibit.outcome', 'completed');
                     span.setAttribute('exhibit.output_filename', result.filename);
-                    broadcastJobEvent(jobId, 'complete', { filename: result.filename });
+                    broadcastJobEvent(jobId, 'complete', { filename: result.filename, downloadUrl });
                 }
             } catch (err) {
                 logger.error('Exhibit processing failed', { jobId, error: err.message, stack: err.stack });
@@ -327,11 +344,24 @@ router.post('/jobs/:jobId/resolve', asyncHandler(async (req, res) => {
                     },
                 });
 
+                // Upload PDF to GCS so download works across Cloud Run instances
+                const gcsPath = `exhibits/${job.sessionId}/${result.filename}`;
+                const bucket = gcs.bucket(GCS_BUCKET);
+                const gcsFile = bucket.file(gcsPath);
+                await gcsFile.save(result.pdfBuffer, { contentType: 'application/pdf' });
+
+                const [downloadUrl] = await gcsFile.getSignedUrl({
+                    action: 'read',
+                    expires: Date.now() + 60 * 60 * 1000, // 1 hour
+                    responseDisposition: `attachment; filename="${result.filename}"`,
+                });
+
                 job.status = 'completed';
                 job.outputPath = result.outputPath;
                 job.filename = result.filename;
+                job.downloadUrl = downloadUrl;
                 span.setAttribute('exhibit.outcome', 'completed');
-                broadcastJobEvent(jobId, 'complete', { filename: result.filename });
+                broadcastJobEvent(jobId, 'complete', { filename: result.filename, downloadUrl });
             } catch (err) {
                 logger.error('Exhibit resume failed', { jobId, error: err.message });
                 span.setStatus({ code: 2, message: err.message });
@@ -370,7 +400,7 @@ router.get('/jobs/:jobId/stream', (req, res) => {
     if (res.flush) res.flush();
 
     if (job.status === 'completed') {
-        res.write(`event: complete\ndata: ${JSON.stringify({ filename: job.filename })}\n\n`);
+        res.write(`event: complete\ndata: ${JSON.stringify({ filename: job.filename, downloadUrl: job.downloadUrl })}\n\n`);
         if (res.flush) res.flush();
     } else if (job.status === 'awaiting_resolution') {
         res.write(`event: duplicates\ndata: ${JSON.stringify({ duplicates: job.duplicates })}\n\n`);
