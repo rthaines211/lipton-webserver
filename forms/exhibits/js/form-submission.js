@@ -238,20 +238,36 @@ const FormSubmission = (() => {
         finalizing: 'Finalizing',
     };
 
-    // Progress state for ETA calculation and stale detection
+    // Progress state for elapsed timer and stale detection
     let progressState = {
         startTime: null,
         lastEventTime: null,
         staleTimer: null,
         staleActive: false,
+        tickInterval: null,
+        currentPercent: 0,
     };
+
+    function tickElapsed() {
+        if (!progressState.startTime || progressState.currentPercent >= 100) return;
+        const elapsedSec = Math.round((Date.now() - progressState.startTime) / 1000);
+        if (elapsedSec >= 1) {
+            const text = elapsedSec >= 60
+                ? `${Math.floor(elapsedSec / 60)}m ${elapsedSec % 60}s elapsed`
+                : `${elapsedSec}s elapsed`;
+            document.getElementById('progress-eta').textContent = text;
+        }
+    }
 
     function showProgress(title, percent, message) {
         document.getElementById('progress-overlay').style.display = 'flex';
         document.getElementById('progress-title').textContent = title;
         document.getElementById('progress-phase').textContent = '';
         document.getElementById('progress-eta').textContent = '';
-        progressState = { startTime: null, lastEventTime: null, staleTimer: null, staleActive: false };
+        if (progressState.staleTimer) clearTimeout(progressState.staleTimer);
+        if (progressState.tickInterval) clearInterval(progressState.tickInterval);
+        progressState = { startTime: null, lastEventTime: null, staleTimer: null, staleActive: false, tickInterval: null, currentPercent: 0 };
+        progressState.tickInterval = setInterval(tickElapsed, 1000);
         updateProgress(percent, message);
     }
 
@@ -277,25 +293,17 @@ const FormSubmission = (() => {
             document.getElementById('progress-phase').textContent = PHASE_LABELS[phase];
         }
 
-        // ETA calculation
+        // Track timing for elapsed display (interval handles rendering)
         if (timestamp) {
+            const now = Date.now();
             if (!progressState.startTime && percent > 0) {
-                progressState.startTime = timestamp;
+                progressState.startTime = now;
             }
-            progressState.lastEventTime = Date.now();
+            progressState.lastEventTime = now;
             progressState.staleActive = false;
+            progressState.currentPercent = percent;
 
-            if (progressState.startTime && percent >= 10 && percent < 100) {
-                const elapsed = timestamp - progressState.startTime;
-                const remaining = (elapsed / percent) * (100 - percent);
-                const etaSec = Math.round(remaining / 1000);
-                if (etaSec > 0) {
-                    const etaText = etaSec >= 60
-                        ? `~${Math.round(etaSec / 60)}m ${etaSec % 60}s remaining`
-                        : `~${etaSec}s remaining`;
-                    document.getElementById('progress-eta').textContent = etaText;
-                }
-            } else {
+            if (percent >= 100) {
                 document.getElementById('progress-eta').textContent = '';
             }
 
@@ -324,10 +332,9 @@ const FormSubmission = (() => {
 
     function hideProgress() {
         document.getElementById('progress-overlay').style.display = 'none';
-        if (progressState.staleTimer) {
-            clearTimeout(progressState.staleTimer);
-        }
-        progressState = { startTime: null, lastEventTime: null, staleTimer: null, staleActive: false };
+        if (progressState.staleTimer) clearTimeout(progressState.staleTimer);
+        if (progressState.tickInterval) clearInterval(progressState.tickInterval);
+        progressState = { startTime: null, lastEventTime: null, staleTimer: null, staleActive: false, tickInterval: null, currentPercent: 0 };
     }
 
     // Initialize on DOM ready
