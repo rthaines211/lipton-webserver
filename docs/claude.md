@@ -94,6 +94,61 @@ The server integrates with an external Python FastAPI service for advanced docum
 - **Failure Handling**: Continues on failure (configurable via `CONTINUE_ON_PIPELINE_FAILURE`)
 - **Purpose**: 5-phase normalization pipeline for legal document generation
 
+### Exhibit Collector (exhibits.liptonlegal.com)
+**Status**: ✅ Implemented and deployed (2026-03-03), Progress UX + GCS download (2026-03-09), Performance optimization (2026-03-09)
+
+A separate Cloud Run service (`exhibit-collector`) for assembling exhibit packages:
+
+**Frontend** (`forms/exhibits/`):
+- `index.html` - Exhibit form interface with progress overlay (phase label, elapsed timer)
+- `js/exhibit-manager.js` - Exhibit card state, file tracking, gap detection
+- `js/file-upload.js` - Parallel multipart upload (3 concurrent exhibits)
+- `js/form-submission.js` - SSE progress with phase labels, elapsed timer, stale detection, GCS signed URL download
+- `js/duplicate-ui.js` - Duplicate conflict resolution UI
+- `js/gap-detector.js` - Exhibit letter gap detection
+- `styles.css` - Shimmer animation on progress bar, stale pulse animation
+
+**Backend**:
+- `routes/exhibits.js` - API routes (upload, generate, resolve, stream, download); uploads completed PDFs to GCS with signed URLs; graceful GCS fallback for local dev
+- `services/exhibit-processor.js` - Parallel PDF assembly across exhibits, Bates stamping, image resize; granular per-file and per-page progress; returns pdfBuffer
+- `services/duplicate-detector.js` - 3-layer duplicate detection (hash, visual, OCR) with bounded concurrent pair comparisons
+- `services/pdf-page-builder.js` - Separator pages (cached), parallel sharp metadata + JPEG conversion
+- `utils/concurrency.js` - Shared bounded concurrency utility (`processWithConcurrency`)
+
+**Performance Optimization** (2026-03-09):
+- Parallelized duplicate detection across exhibit letters (4 concurrent)
+- Bounded concurrent visual pair comparisons (4 at a time) and OCR pairs (2 at a time)
+- Parallelized PDF assembly: each exhibit builds sub-document in parallel, then merged in order
+- Sharp optimization: metadata extraction + JPEG conversion run in parallel (was sequential)
+- Separator page caching: generated once per letter, reused across calls
+- Frontend uploads: 3 exhibits upload simultaneously (was sequential)
+- Cloud Run bumped to 4 vCPU / 4 GiB / concurrency 1 (dedicated instance per job)
+- Design doc: `docs/plans/2026-03-09-exhibit-consolidator-performance-design.md`
+- Implementation plan: `docs/plans/2026-03-09-exhibit-performance-plan.md`
+
+**Progress UX** (2026-03-09):
+- SSE events include `phase`, `message`, `timestamp` fields
+- Six phases: validation (0-5%), duplicate_detection (5-40%), processing (40-85%), stamping (85-95%), finalizing (95-100%)
+- Frontend: phase labels, shimmer animation, 1-second elapsed timer, stale detection (5s/15s thresholds)
+- Design doc: `docs/plans/2026-03-09-exhibit-progress-ux-design.md`
+
+**Cloud Run Download Fix** (2026-03-09):
+- In-memory job state + local filesystem don't work across Cloud Run instances
+- Generated PDFs uploaded to GCS at `exhibits/{sessionId}/{jobId}/{filename}`
+- Signed URL (1-hour expiry) returned in SSE `complete` event as `downloadUrl`
+- Frontend uses `downloadUrl` directly; falls back to `/download` endpoint for local dev
+- GCS upload/sign wrapped in try/catch for graceful local dev fallback
+- IAM: Cloud Run SA needs `roles/iam.serviceAccountTokenCreator` for `getSignedUrl()`
+
+**Deployment**:
+- Separate Cloud Run service with its own GitHub Actions workflow (`.github/workflows/deploy-exhibit-collector.yml`)
+- Auto-deploys on push to `main` when exhibit-relevant paths change
+- Session affinity enabled (in-memory job state requires sticky sessions)
+- 4 vCPU, 4 GiB memory, concurrency 1 (dedicated instance per job)
+- Auth: `/api/exhibits` bypasses token auth in `middleware/auth.js`; form pages use session-based password auth
+
+**Dependencies**: `sharp`, `multer`, `tesseract.js`, `pdf-lib`, `@google-cloud/storage`
+
 ### 4. REST API Endpoints
 - `GET /` - Serve main form page
 - `GET /review.html` - Review page for submission preview
@@ -251,4 +306,4 @@ The application generates JSON matching a specific legal document format with:
 
 ---
 
-*This document serves as a knowledge base for Claude to maintain context about the Legal Form Application project. Last updated: 2025-10-20*
+*This document serves as a knowledge base for Claude to maintain context about the Legal Form Application project. Last updated: 2026-03-09*

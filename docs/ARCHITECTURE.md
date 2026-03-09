@@ -19,6 +19,7 @@ The Legal Form Application is a full-stack web application that collects, proces
 - ☁️ Optional Dropbox cloud backup
 - 🔄 Python normalization pipeline integration
 - 📄 **CM-110 PDF Generation** - Automated court form filling with pdf-lib
+- 📑 **Exhibit Collector** - Exhibit package assembly with Bates stamping, duplicate detection, and PDF merge
 - ⚙️ **Job Queue System** - Asynchronous PDF processing with pg-boss
 - 📈 Prometheus metrics & monitoring
 - 🔒 Token-based authentication (production)
@@ -469,7 +470,95 @@ erDiagram
  */
 ```
 
-### 3. Python Normalization Pipeline
+### 3. Exhibit Collector
+
+The Exhibit Collector is a **separate Cloud Run service** (`exhibit-collector`) deployed at `exhibits.liptonlegal.com`. It shares the same codebase as the main `node-server` but is deployed independently with its own GitHub Actions workflow (`.github/workflows/deploy-exhibit-collector.yml`).
+
+#### Architecture
+
+```mermaid
+graph LR
+    subgraph "Client"
+        Upload[File Upload<br/>multipart/form-data]
+        SSE[SSE Client<br/>Progress Stream]
+    end
+
+    subgraph "Exhibit Collector Service"
+        Routes[routes/exhibits.js<br/>API Endpoints]
+        Processor[exhibit-processor.js<br/>PDF Assembly]
+        DupDetect[duplicate-detector.js<br/>3-Layer Detection]
+        PageBuilder[pdf-page-builder.js<br/>Separator Pages]
+    end
+
+    Upload --> Routes
+    Routes --> Processor
+    Processor --> DupDetect
+    Processor --> PageBuilder
+    Processor -->|SSE| SSE
+
+    style DupDetect fill:#e74c3c,stroke:#c0392b,stroke-width:2px,color:#fff
+    style Processor fill:#2ecc71,stroke:#27ae60,stroke-width:2px,color:#fff
+```
+
+#### Key Components
+
+**`routes/exhibits.js`** - API route handler
+- Session-based file management with in-memory Maps
+- SSE broadcast for real-time progress with phase, message, and timestamp
+- GCS upload of completed PDFs with signed URL generation for cross-instance downloads
+- Periodic cleanup of expired sessions (1 hour TTL)
+
+**`services/exhibit-processor.js`** - Core processing engine
+- Parallel PDF assembly across exhibit letters (each exhibit builds a sub-document, then merged in order)
+- Bates stamp numbering across all pages
+- Exhibit separator page generation (cached)
+- Uses `utils/concurrency.js` for bounded parallelism (4 exhibits at a time)
+- Granular progress reporting: per-file during assembly (40-85%), per-page during stamping (85-95%)
+- Returns `pdfBuffer` for GCS upload
+
+**`services/duplicate-detector.js`** - 3-layer duplicate detection
+- Layer 1: SHA-256 hash comparison (exact matches, 0-10% sub-progress)
+- Layer 2: Visual similarity via sharp (bounded concurrent: 4 pairs at a time, 10-70% sub-progress)
+- Layer 3: OCR text comparison via tesseract.js (bounded concurrent: 2 pairs at a time, 70-100% sub-progress)
+
+**`services/pdf-page-builder.js`** - Page construction
+- Image-to-PDF page conversion with parallel sharp metadata + JPEG conversion
+- Exhibit separator/cover pages (cached per letter)
+- Bates number overlay on each page
+
+**`utils/concurrency.js`** - Shared utility
+- `processWithConcurrency(items, fn, limit)` — bounded concurrent async processing with ordered results
+
+#### Progress UX Architecture (2026-03-09)
+
+The exhibit collector uses a granular SSE progress system with six phases:
+
+| Phase | Progress Range | Granularity |
+|-------|---------------|-------------|
+| Validation | 0-5% | Per-exhibit |
+| Duplicate Detection | 5-40% | Per-pair within each layer |
+| Processing (PDF assembly) | 40-85% | Per-file |
+| Bates Stamping | 85-95% | Every 5 pages |
+| Finalizing (save + GCS upload) | 95-100% | Single event |
+
+**Frontend enhancements:**
+- Phase labels (e.g., "Scanning for Duplicates", "Processing Files")
+- CSS shimmer animation on the progress bar during active processing
+- Elapsed timer (1-second interval, independent of SSE events)
+- Stale detection: "Still processing..." after 5s silence, pulse animation after 15s
+
+#### Cloud Run Download Architecture
+
+Generated PDFs are uploaded to Google Cloud Storage (`exhibits/{sessionId}/{jobId}/{filename}`) and a **signed URL** (1-hour expiry) is returned in the SSE `complete` event. This ensures downloads work across Cloud Run instances, since in-memory job state and local filesystem are instance-specific.
+
+**IAM requirement:** The Cloud Run service account needs `roles/iam.serviceAccountTokenCreator` for `getSignedUrl()`.
+
+#### Deployment Notes
+- **Session affinity** is required because jobs are stored in an in-memory Map
+- Deploys automatically when exhibit-relevant files change on `main`
+- Path triggers: `forms/exhibits/**`, `routes/exhibits.js`, `services/exhibit-*.js`, `services/duplicate-detector.js`, `services/pdf-page-builder.js`, `middleware/**`, `server.js`, `package*.json`, `Dockerfile`
+
+### 4. Python Normalization Pipeline
 
 #### **api/main.py** - FastAPI Application
 ```python
@@ -790,6 +879,7 @@ graph TB
 
     subgraph "GCP - Cloud Run (Serverless)"
         NodeServer[🚀 Node.js Server<br/>node-server-zyiwmzwenq-uc.a.run.app<br/>Express + PostgreSQL]
+        ExhibitCollector[📑 Exhibit Collector<br/>exhibit-collector-***.a.run.app<br/>PDF Assembly + Bates Stamping]
         PythonPipeline[🐍 Python Pipeline<br/>python-pipeline-***.a.run.app<br/>Data Normalization]
     end
 
@@ -887,6 +977,7 @@ sequenceDiagram
 | **Nginx** | VM | • Single point of control<br/>• Fast local routing<br/>• Auth token injection<br/>• Request transformation |
 | **Docmosis** | VM (localhost) | • High-performance document generation<br/>• No network latency<br/>• Dedicated resources<br/>• License tied to VM |
 | **Node.js Server** | Cloud Run | • Auto-scaling 0→N instances<br/>• Pay-per-request pricing<br/>• Zero maintenance<br/>• Global availability |
+| **Exhibit Collector** | Cloud Run | • Separate deployment lifecycle<br/>• 4 vCPU / 4 GiB memory / concurrency 1<br/>• Parallel processing pipeline<br/>• Session affinity for in-memory jobs<br/>• Auto-deploys on exhibit path changes |
 | **Python Pipeline** | Cloud Run | • Serverless data processing<br/>• Isolated from main app<br/>• Independent scaling<br/>• Async processing |
 | **PostgreSQL** | Cloud SQL | • Managed backups<br/>• High availability<br/>• Automatic patching<br/>• Point-in-time recovery |
 | **Cloudflare** | CDN/Edge | • Global SSL/TLS termination<br/>• DDoS protection<br/>• Edge caching<br/>• DNS management |
@@ -922,6 +1013,17 @@ Node.js Server:
   Min Instances: 0 (scales to zero)
   CPU: 1 vCPU
   Memory: 512 MiB
+
+Exhibit Collector:
+  Service: exhibit-collector-***.a.run.app
+  Domain: exhibits.liptonlegal.com
+  Region: us-central1
+  Concurrency: 1 (dedicated instance per job)
+  Max Instances: 10
+  Min Instances: 1
+  CPU: 4 vCPU
+  Memory: 4 GiB (parallel image processing: sharp, tesseract.js)
+  Session Affinity: Enabled (in-memory job state)
 
 Python Pipeline:
   Service: python-pipeline-***.a.run.app
@@ -1093,6 +1195,6 @@ graph TB
 
 ---
 
-**Document Version:** 1.0.0
-**Last Updated:** 2025-10-21
+**Document Version:** 1.2.0
+**Last Updated:** 2026-03-09
 **Maintained By:** Development Team

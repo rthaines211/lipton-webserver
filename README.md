@@ -6,6 +6,7 @@ This application provides comprehensive legal forms for document generation and 
 
 - **Document Generation Form**: `https://docs.liptonlegal.com` - Discovery document generation (SROGs, PODs, Admissions)
 - **Contingency Agreement Form**: `https://agreement.liptonlegal.com` - Client contingency fee agreements with multi-party support
+- **Exhibit Collector**: `https://exhibits.liptonlegal.com` - Exhibit package assembly with Bates stamping, duplicate detection, parallel processing, and PDF generation
 
 ## Features
 
@@ -132,8 +133,9 @@ The application uses GitHub Actions for CI/CD with a **linear promotion model**:
 | `develop` | Development | `node-server-dev` | Automatic |
 | `main` | Staging | `node-server-staging` | Automatic |
 | `main` | Production | `node-server` | **Manual (GitHub)** |
+| `main` | Production | `exhibit-collector` | Automatic (path-filtered) |
 
-> **⚠️ Important:** Pushing to `main` deploys to **staging first**, then requires manual approval in GitHub Actions to promote to production.
+> **⚠️ Important:** Pushing to `main` deploys to **staging first**, then requires manual approval in GitHub Actions to promote to production. The `exhibit-collector` service deploys automatically on push to `main` when exhibit-relevant paths change.
 
 > **⚠️ Python Pipeline:** The `Python Pipeline CI/CD` workflow runs code quality checks and tests but **does not deploy**. The deploy step is commented out. To update the Python pipeline in production, deploy manually — see [Deploying the Python Pipeline](#deploying-the-python-pipeline) above.
 
@@ -179,6 +181,14 @@ The application uses GitHub Actions for CI/CD with a **linear promotion model**:
 - `PUT /api/contingency-entries/:caseId` - Update agreement
 - `DELETE /api/contingency-entries/:caseId` - Delete agreement
 - `GET /api/contingency-entries/:caseId/download` - Download all documents as ZIP
+
+### Exhibit Collector (exhibits.liptonlegal.com)
+- `POST /api/exhibits/upload` - Upload files to an exhibit
+- `POST /api/exhibits/generate` - Generate exhibit package (triggers processing)
+- `POST /api/exhibits/jobs/:jobId/resolve` - Resolve duplicate conflicts
+- `GET /api/exhibits/jobs/:jobId/stream` - SSE progress stream (phases: validation, duplicate_detection, processing, stamping, finalizing)
+- `GET /api/exhibits/jobs/:jobId/download` - Download generated PDF (local dev fallback; production uses signed GCS URL from SSE `complete` event)
+- `DELETE /api/exhibits/sessions/:sessionId` - Clean up session/temp files
 
 ### PDF Generation
 - `POST /api/pdf/generate` - Generate CM-110 PDF from form data
@@ -411,6 +421,22 @@ The test suite includes:
 │   └── utils/          # Utility functions
 │       ├── pdf-templates.js          # PDF template loading
 │       └── pdf-field-mapper.js       # Form-to-PDF field mapping
+├── forms/exhibits/     # Exhibit Collector frontend
+│   ├── index.html                    # Exhibit form interface
+│   ├── styles.css                    # Exhibit-specific styling
+│   └── js/                           # Frontend modules
+│       ├── exhibit-manager.js        # Exhibit card state & file tracking
+│       ├── file-upload.js            # Parallel file upload handler (3 concurrent)
+│       ├── form-submission.js        # Form submission & SSE progress
+│       ├── duplicate-ui.js           # Duplicate warning display
+│       └── gap-detector.js           # Exhibit gap detection
+├── routes/exhibits.js  # Exhibit API routes
+├── utils/              # Shared utilities
+│   └── concurrency.js                # Bounded concurrency processing
+├── services/           # Backend services
+│   ├── exhibit-processor.js          # Parallel PDF assembly, Bates stamping
+│   ├── duplicate-detector.js         # 3-layer duplicate detection (concurrent)
+│   └── pdf-page-builder.js           # Separator pages (cached), image-to-page
 ├── normalization work/
 │   └── pdf_templates/  # CM-110 PDF templates
 │       ├── cm110.pdf                 # Original encrypted template
