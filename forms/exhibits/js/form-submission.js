@@ -175,30 +175,42 @@ const FormSubmission = (() => {
                 evtSource.close();
                 updateProgress(100, 'Complete! Downloading...');
 
-                setTimeout(async () => {
-                    try {
-                        const resp = await fetch(`/api/exhibits/jobs/${jobId}/download`);
-                        if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
-                        const blob = await resp.blob();
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = data.filename || 'exhibit-package.pdf';
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                        URL.revokeObjectURL(url);
-                    } catch (err) {
-                        console.error('Download error:', err);
+                (async () => {
+                    const maxRetries = 3;
+                    let lastErr;
+                    for (let attempt = 0; attempt < maxRetries; attempt++) {
+                        try {
+                            if (attempt > 0) {
+                                updateProgress(100, `Retrying download (attempt ${attempt + 1})...`);
+                                await new Promise(r => setTimeout(r, 1000 * attempt));
+                            }
+                            const resp = await fetch(`/api/exhibits/jobs/${jobId}/download`);
+                            if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
+                            const blob = await resp.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = data.filename || 'exhibit-package.pdf';
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            URL.revokeObjectURL(url);
+                            lastErr = null;
+                            break;
+                        } catch (err) {
+                            console.error(`Download attempt ${attempt + 1} failed:`, err);
+                            lastErr = err;
+                        }
+                    }
+                    if (lastErr) {
                         alert('Failed to download the exhibit package. Please try again.');
                     }
                     hideProgress();
                     document.getElementById('btn-generate').disabled = false;
-                    // Reset form to default state
                     document.getElementById('case-name').value = '';
                     document.getElementById('case-description').value = '';
                     ExhibitManager.clearAll();
-                }, 500);
+                })();
 
                 resolve();
             });
