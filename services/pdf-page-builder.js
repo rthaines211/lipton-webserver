@@ -15,6 +15,9 @@ const PAGE_WIDTH = 612;   // 8.5 inches
 const PAGE_HEIGHT = 792;  // 11 inches
 const MARGIN = 54;        // 0.75 inches
 
+// Cache for separator page bytes keyed by letter
+const separatorCache = new Map();
+
 class PdfPageBuilder {
     /**
      * Create an exhibit separator page with centered letter.
@@ -26,6 +29,10 @@ class PdfPageBuilder {
             throw new Error(`Invalid exhibit letter: "${letter}". Must be a single letter A-Z.`);
         }
         letter = letter.toUpperCase();
+
+        if (separatorCache.has(letter)) {
+            return separatorCache.get(letter);
+        }
 
         const doc = await PDFDocument.create();
         const page = doc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
@@ -40,7 +47,6 @@ class PdfPageBuilder {
 
         page.drawText(text, { x, y, size: fontSize, font, color: rgb(0, 0, 0) });
 
-        // Horizontal rules (2 inches = 144 points wide, centered)
         const ruleWidth = 144;
         const ruleX = (PAGE_WIDTH - ruleWidth) / 2;
 
@@ -55,7 +61,9 @@ class PdfPageBuilder {
             thickness: 1.5, color: rgb(0, 0, 0),
         });
 
-        return doc.save();
+        const bytes = await doc.save();
+        separatorCache.set(letter, bytes);
+        return bytes;
     }
 
     /**
@@ -108,13 +116,16 @@ class PdfPageBuilder {
      * @param {string} format - Image format: 'png', 'jpg', 'jpeg', 'tiff', 'heic'
      */
     static async addImagePage(doc, imageBuffer, format) {
-        const jpgBuffer = await sharp(imageBuffer)
-            .flatten({ background: { r: 255, g: 255, b: 255 } })
-            .toColorspace('srgb')
-            .jpeg({ quality: 92 })
-            .toBuffer();
+        // Run JPEG conversion and metadata extraction in parallel (instead of sequentially)
+        const [jpgBuffer, metadata] = await Promise.all([
+            sharp(imageBuffer)
+                .flatten({ background: { r: 255, g: 255, b: 255 } })
+                .toColorspace('srgb')
+                .jpeg({ quality: 92 })
+                .toBuffer(),
+            sharp(imageBuffer).metadata(),
+        ]);
 
-        const metadata = await sharp(imageBuffer).metadata();
         const imgWidth = metadata.width;
         const imgHeight = metadata.height;
 

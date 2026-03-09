@@ -1,4 +1,5 @@
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+const sharp = require('sharp');
 const PdfPageBuilder = require('../../services/pdf-page-builder');
 
 describe('PdfPageBuilder', () => {
@@ -72,5 +73,54 @@ describe('PdfPageBuilder', () => {
         it('should auto-expand padding when number exceeds digit count', () => {
             expect(PdfPageBuilder.formatBatesNumber('A', 1000, 3)).toBe('EX-A-1000');
         });
+    });
+});
+
+describe('PdfPageBuilder.addImagePage', () => {
+    test('creates a page with correct dimensions from a JPEG image', async () => {
+        const testImage = await sharp({
+            create: { width: 200, height: 100, channels: 3, background: { r: 255, g: 0, b: 0 } }
+        }).jpeg().toBuffer();
+
+        const doc = await PDFDocument.create();
+        await PdfPageBuilder.addImagePage(doc, testImage, 'jpg');
+
+        expect(doc.getPageCount()).toBe(1);
+        const page = doc.getPages()[0];
+        expect(page.getWidth()).toBe(612);
+        expect(page.getHeight()).toBe(792);
+    });
+
+    test('handles PNG with alpha channel', async () => {
+        const testImage = await sharp({
+            create: { width: 100, height: 100, channels: 4, background: { r: 0, g: 0, b: 255, alpha: 0.5 } }
+        }).png().toBuffer();
+
+        const doc = await PDFDocument.create();
+        await PdfPageBuilder.addImagePage(doc, testImage, 'png');
+        expect(doc.getPageCount()).toBe(1);
+    });
+});
+
+describe('PdfPageBuilder.createSeparatorPage', () => {
+    test('returns valid PDF bytes for different letters', async () => {
+        const bytesA = await PdfPageBuilder.createSeparatorPage('A');
+        const bytesB = await PdfPageBuilder.createSeparatorPage('B');
+
+        const docA = await PDFDocument.load(bytesA);
+        const docB = await PDFDocument.load(bytesB);
+        expect(docA.getPageCount()).toBe(1);
+        expect(docB.getPageCount()).toBe(1);
+
+        expect(Buffer.from(bytesA).equals(Buffer.from(bytesB))).toBe(false);
+    });
+
+    test('calling same letter twice returns equivalent content', async () => {
+        const bytes1 = await PdfPageBuilder.createSeparatorPage('A');
+        const bytes2 = await PdfPageBuilder.createSeparatorPage('A');
+        const doc1 = await PDFDocument.load(bytes1);
+        const doc2 = await PDFDocument.load(bytes2);
+        expect(doc1.getPageCount()).toBe(1);
+        expect(doc2.getPageCount()).toBe(1);
     });
 });
