@@ -86,30 +86,38 @@ class ExhibitProcessor {
      * @param {string} params.caseName - Case name for the output filename
      * @param {Object<string, Array<{name: string, type: string, buffer: Buffer}>>} params.exhibits
      * @param {string} params.outputDir - Directory to write the final PDF
-     * @param {Function} [params.onProgress] - Progress callback: (percent, message) => void
+     * @param {Function} [params.onProgress] - Progress callback: (percent, message, phase) => void
      * @returns {Promise<{outputPath: string, filename: string}|{duplicates: Object, paused: boolean}>}
      */
     static async process({ caseName, exhibits, outputDir, onProgress }) {
         const progress = onProgress || (() => {});
 
-        // Step 1: Validate
-        progress(5, 'Validating exhibits...');
+        // Step 1: Validate (0-5%)
+        progress(2, 'Validating exhibits...', 'validation');
         ExhibitProcessor.validateExhibits(exhibits);
         const activeLetters = ExhibitProcessor.getActiveExhibits(exhibits);
+        progress(5, `Validated ${activeLetters.length} exhibit(s)`, 'validation');
 
-        // Step 2: Duplicate detection per exhibit
-        progress(10, 'Checking for duplicates...');
+        // Step 2: Duplicate detection per exhibit (5-40%)
         const duplicateReport = {};
         let hasDuplicates = false;
 
         await Sentry.startSpan({ op: 'exhibit.duplicate_detection', name: 'Duplicate detection' }, async () => {
             for (let i = 0; i < activeLetters.length; i++) {
                 const letter = activeLetters[i];
-                const pct = 10 + Math.round((i / activeLetters.length) * 20);
-                progress(pct, `Scanning Exhibit ${letter} for duplicates...`);
+                const exhibitWeight = 35 / activeLetters.length; // 35% total for dup detection
+                const exhibitBase = 5 + (i * exhibitWeight);
 
                 logger.info(`[exhibit-processor] Starting dup detect Exhibit ${letter} files: ${exhibits[letter].map(f=>f.name+'/'+f.type).join(', ')}`);
-                const result = await DuplicateDetector.detectDuplicates(exhibits[letter]);
+
+                const result = await DuplicateDetector.detectDuplicates(
+                    exhibits[letter],
+                    (subPct, subMsg) => {
+                        const pct = Math.round(exhibitBase + (subPct / 100) * exhibitWeight);
+                        progress(pct, `Exhibit ${letter}: ${subMsg}`, 'duplicate_detection');
+                    }
+                );
+
                 logger.info(`[exhibit-processor] Finished dup detect Exhibit ${letter}, dupes: ${result.duplicates.length}`);
                 if (result.duplicates.length > 0) {
                     duplicateReport[letter] = result.duplicates;
@@ -144,7 +152,7 @@ class ExhibitProcessor {
     static async resume({ caseName, exhibits, outputDir, onProgress }) {
         const progress = onProgress || (() => {});
         const activeLetters = ExhibitProcessor.getActiveExhibits(exhibits);
-        progress(30, 'Resuming after duplicate resolution...');
+        progress(30, 'Resuming after duplicate resolution...', 'processing');
         return ExhibitProcessor._buildPdf({ caseName, exhibits, activeLetters, outputDir, progress });
     }
 
@@ -162,24 +170,23 @@ class ExhibitProcessor {
     static async _buildPdf({ caseName, exhibits, activeLetters, outputDir, progress }) {
         const finalDoc = await PDFDocument.create();
 
-        // Estimate total pages for padding
+        // Count total files and estimate pages for progress + padding
+        let totalFiles = 0;
         let estimatedPages = 0;
         for (const letter of activeLetters) {
+            totalFiles += exhibits[letter].length;
             estimatedPages += exhibits[letter].length * 2;
         }
         const padDigits = ExhibitProcessor.determinePadding(estimatedPages);
 
-        // Track page metadata for Bates stamping in second pass
-        // Each entry: { type: 'separator' | 'content', letter, pageNum }
         const pageMetadata = [];
+        let filesProcessed = 0;
 
         await Sentry.startSpan({ op: 'exhibit.pdf_assembly', name: 'PDF assembly' }, async (assemblySpan) => {
             for (let li = 0; li < activeLetters.length; li++) {
                 const letter = activeLetters[li];
                 const files = exhibits[letter];
-                const basePct = 30 + Math.round((li / activeLetters.length) * 50);
                 logger.info(`[exhibit-processor] _buildPdf: Processing Exhibit ${letter}, ${files.length} files`);
-                progress(basePct, `Processing Exhibit ${letter}...`);
 
                 // Add separator page
                 const separatorBytes = await PdfPageBuilder.createSeparatorPage(letter);
@@ -191,9 +198,13 @@ class ExhibitProcessor {
                 // Process each file
                 let pageNum = 1;
                 for (const file of files) {
-                    const ext = file.type.toLowerCase();
+                    filesProcessed++;
+                    const pct = 40 + Math.round((filesProcessed / totalFiles) * 45); // 40-85%
+                    progress(pct, `Processing file ${filesProcessed} of ${totalFiles}: ${file.name}`, 'processing');
 
+                    const ext = file.type.toLowerCase();
                     logger.info(`[exhibit-processor] Processing file: ${file.name} type=${ext}`);
+
                     if (IMAGE_TYPES.has(ext)) {
                         logger.info(`[exhibit-processor] addImagePage start: buffer type=${file.buffer?.constructor?.name} size=${file.buffer?.length}`);
                         await PdfPageBuilder.addImagePage(finalDoc, file.buffer, ext);
@@ -218,14 +229,23 @@ class ExhibitProcessor {
             assemblySpan.setAttribute('exhibit.content_pages', pageMetadata.filter(m => m.type === 'content').length);
         });
 
+        // Second pass: Bates stamps on content pages only (85-95%)
         logger.info('[exhibit-processor] All exhibits processed, starting Bates stamp pass');
-        // Second pass: Bates stamps on content pages only
-        progress(85, 'Applying Bates stamps...');
+        progress(85, 'Applying Bates stamps...', 'stamping');
         const font = await finalDoc.embedFont(StandardFonts.Helvetica);
+
+        const contentPages = pageMetadata.reduce((count, m) => count + (m.type === 'content' ? 1 : 0), 0);
+        let stampedCount = 0;
 
         for (let i = 0; i < pageMetadata.length; i++) {
             const meta = pageMetadata[i];
             if (meta.type !== 'content') continue;
+
+            stampedCount++;
+            if (stampedCount % 5 === 0 || stampedCount === contentPages) {
+                const pct = 85 + Math.round((stampedCount / contentPages) * 10); // 85-95%
+                progress(pct, `Stamping page ${stampedCount} of ${contentPages}`, 'stamping');
+            }
 
             const page = finalDoc.getPages()[i];
             const batesNum = PdfPageBuilder.formatBatesNumber(meta.letter, meta.pageNum, padDigits);
@@ -252,10 +272,10 @@ class ExhibitProcessor {
             });
         }
 
-        // Save — run in a child process to avoid blocking the event loop
+        // Save (95-100%)
         logger.info('[exhibit-processor] Saving final PDF...');
         const saveStart = Date.now();
-        progress(95, 'Saving exhibit package...');
+        progress(95, 'Saving exhibit package...', 'finalizing');
         const filename = ExhibitProcessor.generateOutputFilename(caseName);
         const outputPath = path.join(outputDir, filename);
 
@@ -287,7 +307,7 @@ class ExhibitProcessor {
             },
         });
 
-        progress(100, 'Complete!');
+        progress(100, 'Complete!', 'finalizing');
         return { outputPath, filename };
     }
 }
