@@ -227,16 +227,21 @@ router.post('/generate', asyncHandler(async (req, res) => {
                     broadcastJobEvent(jobId, 'duplicates', { duplicates: result.duplicates });
                 } else {
                     // Upload PDF to GCS so download works across Cloud Run instances
-                    const gcsPath = `exhibits/${sessionId}/${jobId}/${result.filename}`;
-                    const bucket = gcs.bucket(GCS_BUCKET);
-                    const file = bucket.file(gcsPath);
-                    await file.save(result.pdfBuffer, { contentType: 'application/pdf' });
+                    let downloadUrl = null;
+                    try {
+                        const gcsPath = `exhibits/${sessionId}/${jobId}/${result.filename}`;
+                        const bucket = gcs.bucket(GCS_BUCKET);
+                        const file = bucket.file(gcsPath);
+                        await file.save(result.pdfBuffer, { contentType: 'application/pdf' });
 
-                    const [downloadUrl] = await file.getSignedUrl({
-                        action: 'read',
-                        expires: Date.now() + 60 * 60 * 1000, // 1 hour
-                        responseDisposition: `attachment; filename="${result.filename}"`,
-                    });
+                        [downloadUrl] = await file.getSignedUrl({
+                            action: 'read',
+                            expires: Date.now() + 60 * 60 * 1000, // 1 hour
+                            responseDisposition: `attachment; filename="${result.filename}"`,
+                        });
+                    } catch (gcsErr) {
+                        logger.warn(`GCS upload/sign skipped (local dev?): ${gcsErr.message}`);
+                    }
 
                     job.status = 'completed';
                     job.outputPath = result.outputPath;
@@ -345,16 +350,21 @@ router.post('/jobs/:jobId/resolve', asyncHandler(async (req, res) => {
                 });
 
                 // Upload PDF to GCS so download works across Cloud Run instances
-                const gcsPath = `exhibits/${job.sessionId}/${jobId}/${result.filename}`;
-                const bucket = gcs.bucket(GCS_BUCKET);
-                const gcsFile = bucket.file(gcsPath);
-                await gcsFile.save(result.pdfBuffer, { contentType: 'application/pdf' });
+                let downloadUrl = null;
+                try {
+                    const gcsPath = `exhibits/${job.sessionId}/${jobId}/${result.filename}`;
+                    const bucket = gcs.bucket(GCS_BUCKET);
+                    const gcsFile = bucket.file(gcsPath);
+                    await gcsFile.save(result.pdfBuffer, { contentType: 'application/pdf' });
 
-                const [downloadUrl] = await gcsFile.getSignedUrl({
-                    action: 'read',
-                    expires: Date.now() + 60 * 60 * 1000, // 1 hour
-                    responseDisposition: `attachment; filename="${result.filename}"`,
-                });
+                    [downloadUrl] = await gcsFile.getSignedUrl({
+                        action: 'read',
+                        expires: Date.now() + 60 * 60 * 1000, // 1 hour
+                        responseDisposition: `attachment; filename="${result.filename}"`,
+                    });
+                } catch (gcsErr) {
+                    logger.warn(`GCS upload/sign skipped (local dev?): ${gcsErr.message}`);
+                }
 
                 job.status = 'completed';
                 job.outputPath = result.outputPath;
