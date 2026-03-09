@@ -151,6 +151,7 @@ router.post('/generate', asyncHandler(async (req, res) => {
         sessionId,
         status: 'processing',
         progress: 0,
+        phase: 'starting',
         message: 'Starting...',
         duplicates: null,
         outputPath: null,
@@ -195,12 +196,18 @@ router.post('/generate', asyncHandler(async (req, res) => {
                     caseName: session.caseName,
                     exhibits: session.exhibits,
                     outputDir,
-                    onProgress: (pct, msg) => {
+                    onProgress: (pct, msg, phase) => {
                         const job = jobs.get(jobId);
                         if (job) {
                             job.progress = pct;
                             job.message = msg;
-                            broadcastJobEvent(jobId, 'progress', { progress: pct, message: msg });
+                            if (phase) job.phase = phase;
+                            broadcastJobEvent(jobId, 'progress', {
+                                progress: pct,
+                                message: msg,
+                                phase: job.phase,
+                                timestamp: Date.now(),
+                            });
                         }
                     },
                 });
@@ -307,10 +314,16 @@ router.post('/jobs/:jobId/resolve', asyncHandler(async (req, res) => {
                     caseName: session.caseName,
                     exhibits: session.exhibits,
                     outputDir,
-                    onProgress: (pct, msg) => {
+                    onProgress: (pct, msg, phase) => {
                         job.progress = pct;
                         job.message = msg;
-                        broadcastJobEvent(jobId, 'progress', { progress: pct, message: msg });
+                        if (phase) job.phase = phase;
+                        broadcastJobEvent(jobId, 'progress', {
+                            progress: pct,
+                            message: msg,
+                            phase: job.phase,
+                            timestamp: Date.now(),
+                        });
                     },
                 });
 
@@ -348,7 +361,12 @@ router.get('/jobs/:jobId/stream', (req, res) => {
     });
     res.flushHeaders();
 
-    res.write(`event: progress\ndata: ${JSON.stringify({ progress: job.progress, message: job.message })}\n\n`);
+    res.write(`event: progress\ndata: ${JSON.stringify({
+        progress: job.progress,
+        message: job.message,
+        phase: job.phase || 'starting',
+        timestamp: Date.now(),
+    })}\n\n`);
     if (res.flush) res.flush();
 
     if (job.status === 'completed') {
