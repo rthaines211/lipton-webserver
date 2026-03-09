@@ -87,21 +87,37 @@ class DuplicateDetector {
      * Find visual matches among files using thumbnail comparison.
      * @param {Array<{name: string, buffer: Buffer}>} files
      * @param {Set<string>} alreadyMatchedPairs - Pair keys to skip
+     * @param {Function} [onPairProgress] - Optional callback (pairNum, totalPairs)
      * @returns {Promise<{matches: Array<Object>, maybePairs: Array<Object>}>}
      */
-    static async findVisualMatches(files, alreadyMatchedPairs = new Set()) {
+    static async findVisualMatches(files, alreadyMatchedPairs = new Set(), onPairProgress) {
         const matches = [];
         const maybePairs = [];
 
         const IMAGE_TYPES_SET = new Set(['png', 'jpg', 'jpeg', 'tiff', 'heic']);
 
+        // Pre-count total eligible pairs for progress reporting
+        let totalPairs = 0;
         for (let i = 0; i < files.length; i++) {
             for (let j = i + 1; j < files.length; j++) {
                 const pairKey = `${files[i].name}|${files[j].name}`;
                 if (alreadyMatchedPairs.has(pairKey)) continue;
-
-                // Skip visual comparison if either file is not an image (e.g. PDF)
                 if (!IMAGE_TYPES_SET.has(files[i].type) || !IMAGE_TYPES_SET.has(files[j].type)) continue;
+                totalPairs++;
+            }
+        }
+
+        let pairNum = 0;
+        for (let i = 0; i < files.length; i++) {
+            for (let j = i + 1; j < files.length; j++) {
+                const pairKey = `${files[i].name}|${files[j].name}`;
+                if (alreadyMatchedPairs.has(pairKey)) continue;
+                if (!IMAGE_TYPES_SET.has(files[i].type) || !IMAGE_TYPES_SET.has(files[j].type)) continue;
+
+                pairNum++;
+                if (onPairProgress && totalPairs > 0) {
+                    onPairProgress(pairNum, totalPairs);
+                }
 
                 try {
                     const similarity = await DuplicateDetector.computeVisualSimilarity(
@@ -133,15 +149,22 @@ class DuplicateDetector {
      * Find content matches using OCR text comparison for "maybe" pairs.
      * @param {Array<{name: string, buffer: Buffer}>} files
      * @param {Array<Object>} maybePairs - Pairs from visual layer needing deeper check
+     * @param {Function} [onPairProgress] - Optional callback (pairNum, totalPairs)
      * @returns {Promise<Array<Object>>} Array of content match objects
      */
-    static async findContentMatches(files, maybePairs) {
+    static async findContentMatches(files, maybePairs, onPairProgress) {
         if (maybePairs.length === 0) return [];
 
         const Tesseract = require('tesseract.js');
         const matches = [];
 
-        for (const pair of maybePairs) {
+        for (let idx = 0; idx < maybePairs.length; idx++) {
+            const pair = maybePairs[idx];
+
+            if (onPairProgress) {
+                onPairProgress(idx + 1, maybePairs.length);
+            }
+
             try {
                 const [result1, result2] = await Promise.all([
                     Tesseract.recognize(files[pair.file1Index].buffer),
@@ -194,37 +217,53 @@ class DuplicateDetector {
     /**
      * Run the full three-layer duplicate detection pipeline.
      *
-     * Layer 1: Exact hash comparison (instant)
-     * Layer 2: Visual similarity via thumbnails (fast)
-     * Layer 3: OCR text comparison for "maybe" zone pairs (selective)
+     * Layer 1: Exact hash comparison (~0-10% of dup phase)
+     * Layer 2: Visual similarity via thumbnails (~10-70% of dup phase)
+     * Layer 3: OCR text comparison for "maybe" zone pairs (~70-100% of dup phase)
      *
      * @param {Array<{name: string, buffer: Buffer, type: string}>} files
-     * @param {Function} [onProgress] - Optional callback (layer, message)
+     * @param {Function} [onProgress] - Optional callback (subPercent, message) where subPercent is 0-100
      * @returns {Promise<{duplicates: Array<Object>}>}
      */
     static async detectDuplicates(files, onProgress) {
         if (files.length < 2) return { duplicates: [] };
 
         const allDuplicates = [];
+        const progressFn = onProgress || (() => {});
 
-        // Layer 1: Exact hash matching
-        if (onProgress) onProgress(1, 'Checking for exact duplicates...');
+        // Layer 1: Exact hash matching (~0-10% of dup phase)
+        progressFn(0, `Checking exact hashes: ${files.length} files`);
         const exactDupes = DuplicateDetector.findExactDuplicates(files);
         allDuplicates.push(...exactDupes);
+        progressFn(10, `Hash check complete: ${exactDupes.length} exact match(es)`);
 
         const matchedPairs = new Set(exactDupes.map(d => `${d.file1}|${d.file2}`));
 
-        // Layer 2: Visual similarity
-        if (onProgress) onProgress(2, 'Analyzing visual similarity...');
-        const { matches: visualMatches, maybePairs } = await DuplicateDetector.findVisualMatches(files, matchedPairs);
+        // Layer 2: Visual similarity (~10-70% of dup phase)
+        const { matches: visualMatches, maybePairs } = await DuplicateDetector.findVisualMatches(
+            files,
+            matchedPairs,
+            (pairNum, totalPairs) => {
+                const subPct = 10 + Math.round((pairNum / totalPairs) * 60);
+                progressFn(subPct, `Visual comparison: pair ${pairNum} of ${totalPairs}`);
+            }
+        );
         allDuplicates.push(...visualMatches);
+        progressFn(70, `Visual check complete: ${visualMatches.length} match(es)`);
 
-        // Layer 3: OCR text comparison (only for "maybe" zone pairs)
+        // Layer 3: OCR text comparison (~70-100% of dup phase)
         if (maybePairs.length > 0) {
-            if (onProgress) onProgress(3, `Running OCR on ${maybePairs.length} candidate pair(s)...`);
-            const contentMatches = await DuplicateDetector.findContentMatches(files, maybePairs);
+            const contentMatches = await DuplicateDetector.findContentMatches(
+                files,
+                maybePairs,
+                (pairNum, totalPairs) => {
+                    const subPct = 70 + Math.round((pairNum / totalPairs) * 30);
+                    progressFn(subPct, `OCR analysis: pair ${pairNum} of ${maybePairs.length}`);
+                }
+            );
             allDuplicates.push(...contentMatches);
         }
+        progressFn(100, `Duplicate scan complete: ${allDuplicates.length} total match(es)`);
 
         return { duplicates: allDuplicates };
     }
