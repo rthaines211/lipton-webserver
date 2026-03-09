@@ -135,7 +135,7 @@ const FormSubmission = (() => {
             evtSource.addEventListener('progress', (e) => {
                 const data = JSON.parse(e.data);
                 const displayPct = 20 + Math.round(data.progress * 0.8);
-                updateProgress(displayPct, data.message);
+                updateProgress(displayPct, data.message, data.phase, data.timestamp);
             });
 
             evtSource.addEventListener('duplicates', async (e) => {
@@ -228,22 +228,106 @@ const FormSubmission = (() => {
         });
     }
 
+    // Phase label mapping
+    const PHASE_LABELS = {
+        starting: 'Starting',
+        validation: 'Validating',
+        duplicate_detection: 'Scanning for Duplicates',
+        processing: 'Processing Files',
+        stamping: 'Applying Bates Stamps',
+        finalizing: 'Finalizing',
+    };
+
+    // Progress state for ETA calculation and stale detection
+    let progressState = {
+        startTime: null,
+        lastEventTime: null,
+        staleTimer: null,
+        staleActive: false,
+    };
+
     function showProgress(title, percent, message) {
         document.getElementById('progress-overlay').style.display = 'flex';
         document.getElementById('progress-title').textContent = title;
+        document.getElementById('progress-phase').textContent = '';
+        document.getElementById('progress-eta').textContent = '';
+        progressState = { startTime: null, lastEventTime: null, staleTimer: null, staleActive: false };
         updateProgress(percent, message);
     }
 
-    function updateProgress(percent, message) {
-        document.getElementById('progress-bar').style.width = percent + '%';
+    function updateProgress(percent, message, phase, timestamp) {
+        const bar = document.getElementById('progress-bar');
+        bar.style.width = percent + '%';
         document.getElementById('progress-percent').textContent = percent + '%';
-        if (message) {
-            document.getElementById('progress-message').textContent = message;
+
+        if (percent >= 100) {
+            bar.classList.add('complete');
+        } else {
+            bar.classList.remove('complete');
         }
+
+        if (message) {
+            const msgEl = document.getElementById('progress-message');
+            msgEl.textContent = message;
+            msgEl.classList.remove('progress-stale');
+        }
+
+        // Phase label
+        if (phase && PHASE_LABELS[phase]) {
+            document.getElementById('progress-phase').textContent = PHASE_LABELS[phase];
+        }
+
+        // ETA calculation
+        if (timestamp) {
+            if (!progressState.startTime && percent > 0) {
+                progressState.startTime = timestamp;
+            }
+            progressState.lastEventTime = Date.now();
+            progressState.staleActive = false;
+
+            if (progressState.startTime && percent >= 10 && percent < 100) {
+                const elapsed = timestamp - progressState.startTime;
+                const remaining = (elapsed / percent) * (100 - percent);
+                const etaSec = Math.round(remaining / 1000);
+                if (etaSec > 0) {
+                    const etaText = etaSec >= 60
+                        ? `~${Math.round(etaSec / 60)}m ${etaSec % 60}s remaining`
+                        : `~${etaSec}s remaining`;
+                    document.getElementById('progress-eta').textContent = etaText;
+                }
+            } else {
+                document.getElementById('progress-eta').textContent = '';
+            }
+
+            // Reset stale timer
+            resetStaleTimer();
+        }
+    }
+
+    function resetStaleTimer() {
+        if (progressState.staleTimer) {
+            clearTimeout(progressState.staleTimer);
+        }
+        // After 5 seconds with no event, show "Still processing..."
+        progressState.staleTimer = setTimeout(() => {
+            const msgEl = document.getElementById('progress-message');
+            if (!progressState.staleActive) {
+                progressState.staleActive = true;
+                msgEl.textContent = 'Still processing...';
+            }
+            // After 15 seconds total, add pulse animation
+            progressState.staleTimer = setTimeout(() => {
+                msgEl.classList.add('progress-stale');
+            }, 10000);
+        }, 5000);
     }
 
     function hideProgress() {
         document.getElementById('progress-overlay').style.display = 'none';
+        if (progressState.staleTimer) {
+            clearTimeout(progressState.staleTimer);
+        }
+        progressState = { startTime: null, lastEventTime: null, staleTimer: null, staleActive: false };
     }
 
     // Initialize on DOM ready
