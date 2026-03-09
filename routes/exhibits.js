@@ -230,13 +230,13 @@ router.post('/generate', asyncHandler(async (req, res) => {
                     const gcsPath = `exhibits/${sessionId}/${jobId}/${result.filename}`;
                     const bucket = gcs.bucket(GCS_BUCKET);
                     const file = bucket.file(gcsPath);
-                    await file.save(result.pdfBuffer, {
-                        contentType: 'application/pdf',
-                        metadata: { cacheControl: 'private, max-age=3600' },
-                    });
-                    await file.makePublic();
+                    await file.save(result.pdfBuffer, { contentType: 'application/pdf' });
 
-                    const downloadUrl = `https://storage.googleapis.com/${GCS_BUCKET}/${gcsPath}`;
+                    const [downloadUrl] = await file.getSignedUrl({
+                        action: 'read',
+                        expires: Date.now() + 60 * 60 * 1000, // 1 hour
+                        responseDisposition: `attachment; filename="${result.filename}"`,
+                    });
 
                     job.status = 'completed';
                     job.outputPath = result.outputPath;
@@ -348,13 +348,13 @@ router.post('/jobs/:jobId/resolve', asyncHandler(async (req, res) => {
                 const gcsPath = `exhibits/${job.sessionId}/${jobId}/${result.filename}`;
                 const bucket = gcs.bucket(GCS_BUCKET);
                 const gcsFile = bucket.file(gcsPath);
-                await gcsFile.save(result.pdfBuffer, {
-                    contentType: 'application/pdf',
-                    metadata: { cacheControl: 'private, max-age=3600' },
-                });
-                await gcsFile.makePublic();
+                await gcsFile.save(result.pdfBuffer, { contentType: 'application/pdf' });
 
-                const downloadUrl = `https://storage.googleapis.com/${GCS_BUCKET}/${gcsPath}`;
+                const [downloadUrl] = await gcsFile.getSignedUrl({
+                    action: 'read',
+                    expires: Date.now() + 60 * 60 * 1000, // 1 hour
+                    responseDisposition: `attachment; filename="${result.filename}"`,
+                });
 
                 job.status = 'completed';
                 job.outputPath = result.outputPath;
