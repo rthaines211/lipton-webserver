@@ -227,16 +227,16 @@ router.post('/generate', asyncHandler(async (req, res) => {
                     broadcastJobEvent(jobId, 'duplicates', { duplicates: result.duplicates });
                 } else {
                     // Upload PDF to GCS so download works across Cloud Run instances
-                    const gcsPath = `exhibits/${sessionId}/${result.filename}`;
+                    const gcsPath = `exhibits/${sessionId}/${jobId}/${result.filename}`;
                     const bucket = gcs.bucket(GCS_BUCKET);
                     const file = bucket.file(gcsPath);
-                    await file.save(result.pdfBuffer, { contentType: 'application/pdf' });
-
-                    const [downloadUrl] = await file.getSignedUrl({
-                        action: 'read',
-                        expires: Date.now() + 60 * 60 * 1000, // 1 hour
-                        responseDisposition: `attachment; filename="${result.filename}"`,
+                    await file.save(result.pdfBuffer, {
+                        contentType: 'application/pdf',
+                        metadata: { cacheControl: 'private, max-age=3600' },
                     });
+                    await file.makePublic();
+
+                    const downloadUrl = `https://storage.googleapis.com/${GCS_BUCKET}/${gcsPath}`;
 
                     job.status = 'completed';
                     job.outputPath = result.outputPath;
@@ -345,16 +345,16 @@ router.post('/jobs/:jobId/resolve', asyncHandler(async (req, res) => {
                 });
 
                 // Upload PDF to GCS so download works across Cloud Run instances
-                const gcsPath = `exhibits/${job.sessionId}/${result.filename}`;
+                const gcsPath = `exhibits/${job.sessionId}/${jobId}/${result.filename}`;
                 const bucket = gcs.bucket(GCS_BUCKET);
                 const gcsFile = bucket.file(gcsPath);
-                await gcsFile.save(result.pdfBuffer, { contentType: 'application/pdf' });
-
-                const [downloadUrl] = await gcsFile.getSignedUrl({
-                    action: 'read',
-                    expires: Date.now() + 60 * 60 * 1000, // 1 hour
-                    responseDisposition: `attachment; filename="${result.filename}"`,
+                await gcsFile.save(result.pdfBuffer, {
+                    contentType: 'application/pdf',
+                    metadata: { cacheControl: 'private, max-age=3600' },
                 });
+                await gcsFile.makePublic();
+
+                const downloadUrl = `https://storage.googleapis.com/${GCS_BUCKET}/${gcsPath}`;
 
                 job.status = 'completed';
                 job.outputPath = result.outputPath;
