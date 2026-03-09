@@ -7,6 +7,10 @@ const DuplicateUI = (() => {
     let currentReport = null;
     const resolutions = {}; // { letter: [{ file1, file2, action }] }
 
+    function escapeHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     /**
      * Render a preview element for a file in the duplicate modal.
      * Images: <img> via object URL. PDFs: <canvas> via PDF.js page 1.
@@ -123,6 +127,9 @@ const DuplicateUI = (() => {
                         : `Content Match (${pair.confidence}%)`;
 
                 // Build card shell with loading spinners as placeholders
+                const safeFile1 = escapeHtml(pair.file1);
+                const safeFile2 = escapeHtml(pair.file2);
+
                 card.innerHTML = `
                     <div class="duplicate-pair-header">
                         <span>Exhibit ${letter}:</span>
@@ -134,21 +141,21 @@ const DuplicateUI = (() => {
                     <div class="duplicate-pair-files">
                         <div class="duplicate-file-card marked-keep" id="file-card-${letter}-${idx}-1">
                             <div class="duplicate-preview">
-                                <i class="fas fa-spinner fa-spin" style="font-size:1.5rem;color:#999;"></i>
+                                <i class="fas fa-spinner fa-spin" style="font-size:1.5rem;"></i>
                             </div>
-                            <div class="file-name">${pair.file1}</div>
+                            <div class="file-name">${safeFile1}</div>
                         </div>
                         <div class="duplicate-file-card marked-keep" id="file-card-${letter}-${idx}-2">
                             <div class="duplicate-preview">
-                                <i class="fas fa-spinner fa-spin" style="font-size:1.5rem;color:#999;"></i>
+                                <i class="fas fa-spinner fa-spin" style="font-size:1.5rem;"></i>
                             </div>
-                            <div class="file-name">${pair.file2}</div>
+                            <div class="file-name">${safeFile2}</div>
                         </div>
                     </div>
                     <div class="duplicate-actions" id="actions-${letter}-${idx}">
                         <button data-action="keep_both" class="selected">Keep Both</button>
-                        <button data-action="remove_file1">Remove ${pair.file1}</button>
-                        <button data-action="remove_file2">Remove ${pair.file2}</button>
+                        <button data-action="remove_file1">Remove ${safeFile1}</button>
+                        <button data-action="remove_file2">Remove ${safeFile2}</button>
                     </div>
                 `;
 
