@@ -19,6 +19,7 @@ const Sentry = require('@sentry/node');
 const PdfPageBuilder = require('./pdf-page-builder');
 const DuplicateDetector = require('./duplicate-detector');
 const logger = require('../monitoring/logger');
+const { processWithConcurrency } = require('../utils/concurrency');
 
 const SUPPORTED_TYPES = new Set(['pdf', 'png', 'jpg', 'jpeg', 'tiff', 'heic']);
 const IMAGE_TYPES = new Set(['png', 'jpg', 'jpeg', 'tiff', 'heic']);
@@ -103,9 +104,8 @@ class ExhibitProcessor {
         let hasDuplicates = false;
 
         await Sentry.startSpan({ op: 'exhibit.duplicate_detection', name: 'Duplicate detection' }, async () => {
-            for (let i = 0; i < activeLetters.length; i++) {
-                const letter = activeLetters[i];
-                const exhibitWeight = 35 / activeLetters.length; // 35% total for dup detection
+            const results = await processWithConcurrency(activeLetters, async (letter, i) => {
+                const exhibitWeight = 35 / activeLetters.length;
                 const exhibitBase = 5 + (i * exhibitWeight);
 
                 logger.info(`[exhibit-processor] Starting dup detect Exhibit ${letter} files: ${exhibits[letter].map(f=>f.name+'/'+f.type).join(', ')}`);
@@ -119,6 +119,10 @@ class ExhibitProcessor {
                 );
 
                 logger.info(`[exhibit-processor] Finished dup detect Exhibit ${letter}, dupes: ${result.duplicates.length}`);
+                return { letter, result };
+            }, 4);
+
+            for (const { letter, result } of results) {
                 if (result.duplicates.length > 0) {
                     duplicateReport[letter] = result.duplicates;
                     hasDuplicates = true;
