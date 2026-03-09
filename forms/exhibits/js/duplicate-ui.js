@@ -30,6 +30,7 @@ const DuplicateUI = (() => {
                 img.className = 'duplicate-preview-img';
                 img.alt = filename;
                 img.src = URL.createObjectURL(entry.file);
+                img.onload = () => URL.revokeObjectURL(img.src);
                 return img;
             } else {
                 // PDF — render page 1 via PDF.js
