@@ -19,6 +19,7 @@ const Sentry = require('@sentry/node');
 const PdfPageBuilder = require('./pdf-page-builder');
 const DuplicateDetector = require('./duplicate-detector');
 const logger = require('../monitoring/logger');
+const { processWithConcurrency } = require('../utils/concurrency');
 
 const SUPPORTED_TYPES = new Set(['pdf', 'png', 'jpg', 'jpeg', 'tiff', 'heic']);
 const IMAGE_TYPES = new Set(['png', 'jpg', 'jpeg', 'tiff', 'heic']);
@@ -103,9 +104,8 @@ class ExhibitProcessor {
         let hasDuplicates = false;
 
         await Sentry.startSpan({ op: 'exhibit.duplicate_detection', name: 'Duplicate detection' }, async () => {
-            for (let i = 0; i < activeLetters.length; i++) {
-                const letter = activeLetters[i];
-                const exhibitWeight = 35 / activeLetters.length; // 35% total for dup detection
+            const results = await processWithConcurrency(activeLetters, async (letter, i) => {
+                const exhibitWeight = 35 / activeLetters.length;
                 const exhibitBase = 5 + (i * exhibitWeight);
 
                 logger.info(`[exhibit-processor] Starting dup detect Exhibit ${letter} files: ${exhibits[letter].map(f=>f.name+'/'+f.type).join(', ')}`);
@@ -119,6 +119,10 @@ class ExhibitProcessor {
                 );
 
                 logger.info(`[exhibit-processor] Finished dup detect Exhibit ${letter}, dupes: ${result.duplicates.length}`);
+                return { letter, result };
+            }, 4);
+
+            for (const { letter, result } of results) {
                 if (result.duplicates.length > 0) {
                     duplicateReport[letter] = result.duplicates;
                     hasDuplicates = true;
@@ -179,55 +183,75 @@ class ExhibitProcessor {
         }
         const padDigits = ExhibitProcessor.determinePadding(estimatedPages);
 
-        const pageMetadata = [];
-        let filesProcessed = 0;
+        // Phase 1: Build each exhibit's pages in parallel (each produces sub-doc bytes + metadata)
+        const exhibitResults = await Sentry.startSpan(
+            { op: 'exhibit.pdf_assembly', name: 'PDF assembly' },
+            async (assemblySpan) => {
+                let filesProcessedCount = 0;
 
-        await Sentry.startSpan({ op: 'exhibit.pdf_assembly', name: 'PDF assembly' }, async (assemblySpan) => {
-            for (let li = 0; li < activeLetters.length; li++) {
-                const letter = activeLetters[li];
-                const files = exhibits[letter];
-                logger.info(`[exhibit-processor] _buildPdf: Processing Exhibit ${letter}, ${files.length} files`);
+                const results = await processWithConcurrency(activeLetters, async (letter, li) => {
+                    const files = exhibits[letter];
+                    logger.info(`[exhibit-processor] _buildPdf: Processing Exhibit ${letter}, ${files.length} files`);
 
-                // Add separator page
-                const separatorBytes = await PdfPageBuilder.createSeparatorPage(letter);
-                const separatorDoc = await PDFDocument.load(separatorBytes);
-                const [separatorPage] = await finalDoc.copyPages(separatorDoc, [0]);
-                finalDoc.addPage(separatorPage);
-                pageMetadata.push({ type: 'separator' });
+                    const subDoc = await PDFDocument.create();
+                    const subMetadata = [];
 
-                // Process each file
-                let pageNum = 1;
-                for (const file of files) {
-                    filesProcessed++;
-                    const pct = 40 + Math.round((filesProcessed / totalFiles) * 45); // 40-85%
-                    progress(pct, `Processing file ${filesProcessed} of ${totalFiles}: ${file.name}`, 'processing');
+                    // Add separator page
+                    const separatorBytes = await PdfPageBuilder.createSeparatorPage(letter);
+                    const separatorDoc = await PDFDocument.load(separatorBytes);
+                    const [separatorPage] = await subDoc.copyPages(separatorDoc, [0]);
+                    subDoc.addPage(separatorPage);
+                    subMetadata.push({ type: 'separator' });
 
-                    const ext = file.type.toLowerCase();
-                    logger.info(`[exhibit-processor] Processing file: ${file.name} type=${ext}`);
+                    // Process each file
+                    let pageNum = 1;
+                    for (const file of files) {
+                        filesProcessedCount++;
+                        const pct = 40 + Math.round((filesProcessedCount / totalFiles) * 45);
+                        progress(pct, `Processing file ${filesProcessedCount} of ${totalFiles}: ${file.name}`, 'processing');
 
-                    if (IMAGE_TYPES.has(ext)) {
-                        logger.info(`[exhibit-processor] addImagePage start: buffer type=${file.buffer?.constructor?.name} size=${file.buffer?.length}`);
-                        await PdfPageBuilder.addImagePage(finalDoc, file.buffer, ext);
-                        logger.info('[exhibit-processor] addImagePage complete');
-                        pageMetadata.push({ type: 'content', letter, pageNum });
-                        pageNum++;
-                    } else {
-                        const fileDoc = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
-                        const pageIndices = fileDoc.getPageIndices();
-                        logger.info(`[exhibit-processor] Loaded PDF ${file.name}, pages=${fileDoc.getPageCount()}`);
-                        const copiedPages = await finalDoc.copyPages(fileDoc, pageIndices);
-                        for (const page of copiedPages) {
-                            finalDoc.addPage(page);
-                            pageMetadata.push({ type: 'content', letter, pageNum });
+                        const ext = file.type.toLowerCase();
+                        logger.info(`[exhibit-processor] Processing file: ${file.name} type=${ext}`);
+
+                        if (IMAGE_TYPES.has(ext)) {
+                            logger.info(`[exhibit-processor] addImagePage start: buffer type=${file.buffer?.constructor?.name} size=${file.buffer?.length}`);
+                            await PdfPageBuilder.addImagePage(subDoc, file.buffer, ext);
+                            logger.info('[exhibit-processor] addImagePage complete');
+                            subMetadata.push({ type: 'content', letter, pageNum });
                             pageNum++;
+                        } else {
+                            const fileDoc = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
+                            const pageIndices = fileDoc.getPageIndices();
+                            logger.info(`[exhibit-processor] Loaded PDF ${file.name}, pages=${fileDoc.getPageCount()}`);
+                            const copiedPages = await subDoc.copyPages(fileDoc, pageIndices);
+                            for (const page of copiedPages) {
+                                subDoc.addPage(page);
+                                subMetadata.push({ type: 'content', letter, pageNum });
+                                pageNum++;
+                            }
                         }
                     }
-                }
-            }
 
-            assemblySpan.setAttribute('exhibit.total_pages', pageMetadata.length);
-            assemblySpan.setAttribute('exhibit.content_pages', pageMetadata.filter(m => m.type === 'content').length);
-        });
+                    const subBytes = await subDoc.save();
+                    return { letter, subBytes, subMetadata };
+                }, 4);
+
+                assemblySpan.setAttribute('exhibit.letters_processed', results.length);
+                return results;
+            }
+        );
+
+        // Phase 2: Merge all sub-documents into finalDoc in order
+        const pageMetadata = [];
+        for (const { subBytes, subMetadata } of exhibitResults) {
+            const subDoc = await PDFDocument.load(subBytes);
+            const pageIndices = subDoc.getPageIndices();
+            const copiedPages = await finalDoc.copyPages(subDoc, pageIndices);
+            for (const page of copiedPages) {
+                finalDoc.addPage(page);
+            }
+            pageMetadata.push(...subMetadata);
+        }
 
         // Second pass: Bates stamps on content pages only (85-95%)
         logger.info('[exhibit-processor] All exhibits processed, starting Bates stamp pass');

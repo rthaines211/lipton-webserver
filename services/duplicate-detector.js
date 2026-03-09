@@ -93,54 +93,51 @@ class DuplicateDetector {
     static async findVisualMatches(files, alreadyMatchedPairs = new Set(), onPairProgress) {
         const matches = [];
         const maybePairs = [];
-
         const IMAGE_TYPES_SET = new Set(['png', 'jpg', 'jpeg', 'tiff', 'heic']);
+        const { processWithConcurrency } = require('../utils/concurrency');
 
-        // Pre-count total eligible pairs for progress reporting
-        let totalPairs = 0;
+        // Collect all eligible pairs
+        const pairs = [];
         for (let i = 0; i < files.length; i++) {
             for (let j = i + 1; j < files.length; j++) {
                 const pairKey = `${files[i].name}|${files[j].name}`;
                 if (alreadyMatchedPairs.has(pairKey)) continue;
                 if (!IMAGE_TYPES_SET.has(files[i].type) || !IMAGE_TYPES_SET.has(files[j].type)) continue;
-                totalPairs++;
+                pairs.push({ i, j });
             }
         }
 
-        let pairNum = 0;
-        for (let i = 0; i < files.length; i++) {
-            for (let j = i + 1; j < files.length; j++) {
-                const pairKey = `${files[i].name}|${files[j].name}`;
-                if (alreadyMatchedPairs.has(pairKey)) continue;
-                if (!IMAGE_TYPES_SET.has(files[i].type) || !IMAGE_TYPES_SET.has(files[j].type)) continue;
+        const totalPairs = pairs.length;
+        let completedPairs = 0;
 
-                pairNum++;
-                if (onPairProgress && totalPairs > 0) {
-                    onPairProgress(pairNum, totalPairs);
-                }
-
-                try {
-                    const similarity = await DuplicateDetector.computeVisualSimilarity(
-                        files[i].buffer, files[j].buffer
-                    );
-
-                    if (similarity >= VISUAL_MATCH_THRESHOLD) {
-                        matches.push({
-                            file1: files[i].name,
-                            file2: files[j].name,
-                            matchType: 'VISUAL_MATCH',
-                            confidence: Math.round(similarity * 100),
-                            layer: 2,
-                            details: `Visual similarity: ${Math.round(similarity * 100)}%`,
-                        });
-                    } else if (similarity >= VISUAL_MAYBE_LOW) {
-                        maybePairs.push({ file1Index: i, file2Index: j, similarity });
-                    }
-                } catch (err) {
-                    logger.warn(`Visual comparison failed for ${files[i].name} vs ${files[j].name}: ${err.message}`);
-                }
+        await processWithConcurrency(pairs, async (pair) => {
+            const { i, j } = pair;
+            completedPairs++;
+            if (onPairProgress && totalPairs > 0) {
+                onPairProgress(completedPairs, totalPairs);
             }
-        }
+
+            try {
+                const similarity = await DuplicateDetector.computeVisualSimilarity(
+                    files[i].buffer, files[j].buffer
+                );
+
+                if (similarity >= VISUAL_MATCH_THRESHOLD) {
+                    matches.push({
+                        file1: files[i].name,
+                        file2: files[j].name,
+                        matchType: 'VISUAL_MATCH',
+                        confidence: Math.round(similarity * 100),
+                        layer: 2,
+                        details: `Visual similarity: ${Math.round(similarity * 100)}%`,
+                    });
+                } else if (similarity >= VISUAL_MAYBE_LOW) {
+                    maybePairs.push({ file1Index: i, file2Index: j, similarity });
+                }
+            } catch (err) {
+                logger.warn(`Visual comparison failed for ${files[i].name} vs ${files[j].name}: ${err.message}`);
+            }
+        }, 4);
 
         return { matches, maybePairs };
     }
@@ -156,13 +153,14 @@ class DuplicateDetector {
         if (maybePairs.length === 0) return [];
 
         const Tesseract = require('tesseract.js');
+        const { processWithConcurrency } = require('../utils/concurrency');
         const matches = [];
+        let completedPairs = 0;
 
-        for (let idx = 0; idx < maybePairs.length; idx++) {
-            const pair = maybePairs[idx];
-
+        await processWithConcurrency(maybePairs, async (pair) => {
+            completedPairs++;
             if (onPairProgress) {
-                onPairProgress(idx + 1, maybePairs.length);
+                onPairProgress(completedPairs, maybePairs.length);
             }
 
             try {
@@ -186,7 +184,7 @@ class DuplicateDetector {
             } catch (err) {
                 logger.warn(`OCR comparison failed for pair: ${err.message}`);
             }
-        }
+        }, 2);
 
         return matches;
     }

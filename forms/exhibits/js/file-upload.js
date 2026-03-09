@@ -44,16 +44,30 @@ const FileUploader = (() => {
     async function uploadAllExhibits(sessionId, exhibits, onProgress) {
         const letters = Object.keys(exhibits).filter(l => exhibits[l].length > 0).sort();
 
-        for (const letter of letters) {
-            if (onProgress) onProgress(letter, 'uploading');
+        // Bounded concurrency: upload up to 3 exhibits simultaneously
+        const limit = 3;
+        let nextIndex = 0;
 
-            const files = exhibits[letter].map(entry => entry.file).filter(Boolean);
-            if (files.length === 0) continue;
+        async function worker() {
+            while (nextIndex < letters.length) {
+                const idx = nextIndex++;
+                const letter = letters[idx];
+                if (onProgress) onProgress(letter, 'uploading');
 
-            await uploadFiles(sessionId, letter, files);
+                const files = exhibits[letter].map(entry => entry.file).filter(Boolean);
+                if (files.length > 0) {
+                    await uploadFiles(sessionId, letter, files);
+                }
 
-            if (onProgress) onProgress(letter, 'done');
+                if (onProgress) onProgress(letter, 'done');
+            }
         }
+
+        const workers = Array.from(
+            { length: Math.min(limit, letters.length) },
+            () => worker()
+        );
+        await Promise.all(workers);
     }
 
     return {
