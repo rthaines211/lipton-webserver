@@ -36,6 +36,50 @@ async function getFileBuffer(file) {
 const SUPPORTED_TYPES = new Set(['pdf', 'png', 'jpg', 'jpeg', 'tiff', 'heic']);
 const IMAGE_TYPES = new Set(['png', 'jpg', 'jpeg', 'tiff', 'heic']);
 
+/**
+ * Generate base64 thumbnail for a file (for server-side duplicate preview).
+ * @param {Object} file - File with buffer or filePath
+ * @returns {Promise<string|null>} base64 data URL or null
+ */
+async function generateThumbnail(file) {
+    try {
+        const buffer = await getFileBuffer(file);
+        const ext = path.extname(file.name).toLowerCase();
+
+        if (['.png', '.jpg', '.jpeg', '.tiff', '.tif', '.heic'].includes(ext)) {
+            const sharp = require('sharp');
+            const thumb = await sharp(buffer)
+                .resize(400, null, { withoutEnlargement: true })
+                .jpeg({ quality: 70 })
+                .toBuffer();
+            return `data:image/jpeg;base64,${thumb.toString('base64')}`;
+        }
+
+        if (ext === '.pdf') {
+            try {
+                const pdfjsLib = require('pdfjs-dist/legacy/build/pdf');
+                const { createCanvas } = require('canvas');
+                const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
+                const page = await doc.getPage(1);
+                const viewport = page.getViewport({ scale: 0.5 });
+                const canvas = createCanvas(viewport.width, viewport.height);
+                const ctx = canvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport }).promise;
+                const pngBuffer = canvas.toBuffer('image/png');
+                return `data:image/png;base64,${pngBuffer.toString('base64')}`;
+            } catch (pdfError) {
+                console.error(`PDF thumbnail failed for ${file.name}:`, pdfError.message);
+                return null;
+            }
+        }
+
+        return null;
+    } catch (error) {
+        console.error(`Thumbnail generation failed for ${file.name}:`, error.message);
+        return null;
+    }
+}
+
 class ExhibitProcessor {
     /**
      * Validate that exhibits contain at least one file and all file types are supported.
@@ -102,7 +146,7 @@ class ExhibitProcessor {
      * @param {Function} [params.onProgress] - Progress callback: (percent, message, phase) => void
      * @returns {Promise<{outputPath: string, filename: string}|{duplicates: Object, paused: boolean}>}
      */
-    static async process({ caseName, exhibits, outputDir, onProgress, skipDuplicateDetection = false }) {
+    static async process({ caseName, exhibits, outputDir, onProgress, skipDuplicateDetection = false, generateThumbnails = false }) {
         const progress = onProgress || (() => {});
 
         // Step 1: Validate (0-5%)
@@ -161,6 +205,17 @@ class ExhibitProcessor {
             });
 
             if (hasDuplicates) {
+                // Generate thumbnails for duplicate preview (server-side for Dropbox imports)
+                if (generateThumbnails) {
+                    for (const letter of Object.keys(duplicateReport)) {
+                        for (const pair of duplicateReport[letter]) {
+                            const file1 = exhibits[letter].find(f => f.name === pair.file1);
+                            const file2 = exhibits[letter].find(f => f.name === pair.file2);
+                            pair.thumbnail1 = file1 ? await generateThumbnail(file1) : null;
+                            pair.thumbnail2 = file2 ? await generateThumbnail(file2) : null;
+                        }
+                    }
+                }
                 return { duplicates: duplicateReport, paused: true };
             }
         }

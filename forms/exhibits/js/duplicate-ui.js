@@ -16,7 +16,16 @@ const DuplicateUI = (() => {
      * Images: <img> via object URL. PDFs: <canvas> via PDF.js page 1.
      * Falls back to FontAwesome icon on error.
      */
-    async function renderPreview(letter, filename) {
+    async function renderPreview(letter, filename, serverThumbnail) {
+        // If server provided a thumbnail (Dropbox imports), use it directly
+        if (serverThumbnail) {
+            const img = document.createElement('img');
+            img.src = serverThumbnail;
+            img.className = 'duplicate-preview-img';
+            img.alt = filename;
+            return img;
+        }
+
         const exhibits = ExhibitManager.getExhibits();
         const files = exhibits[letter] || [];
         const entry = files.find(f => f.name === filename);
@@ -199,11 +208,11 @@ const DuplicateUI = (() => {
                 const preview1 = card.querySelector(`#file-card-${letter}-${idx}-1 .duplicate-preview`);
                 const preview2 = card.querySelector(`#file-card-${letter}-${idx}-2 .duplicate-preview`);
 
-                renderPreview(letter, pair.file1).then(el => {
+                renderPreview(letter, pair.file1, pair.thumbnail1).then(el => {
                     preview1.innerHTML = '';
                     preview1.appendChild(el);
                 });
-                renderPreview(letter, pair.file2).then(el => {
+                renderPreview(letter, pair.file2, pair.thumbnail2).then(el => {
                     preview2.innerHTML = '';
                     preview2.appendChild(el);
                 });
