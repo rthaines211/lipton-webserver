@@ -18,9 +18,15 @@ on:
     paths:
       - 'forms/exhibits/**'
       - 'routes/exhibits.js'
+      - 'routes/dropbox.js'
+      - 'routes/jobs.js'
       - 'services/exhibit-processor.js'
       - 'services/duplicate-detector.js'
       - 'services/pdf-page-builder.js'
+      - 'services/dropbox-browser.js'
+      - 'services/async-job-manager.js'
+      - 'dropbox-service.js'
+      - 'job-entrypoint.js'
       - 'middleware/**'
       - 'monitoring/instrument.js'
       - 'server.js'
@@ -90,7 +96,7 @@ jobs:
             --memory=4Gi \
             --cpu=4 \
             --concurrency=2 \
-            --timeout=300 \
+            --timeout=900 \
             --max-instances=10 \
             --min-instances=1 \
             --session-affinity
@@ -112,3 +118,41 @@ jobs:
             exit 1
           fi
           echo "✅ Health check passed (HTTP $HTTP_STATUS)"
+
+      - name: 🔄 Deploy Cloud Run Job
+        run: |
+          set -euo pipefail
+          IMAGE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --format='value(spec.template.spec.containers[0].image)')
+
+          gcloud run jobs create exhibit-processor-job \
+            --image="$IMAGE_URL" \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --memory=8Gi \
+            --cpu=8 \
+            --task-timeout=3600 \
+            --max-retries=0 \
+            --command="node" \
+            --args="job-entrypoint.js" \
+            --set-env-vars="NODE_ENV=production" \
+            --set-secrets="DB_PASSWORD=DB_PASSWORD:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DROPBOX_APP_KEY=dropbox-app-key:latest,DROPBOX_APP_SECRET=dropbox-app-secret:latest,DROPBOX_REFRESH_TOKEN=dropbox-refresh-token:latest" \
+            --service-account=${{ env.SERVICE_ACCOUNT }} \
+            2>/dev/null || \
+          gcloud run jobs update exhibit-processor-job \
+            --image="$IMAGE_URL" \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --memory=8Gi \
+            --cpu=8 \
+            --task-timeout=3600 \
+            --max-retries=0 \
+            --command="node" \
+            --args="job-entrypoint.js" \
+            --set-env-vars="NODE_ENV=production" \
+            --set-secrets="DB_PASSWORD=DB_PASSWORD:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DROPBOX_APP_KEY=dropbox-app-key:latest,DROPBOX_APP_SECRET=dropbox-app-secret:latest,DROPBOX_REFRESH_TOKEN=dropbox-refresh-token:latest" \
+            --service-account=${{ env.SERVICE_ACCOUNT }}
+
+          echo "✅ Cloud Run Job deployed/updated"
