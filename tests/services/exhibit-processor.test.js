@@ -77,4 +77,58 @@ describe('ExhibitProcessor', () => {
                 .toBe('CaseNameBad_Exhibits.pdf');
         });
     });
+
+    describe('process with disk-based files', () => {
+        it('should accept file objects with filePath instead of buffer', async () => {
+            // Create a real PDF file on disk
+            const pdfDoc = await PDFDocument.create();
+            pdfDoc.addPage([612, 792]);
+            const pdfBytes = await pdfDoc.save();
+            const filePath = path.join(tempDir, 'test.pdf');
+            fs.writeFileSync(filePath, Buffer.from(pdfBytes));
+
+            const exhibits = {
+                A: [{ name: 'test.pdf', type: 'pdf', filePath }],
+            };
+
+            const result = await ExhibitProcessor.process({
+                caseName: 'Disk Test',
+                exhibits,
+                outputDir: tempDir,
+                onProgress: () => {},
+            });
+
+            expect(result.filename).toBeDefined();
+            expect(result.pdfBuffer).toBeInstanceOf(Uint8Array);
+        });
+
+        it('should support mixed buffer and filePath inputs', async () => {
+            const pdfDoc1 = await PDFDocument.create();
+            pdfDoc1.addPage([612, 792]);
+            const pdfBytes1 = await pdfDoc1.save();
+
+            const pdfDoc2 = await PDFDocument.create();
+            pdfDoc2.addPage([400, 600]);
+            const pdfBytes2 = await pdfDoc2.save();
+
+            const filePath = path.join(tempDir, 'disk.pdf');
+            fs.writeFileSync(filePath, Buffer.from(pdfBytes2));
+
+            const exhibits = {
+                A: [
+                    { name: 'memory.pdf', type: 'pdf', buffer: Buffer.from(pdfBytes1) },
+                    { name: 'disk.pdf', type: 'pdf', filePath },
+                ],
+            };
+
+            const result = await ExhibitProcessor.process({
+                caseName: 'Mixed Test',
+                exhibits,
+                outputDir: tempDir,
+                onProgress: () => {},
+            });
+
+            expect(result.filename).toBeDefined();
+        });
+    });
 });

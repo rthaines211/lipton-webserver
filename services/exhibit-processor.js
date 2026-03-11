@@ -20,6 +20,18 @@ const PdfPageBuilder = require('./pdf-page-builder');
 const DuplicateDetector = require('./duplicate-detector');
 const logger = require('../monitoring/logger');
 const { processWithConcurrency } = require('../utils/concurrency');
+const fsPromises = require('fs').promises;
+
+/**
+ * Get file buffer — supports both in-memory (multer) and disk-based (Dropbox) files.
+ * @param {Object} file - {name, type, buffer?} or {name, type, filePath?}
+ * @returns {Promise<Buffer>}
+ */
+async function getFileBuffer(file) {
+    if (file.buffer) return file.buffer;
+    if (file.filePath) return fsPromises.readFile(file.filePath);
+    throw new Error(`File ${file.name} has neither buffer nor filePath`);
+}
 
 const SUPPORTED_TYPES = new Set(['pdf', 'png', 'jpg', 'jpeg', 'tiff', 'heic']);
 const IMAGE_TYPES = new Set(['png', 'jpg', 'jpeg', 'tiff', 'heic']);
@@ -98,6 +110,16 @@ class ExhibitProcessor {
         ExhibitProcessor.validateExhibits(exhibits);
         const activeLetters = ExhibitProcessor.getActiveExhibits(exhibits);
         progress(5, `Validated ${activeLetters.length} exhibit(s)`, 'validation');
+
+        // Pre-load buffers for disk-based files before duplicate detection
+        // (DuplicateDetector expects file.buffer to exist)
+        for (const letter of activeLetters) {
+            for (const file of exhibits[letter]) {
+                if (!file.buffer && file.filePath) {
+                    file.buffer = await fsPromises.readFile(file.filePath);
+                }
+            }
+        }
 
         // Step 2: Duplicate detection per exhibit (5-40%)
         const duplicateReport = {};
@@ -213,14 +235,16 @@ class ExhibitProcessor {
                         const ext = file.type.toLowerCase();
                         logger.info(`[exhibit-processor] Processing file: ${file.name} type=${ext}`);
 
+                        const fileBuffer = await getFileBuffer(file);
+
                         if (IMAGE_TYPES.has(ext)) {
-                            logger.info(`[exhibit-processor] addImagePage start: buffer type=${file.buffer?.constructor?.name} size=${file.buffer?.length}`);
-                            await PdfPageBuilder.addImagePage(subDoc, file.buffer, ext);
+                            logger.info(`[exhibit-processor] addImagePage start: buffer type=${fileBuffer?.constructor?.name} size=${fileBuffer?.length}`);
+                            await PdfPageBuilder.addImagePage(subDoc, fileBuffer, ext);
                             logger.info('[exhibit-processor] addImagePage complete');
                             subMetadata.push({ type: 'content', letter, pageNum });
                             pageNum++;
                         } else {
-                            const fileDoc = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
+                            const fileDoc = await PDFDocument.load(fileBuffer, { ignoreEncryption: true });
                             const pageIndices = fileDoc.getPageIndices();
                             logger.info(`[exhibit-processor] Loaded PDF ${file.name}, pages=${fileDoc.getPageCount()}`);
                             const copiedPages = await subDoc.copyPages(fileDoc, pageIndices);
