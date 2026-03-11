@@ -16,13 +16,18 @@ const crypto = require('crypto');
 const Sentry = require('@sentry/node');
 const { Storage } = require('@google-cloud/storage');
 const ExhibitProcessor = require('../services/exhibit-processor');
+const DropboxBrowser = require('../services/dropbox-browser');
+const AsyncJobManager = require('../services/async-job-manager');
 const logger = require('../monitoring/logger');
 const { asyncHandler } = require('../middleware/error-handler');
+
+const os = require('os');
+const fsPromises = require('fs').promises;
 
 const gcs = new Storage();
 const GCS_BUCKET = process.env.GCS_BUCKET_NAME || 'docmosis-tornado-form-submissions';
 
-const UPLOAD_BASE = path.join(require('os').tmpdir(), 'exhibits');
+const UPLOAD_BASE = path.join(os.tmpdir(), 'exhibits');
 const CLEANUP_TTL = 60 * 60 * 1000; // 1 hour
 
 const sessions = new Map();
@@ -477,5 +482,175 @@ setInterval(() => {
         }
     }
 }, 10 * 60 * 1000);
+
+/**
+ * POST /generate-from-dropbox
+ * Generate exhibit package from Dropbox files.
+ * Supports real-time (SSE) and async (job queue) modes.
+ */
+router.post('/generate-from-dropbox', async (req, res) => {
+    try {
+        const { caseName, exhibitMapping, mode, email } = req.body;
+
+        if (!caseName || !exhibitMapping) {
+            return res.status(400).json({ success: false, error: 'caseName and exhibitMapping are required' });
+        }
+
+        const totalFiles = Object.values(exhibitMapping).flat().length;
+        const effectiveMode = mode || (totalFiles >= 50 ? 'async' : 'realtime');
+
+        if (effectiveMode === 'async') {
+            const job = await AsyncJobManager.createJob({
+                caseName,
+                totalFiles,
+                exhibitMapping,
+                dropboxSourcePath: null,
+                email,
+            });
+
+            return res.json({
+                success: true,
+                mode: 'async',
+                jobId: job.id,
+                message: `Processing ${totalFiles} files. Check the jobs dashboard for progress.`,
+            });
+        }
+
+        // Real-time mode
+        const sessionId = `dropbox-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const tempDir = path.join(os.tmpdir(), 'exhibits', sessionId);
+        await fsPromises.mkdir(tempDir, { recursive: true });
+
+        const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+        jobs.set(jobId, {
+            sessionId,
+            status: 'processing',
+            progress: 0,
+            phase: 'downloading',
+            message: 'Downloading files from Dropbox...',
+            sseClients: [],
+        });
+
+        res.json({ success: true, mode: 'realtime', jobId });
+
+        // Process in background (after response sent)
+        setImmediate(async () => {
+            const job = jobs.get(jobId);
+
+            try {
+                // Phase 1: Download from Dropbox (0-20%)
+                const flatFiles = [];
+                for (const [letter, files] of Object.entries(exhibitMapping)) {
+                    for (const file of files) {
+                        flatFiles.push({ dropboxPath: file.dropboxPath, letter });
+                    }
+                }
+
+                const downloadedFiles = await DropboxBrowser.downloadFiles(
+                    flatFiles,
+                    tempDir,
+                    15,
+                    (completed, total) => {
+                        const pct = Math.round((completed / total) * 20);
+                        broadcastJobEvent(jobId, 'progress', {
+                            progress: pct,
+                            phase: 'downloading',
+                            message: `Downloading files from Dropbox (${completed}/${total})...`,
+                            timestamp: Date.now(),
+                        });
+                    }
+                );
+
+                // Build exhibits object with filePath references
+                const exhibits = {};
+                for (const [letter, files] of downloadedFiles.entries()) {
+                    exhibits[letter] = files.map(f => ({
+                        name: f.name,
+                        type: path.extname(f.name).slice(1).toLowerCase(),
+                        filePath: f.localPath,
+                    }));
+                }
+
+                // Phase 2-5: Process (20-100%)
+                const result = await ExhibitProcessor.process({
+                    caseName,
+                    exhibits,
+                    outputDir: tempDir,
+                    generateThumbnails: true,
+                    onProgress: (percent, message, phase) => {
+                        const adjusted = 20 + Math.round(percent * 0.8);
+                        broadcastJobEvent(jobId, 'progress', {
+                            progress: adjusted,
+                            phase: phase || 'processing',
+                            message,
+                            timestamp: Date.now(),
+                        });
+                    },
+                });
+
+                // Handle duplicate pause
+                if (result.paused) {
+                    job.status = 'awaiting_resolution';
+                    job.duplicates = result.duplicates;
+                    job.exhibits = exhibits;
+                    job.tempDir = tempDir;
+                    job.caseName = caseName;
+
+                    broadcastJobEvent(jobId, 'duplicates', { duplicates: result.duplicates });
+                    return;
+                }
+
+                // Upload to GCS
+                job.status = 'completed';
+                job.outputPath = result.outputPath;
+                job.filename = result.filename;
+                job.pdfBuffer = result.pdfBuffer;
+
+                let downloadUrl = null;
+                try {
+                    const bucket = gcs.bucket(GCS_BUCKET);
+                    const gcsPath = `exhibits/${sessionId}/${jobId}/${result.filename}`;
+                    const gcsFile = bucket.file(gcsPath);
+                    await gcsFile.save(Buffer.from(result.pdfBuffer), { contentType: 'application/pdf' });
+                    [downloadUrl] = await gcsFile.getSignedUrl({
+                        action: 'read',
+                        expires: Date.now() + 60 * 60 * 1000,
+                        responseDisposition: `attachment; filename="${result.filename}"`,
+                    });
+                    job.downloadUrl = downloadUrl;
+                } catch (gcsError) {
+                    logger.warn(`GCS upload/sign skipped (local dev?): ${gcsError.message}`);
+                }
+
+                // Send complete event
+                broadcastJobEvent(jobId, 'complete', {
+                    filename: result.filename,
+                    downloadUrl: downloadUrl || `/api/exhibits/download/${jobId}`,
+                });
+
+            } catch (error) {
+                logger.error('Dropbox processing error:', error);
+                job.status = 'failed';
+                job.message = error.message;
+                broadcastJobEvent(jobId, 'error', { error: error.message });
+            } finally {
+                // Clean up temp dir (skip if paused for duplicate resolution)
+                const currentJob = jobs.get(jobId);
+                if (currentJob && currentJob.status !== 'awaiting_resolution') {
+                    try {
+                        await fsPromises.rm(tempDir, { recursive: true, force: true });
+                    } catch (cleanupError) {
+                        logger.error('Temp cleanup failed:', cleanupError.message);
+                    }
+                }
+            }
+        });
+
+    } catch (error) {
+        logger.error('Generate from Dropbox error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 module.exports = router;
