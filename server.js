@@ -488,6 +488,10 @@ app.use('/api/exhibits', exhibitRoutes);
 const jobsRoutes = require('./routes/jobs');
 app.use('/api/jobs', jobsRoutes);
 
+// Dropbox browser routes
+const dropboxRoutes = require('./routes/dropbox');
+app.use('/api/dropbox', dropboxRoutes);
+
 // Complaint creator routes
 app.use('/api', complaintRoutes);
 
