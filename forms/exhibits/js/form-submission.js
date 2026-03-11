@@ -7,7 +7,14 @@ const FormSubmission = (() => {
 
     function init() {
         const btn = document.getElementById('btn-generate');
-        btn.addEventListener('click', handleGenerate);
+        btn.addEventListener('click', () => {
+            const dropboxPanel = document.getElementById('dropbox-panel');
+            if (dropboxPanel && dropboxPanel.style.display !== 'none') {
+                handleGenerateFromDropbox();
+            } else {
+                handleGenerate();
+            }
+        });
 
         // Blur validation for required fields
         const caseName = document.getElementById('case-name');
@@ -124,6 +131,87 @@ const FormSubmission = (() => {
         } catch (error) {
             hideProgress();
             alert(`Error: ${error.message}`);
+            btn.disabled = false;
+        }
+    }
+
+    /**
+     * Handle generate from Dropbox import.
+     * Skips the upload phase — sends exhibit mapping to server for server-side download.
+     */
+    async function handleGenerateFromDropbox() {
+        if (!validateRequiredFields()) return;
+
+        const caseName = document.getElementById('case-name').value.trim();
+        const exhibitMapping = DropboxBrowserUI.getExhibitMapping();
+        const totalFiles = DropboxBrowserUI.getTotalFiles();
+
+        if (totalFiles === 0) {
+            alert('Please assign at least one file to an exhibit slot');
+            return;
+        }
+
+        const btn = document.getElementById('btn-generate');
+        btn.disabled = true;
+
+        // Determine mode
+        const defaultMode = totalFiles >= 50 ? 'async' : 'realtime';
+        let mode = defaultMode;
+
+        if (totalFiles >= 40 && totalFiles < 60) {
+            const useAsync = confirm(
+                `You have ${totalFiles} files. Would you like to process in the background?\n\n` +
+                `OK = Background processing (email notification when done)\n` +
+                `Cancel = Wait for results now`
+            );
+            mode = useAsync ? 'async' : 'realtime';
+        }
+
+        if (mode === 'async') {
+            const email = prompt('Enter email for notification when processing is complete:');
+            try {
+                const res = await fetch('/api/exhibits/generate-from-dropbox', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ caseName, exhibitMapping, mode: 'async', email }),
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    alert(data.message);
+                    document.getElementById('btn-show-jobs').style.display = 'inline';
+                    if (typeof JobsDashboard !== 'undefined') JobsDashboard.show();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Failed to start processing: ' + error.message);
+            }
+            btn.disabled = false;
+            return;
+        }
+
+        // Real-time mode
+        showProgress('Downloading from Dropbox', 0, 'Starting Dropbox download...');
+        try {
+            const res = await fetch('/api/exhibits/generate-from-dropbox', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ caseName, exhibitMapping, mode: 'realtime' }),
+            });
+            const data = await res.json();
+
+            if (!data.success) {
+                hideProgress();
+                alert('Error: ' + data.error);
+                btn.disabled = false;
+                return;
+            }
+
+            await connectSSE(data.jobId);
+        } catch (error) {
+            hideProgress();
+            alert('Failed: ' + error.message);
             btn.disabled = false;
         }
     }
