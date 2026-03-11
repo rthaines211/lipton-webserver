@@ -959,3 +959,267 @@ textarea.input-error:focus {
     outline: 3px solid var(--secondary-teal);
     outline-offset: 2px;
 }
+
+/* === DROPBOX BROWSER PANEL === */
+
+#dropbox-panel {
+    display: none;
+    gap: 20px;
+    margin-bottom: 20px;
+    padding: 20px 40px;
+}
+
+.dropbox-browser {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    max-height: 500px;
+    display: flex;
+    flex-direction: column;
+}
+
+.dropbox-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+}
+
+.dropbox-breadcrumb {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.breadcrumb-item {
+    cursor: pointer;
+    color: #0066cc;
+}
+
+.breadcrumb-item:hover {
+    text-decoration: underline;
+}
+
+.dropbox-file-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 8px;
+}
+
+.dropbox-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.dropbox-entry:hover {
+    background: #f0f0f0;
+}
+
+.dropbox-entry.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.dropbox-entry .entry-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dropbox-entry .entry-size {
+    color: #888;
+    font-size: 0.85em;
+    white-space: nowrap;
+}
+
+/* === EXHIBIT ASSIGNMENT PANEL === */
+
+.exhibit-assignment-panel {
+    width: 350px;
+    flex-shrink: 0;
+}
+
+.exhibit-slots {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.exhibit-slot {
+    border: 2px dashed #ccc;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    padding: 8px;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.exhibit-slot.drag-over {
+    border-color: #0066cc;
+    background: #e8f0fe;
+}
+
+.slot-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.slot-header .file-count {
+    color: #888;
+    font-size: 0.85em;
+    flex: 1;
+}
+
+.slot-placeholder {
+    color: #aaa;
+    font-style: italic;
+    font-size: 0.9em;
+}
+
+.slot-file {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    background: #f8f8f8;
+    border-radius: 4px;
+    margin-top: 4px;
+    font-size: 0.9em;
+}
+
+.slot-file .file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.btn-clear-slot,
+.btn-remove-file {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #cc0000;
+    font-size: 0.9em;
+    padding: 2px 6px;
+}
+
+.btn-small {
+    padding: 4px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    padding: 8px 16px;
+    border: 1px solid #0066cc;
+    border-radius: 4px;
+    background: #fff;
+    color: #0066cc;
+    cursor: pointer;
+    margin-bottom: 12px;
+}
+
+.btn-secondary:hover {
+    background: #e8f0fe;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: #0066cc;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 4px;
+}
+
+.hint {
+    color: #888;
+    font-size: 0.9em;
+    margin-bottom: 8px;
+}
+
+.loading-placeholder {
+    color: #999;
+    text-align: center;
+    padding: 40px 20px;
+    font-style: italic;
+}
+
+/* === JOBS DASHBOARD === */
+
+#jobs-dashboard {
+    padding: 20px 40px;
+    border-top: 1px solid var(--border-color);
+}
+
+.jobs-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.job-card {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+
+.job-card .job-status {
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.8em;
+}
+
+.job-card .job-status.complete { color: #2e7d32; }
+.job-card .job-status.processing,
+.job-card .job-status.downloading { color: #1565c0; }
+.job-card .job-status.failed { color: #c62828; }
+.job-card .job-status.pending { color: #888; }
+
+.progress-bar-mini {
+    height: 6px;
+    background: #eee;
+    border-radius: 3px;
+    margin: 6px 0 4px;
+    overflow: hidden;
+}
+
+.progress-fill-mini {
+    height: 100%;
+    background: #1565c0;
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+
+.progress-text {
+    font-size: 0.8em;
+    color: #555;
+}
+
+.error-text {
+    color: #c62828;
+    font-size: 0.85em;
+    margin: 4px 0;
+}
+
+@media (max-width: 768px) {
+    #dropbox-panel {
+        flex-direction: column;
+    }
+
+    .exhibit-assignment-panel {
+        width: 100%;
+    }
+}
