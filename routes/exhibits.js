@@ -508,11 +508,29 @@ router.post('/generate-from-dropbox', async (req, res) => {
                 email,
             });
 
+            // Dispatch Cloud Run Job
+            try {
+                const { JobsClient } = require('@google-cloud/run').v2;
+                const jobsClient = new JobsClient();
+                await jobsClient.runJob({
+                    name: `projects/docmosis-tornado/locations/us-central1/jobs/exhibit-processor-job`,
+                    overrides: {
+                        containerOverrides: [{
+                            env: [{ name: 'JOB_ID', value: job.id }],
+                        }],
+                    },
+                });
+            } catch (dispatchError) {
+                logger.error('Failed to dispatch Cloud Run Job:', dispatchError.message);
+                await AsyncJobManager.failJob(job.id, 'Failed to dispatch processing job');
+                return res.status(500).json({ success: false, error: 'Failed to start processing' });
+            }
+
             return res.json({
                 success: true,
                 mode: 'async',
                 jobId: job.id,
-                message: `Processing ${totalFiles} files. Check the jobs dashboard for progress.`,
+                message: `Processing ${totalFiles} files. ${email ? 'You\'ll receive an email' : 'Check the jobs dashboard'} when it's ready.`,
             });
         }
 
