@@ -131,4 +131,31 @@ describe('ExhibitProcessor', () => {
             expect(result.filename).toBeDefined();
         });
     });
+
+    describe('skipDuplicateDetection option', () => {
+        it('should skip duplicate detection when flag is true', async () => {
+            const pdfDoc = await PDFDocument.create();
+            pdfDoc.addPage([612, 792]);
+            const pdfBytes = await pdfDoc.save();
+
+            const exhibits = {
+                A: [
+                    { name: 'doc1.pdf', type: 'pdf', buffer: Buffer.from(pdfBytes) },
+                    { name: 'doc2.pdf', type: 'pdf', buffer: Buffer.from(pdfBytes) }, // same content = duplicate
+                ],
+            };
+
+            const result = await ExhibitProcessor.process({
+                caseName: 'Skip Dup Test',
+                exhibits,
+                outputDir: tempDir,
+                skipDuplicateDetection: true,
+                onProgress: () => {},
+            });
+
+            // Should NOT pause for duplicates — should produce output
+            expect(result.paused).toBeFalsy();
+            expect(result.filename).toBeDefined();
+        });
+    });
 });

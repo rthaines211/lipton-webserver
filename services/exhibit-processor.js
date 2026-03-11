@@ -102,7 +102,7 @@ class ExhibitProcessor {
      * @param {Function} [params.onProgress] - Progress callback: (percent, message, phase) => void
      * @returns {Promise<{outputPath: string, filename: string}|{duplicates: Object, paused: boolean}>}
      */
-    static async process({ caseName, exhibits, outputDir, onProgress }) {
+    static async process({ caseName, exhibits, outputDir, onProgress, skipDuplicateDetection = false }) {
         const progress = onProgress || (() => {});
 
         // Step 1: Validate (0-5%)
@@ -122,45 +122,47 @@ class ExhibitProcessor {
         }
 
         // Step 2: Duplicate detection per exhibit (5-40%)
-        const duplicateReport = {};
-        let hasDuplicates = false;
+        if (!skipDuplicateDetection) {
+            const duplicateReport = {};
+            let hasDuplicates = false;
 
-        await Sentry.startSpan({ op: 'exhibit.duplicate_detection', name: 'Duplicate detection' }, async () => {
-            const results = await processWithConcurrency(activeLetters, async (letter, i) => {
-                const exhibitWeight = 35 / activeLetters.length;
-                const exhibitBase = 5 + (i * exhibitWeight);
+            await Sentry.startSpan({ op: 'exhibit.duplicate_detection', name: 'Duplicate detection' }, async () => {
+                const results = await processWithConcurrency(activeLetters, async (letter, i) => {
+                    const exhibitWeight = 35 / activeLetters.length;
+                    const exhibitBase = 5 + (i * exhibitWeight);
 
-                logger.info(`[exhibit-processor] Starting dup detect Exhibit ${letter} files: ${exhibits[letter].map(f=>f.name+'/'+f.type).join(', ')}`);
+                    logger.info(`[exhibit-processor] Starting dup detect Exhibit ${letter} files: ${exhibits[letter].map(f=>f.name+'/'+f.type).join(', ')}`);
 
-                const result = await DuplicateDetector.detectDuplicates(
-                    exhibits[letter],
-                    (subPct, subMsg) => {
-                        const pct = Math.round(exhibitBase + (subPct / 100) * exhibitWeight);
-                        progress(pct, `Exhibit ${letter}: ${subMsg}`, 'duplicate_detection');
+                    const result = await DuplicateDetector.detectDuplicates(
+                        exhibits[letter],
+                        (subPct, subMsg) => {
+                            const pct = Math.round(exhibitBase + (subPct / 100) * exhibitWeight);
+                            progress(pct, `Exhibit ${letter}: ${subMsg}`, 'duplicate_detection');
+                        }
+                    );
+
+                    logger.info(`[exhibit-processor] Finished dup detect Exhibit ${letter}, dupes: ${result.duplicates.length}`);
+                    return { letter, result };
+                }, 4);
+
+                for (const { letter, result } of results) {
+                    if (result.duplicates.length > 0) {
+                        duplicateReport[letter] = result.duplicates;
+                        hasDuplicates = true;
+
+                        Sentry.addBreadcrumb({
+                            category: 'exhibit.duplicates',
+                            message: `Duplicates found in Exhibit ${letter}`,
+                            level: 'warning',
+                            data: { exhibit: letter, count: result.duplicates.length },
+                        });
                     }
-                );
-
-                logger.info(`[exhibit-processor] Finished dup detect Exhibit ${letter}, dupes: ${result.duplicates.length}`);
-                return { letter, result };
-            }, 4);
-
-            for (const { letter, result } of results) {
-                if (result.duplicates.length > 0) {
-                    duplicateReport[letter] = result.duplicates;
-                    hasDuplicates = true;
-
-                    Sentry.addBreadcrumb({
-                        category: 'exhibit.duplicates',
-                        message: `Duplicates found in Exhibit ${letter}`,
-                        level: 'warning',
-                        data: { exhibit: letter, count: result.duplicates.length },
-                    });
                 }
-            }
-        });
+            });
 
-        if (hasDuplicates) {
-            return { duplicates: duplicateReport, paused: true };
+            if (hasDuplicates) {
+                return { duplicates: duplicateReport, paused: true };
+            }
         }
 
         return ExhibitProcessor._buildPdf({ caseName, exhibits, activeLetters, outputDir, progress });
