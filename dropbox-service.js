@@ -56,13 +56,23 @@ const DROPBOX_CONFIG = {
     continueOnFailure: process.env.CONTINUE_ON_DROPBOX_FAILURE !== 'false'
 };
 
-// Initialize Dropbox client if enabled
-let dbx = null;
-if (DROPBOX_CONFIG.enabled) {
+// Lazy-init Dropbox client factory
+let _dbxInstance = null;
+let _dbxInitialized = false;
+
+function getDropboxClient() {
+    if (_dbxInitialized) return _dbxInstance;
+    _dbxInitialized = true;
+
+    if (!DROPBOX_CONFIG.enabled) {
+        console.log('ℹ️  Dropbox service disabled');
+        return null;
+    }
+
     try {
         // Prefer OAuth refresh token (never expires)
         if (DROPBOX_CONFIG.refreshToken && DROPBOX_CONFIG.appKey && DROPBOX_CONFIG.appSecret) {
-            dbx = new Dropbox({
+            _dbxInstance = new Dropbox({
                 refreshToken: DROPBOX_CONFIG.refreshToken,
                 clientId: DROPBOX_CONFIG.appKey,
                 clientSecret: DROPBOX_CONFIG.appSecret
@@ -75,7 +85,7 @@ if (DROPBOX_CONFIG.enabled) {
         }
         // Fall back to legacy access token (will expire)
         else if (DROPBOX_CONFIG.accessToken) {
-            dbx = new Dropbox({ accessToken: DROPBOX_CONFIG.accessToken });
+            _dbxInstance = new Dropbox({ accessToken: DROPBOX_CONFIG.accessToken });
             console.log('✅ Dropbox service initialized (legacy access token)');
             console.log(`   Base path: ${DROPBOX_CONFIG.basePath}`);
             console.warn('   ⚠️  WARNING: Using short-lived access token (expires in ~4 hours)');
@@ -84,14 +94,12 @@ if (DROPBOX_CONFIG.enabled) {
         // No credentials provided
         else {
             console.warn('⚠️  Dropbox enabled but no credentials provided');
-            console.warn('   Set DROPBOX_REFRESH_TOKEN + DROPBOX_APP_KEY + DROPBOX_APP_SECRET');
-            console.warn('   Or set DROPBOX_ACCESS_TOKEN (legacy, will expire)');
         }
     } catch (error) {
         console.error('❌ Failed to initialize Dropbox service:', error.message);
     }
-} else {
-    console.log('ℹ️  Dropbox service disabled');
+
+    return _dbxInstance;
 }
 
 /**
@@ -154,6 +162,7 @@ function mapLocalPathToDropbox(localPath) {
  * await ensureFolderExists('/Current Clients/Clients/Case1')
  */
 async function ensureFolderExists(folderPath) {
+    const dbx = getDropboxClient();
     if (!dbx) {
         return false;
     }
@@ -197,6 +206,7 @@ async function ensureFolderExists(folderPath) {
  * //          /Current Clients/123 Main St/John Doe, /Current Clients/123 Main St/John Doe/Discovery/SROGs
  */
 async function ensureParentFoldersExist(dropboxPath) {
+    const dbx = getDropboxClient();
     if (!dbx) {
         return false;
     }
@@ -252,6 +262,7 @@ async function uploadFile(localFilePath, fileContent = null) {
         return result;
     }
 
+    const dbx = getDropboxClient();
     if (!dbx) {
         result.error = 'Dropbox client not initialized';
         return result;
@@ -316,7 +327,7 @@ async function uploadFile(localFilePath, fileContent = null) {
  * ]);
  */
 async function uploadFiles(localFilePaths) {
-    if (!DROPBOX_CONFIG.enabled || !dbx) {
+    if (!DROPBOX_CONFIG.enabled || !getDropboxClient()) {
         console.log('ℹ️  Dropbox disabled, skipping batch upload');
         return localFilePaths.map(path => ({
             success: false,
@@ -343,6 +354,7 @@ async function uploadFiles(localFilePaths) {
  * @returns {Promise<object>} Account information
  */
 async function getAccountInfo() {
+    const dbx = getDropboxClient();
     if (!dbx) {
         throw new Error('Dropbox client not initialized');
     }
@@ -375,6 +387,7 @@ async function getAccountInfo() {
  */
 async function createSharedLink(folderPath) {
     // Check if Dropbox is enabled
+    const dbx = getDropboxClient();
     if (!dbx || !DROPBOX_CONFIG.enabled) {
         console.log('ℹ️  Dropbox disabled, cannot create shared link');
         return null;
@@ -456,6 +469,8 @@ module.exports = {
     mapLocalPathToDropbox,
     getAccountInfo,
     createSharedLink,
-    isEnabled: () => DROPBOX_CONFIG.enabled && dbx !== null,
+    getDropboxClient,
+    getConfig: () => DROPBOX_CONFIG,
+    isEnabled: () => DROPBOX_CONFIG.enabled && getDropboxClient() !== null,
     config: DROPBOX_CONFIG
 };
