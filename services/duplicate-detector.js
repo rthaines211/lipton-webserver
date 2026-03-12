@@ -29,6 +29,53 @@ class DuplicateDetector {
     }
 
     /**
+     * Compute a 64-bit difference hash (dHash) for an image.
+     * Resizes to 9x8 grayscale, compares adjacent pixels horizontally.
+     * @param {Buffer} buffer - Image file contents
+     * @returns {Promise<BigInt|null>} 64-bit hash as BigInt, or null on failure
+     */
+    static async computeDHash(buffer) {
+        try {
+            const { data } = await sharp(buffer)
+                .resize(9, 8, { fit: 'fill' })
+                .grayscale()
+                .raw()
+                .toBuffer({ resolveWithObject: true });
+
+            let hash = 0n;
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const left = data[row * 9 + col];
+                    const right = data[row * 9 + col + 1];
+                    if (left > right) {
+                        hash |= 1n << BigInt(row * 8 + col);
+                    }
+                }
+            }
+            return hash;
+        } catch (err) {
+            logger.warn(`dHash computation failed: ${err.message}`);
+            return null;
+        }
+    }
+
+    /**
+     * Compute hamming distance between two 64-bit dHash values.
+     * @param {BigInt} hash1
+     * @param {BigInt} hash2
+     * @returns {number} Number of differing bits (0-64)
+     */
+    static hammingDistance(hash1, hash2) {
+        let xor = hash1 ^ hash2;
+        let count = 0;
+        while (xor) {
+            count++;
+            xor &= xor - 1n;
+        }
+        return count;
+    }
+
+    /**
      * Find exact duplicates by comparing SHA-256 hashes.
      * @param {Array<{name: string, buffer: Buffer}>} files
      * @returns {Array<Object>} Array of duplicate match objects
