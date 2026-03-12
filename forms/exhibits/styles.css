@@ -1223,3 +1223,283 @@ textarea.input-error:focus {
         width: 100%;
     }
 }
+
+/* === DROPBOX THUMBNAILS & MULTI-SELECT === */
+
+.dropbox-entry .entry-checkbox {
+    margin: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.dropbox-entry .thumbnail {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.dropbox-entry .thumbnail-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    background: #f5f5f5;
+    border: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 18px;
+}
+
+.dropbox-entry.checked {
+    background: #e8f0fe;
+}
+
+.dropbox-entry.checked:hover {
+    background: #d3e3fd;
+}
+
+.dropbox-nav .select-all-label {
+    font-size: 0.85em;
+    color: #555;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+/* === SELECTION TOOLBAR === */
+
+.selection-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #1a73e8;
+    color: white;
+    font-size: 0.9em;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.selection-toolbar .selection-count {
+    font-weight: 600;
+}
+
+.selection-toolbar .selection-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.selection-toolbar select {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    font-size: 0.9em;
+}
+
+.selection-toolbar select option {
+    color: #333;
+    background: white;
+}
+
+.selection-toolbar .btn-assign {
+    padding: 4px 12px;
+    background: white;
+    color: #1a73e8;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.selection-toolbar .btn-assign:hover {
+    background: #e8e8e8;
+}
+
+/* === PREVIEW MODAL === */
+
+.preview-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-modal {
+    max-width: 90vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background: #1a1a1a;
+    border-radius: 8px;
+    overflow: hidden;
+    min-width: 500px;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+}
+
+.preview-header .preview-file-info {
+    overflow: hidden;
+}
+
+.preview-header .preview-filename {
+    font-weight: 600;
+    font-size: 0.95em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.preview-header .preview-meta {
+    font-size: 0.75em;
+    color: #aaa;
+    margin-top: 2px;
+}
+
+.preview-header .preview-nav {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.preview-header .preview-nav button {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+
+.preview-header .preview-nav button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.preview-header .preview-nav button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.preview-header .preview-counter {
+    font-size: 0.8em;
+    color: #aaa;
+}
+
+.preview-header .btn-close-preview {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 4px;
+    margin-left: 12px;
+}
+
+.preview-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 350px;
+    padding: 20px;
+    overflow: auto;
+}
+
+.preview-body img {
+    max-width: 100%;
+    max-height: 60vh;
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.preview-body canvas {
+    max-width: 100%;
+    max-height: 60vh;
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.preview-body .preview-spinner {
+    color: #aaa;
+    font-size: 0.95em;
+}
+
+.preview-body .preview-error {
+    color: #ff6b6b;
+    font-size: 0.95em;
+}
+
+.preview-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+}
+
+.preview-footer .preview-status {
+    font-size: 0.85em;
+    color: #aaa;
+}
+
+.preview-footer .preview-status.assigned {
+    color: #4caf50;
+}
+
+.preview-footer .preview-assign {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.preview-footer select {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    font-size: 0.85em;
+}
+
+.preview-footer select option {
+    color: #333;
+    background: white;
+}
+
+.preview-footer .btn-preview-assign {
+    padding: 4px 12px;
+    background: #1a73e8;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+
+.preview-footer .btn-preview-assign:hover {
+    background: #1557b0;
+}
