@@ -5,7 +5,7 @@
  */
 const DropboxBrowserUI = (() => {
     let currentPath = '/';
-    const selectedFiles = new Map(); // letter -> [{dropboxPath, name}]
+    const exhibitAssignments = new Map(); // letter -> [{dropboxPath, name}]
     const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
     function init() {
@@ -115,7 +115,7 @@ const DropboxBrowserUI = (() => {
             });
 
             el.addEventListener('dblclick', () => {
-                const emptySlot = LETTERS.find(l => !selectedFiles.has(l) || selectedFiles.get(l).length === 0);
+                const emptySlot = LETTERS.find(l => !exhibitAssignments.has(l) || exhibitAssignments.get(l).length === 0);
                 if (emptySlot) {
                     addFileToSlot(emptySlot, { dropboxPath: el.dataset.path, name: el.dataset.name });
                 }
@@ -178,15 +178,15 @@ const DropboxBrowserUI = (() => {
         container.querySelectorAll('.btn-clear-slot').forEach(btn => {
             btn.addEventListener('click', () => {
                 const letter = btn.dataset.letter;
-                selectedFiles.delete(letter);
+                exhibitAssignments.delete(letter);
                 updateSlotUI(letter);
             });
         });
     }
 
     function addFileToSlot(letter, file) {
-        if (!selectedFiles.has(letter)) selectedFiles.set(letter, []);
-        const files = selectedFiles.get(letter);
+        if (!exhibitAssignments.has(letter)) exhibitAssignments.set(letter, []);
+        const files = exhibitAssignments.get(letter);
         if (files.some(f => f.dropboxPath === file.dropboxPath)) return;
         files.push(file);
         updateSlotUI(letter);
@@ -207,7 +207,7 @@ const DropboxBrowserUI = (() => {
     }
 
     function updateSlotUI(letter) {
-        const files = selectedFiles.get(letter) || [];
+        const files = exhibitAssignments.get(letter) || [];
         const filesEl = document.getElementById(`files-${letter}`);
         const countEl = document.getElementById(`count-${letter}`);
 
@@ -238,7 +238,7 @@ const DropboxBrowserUI = (() => {
 
     function getExhibitMapping() {
         const mapping = {};
-        for (const [letter, files] of selectedFiles.entries()) {
+        for (const [letter, files] of exhibitAssignments.entries()) {
             if (files.length > 0) mapping[letter] = files;
         }
         return mapping;
@@ -246,7 +246,7 @@ const DropboxBrowserUI = (() => {
 
     function getTotalFiles() {
         let total = 0;
-        for (const files of selectedFiles.values()) total += files.length;
+        for (const files of exhibitAssignments.values()) total += files.length;
         return total;
     }
 
