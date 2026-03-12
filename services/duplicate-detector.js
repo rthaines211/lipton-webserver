@@ -16,6 +16,7 @@ const THUMB_SIZE = 64;
 const VISUAL_MATCH_THRESHOLD = 0.95;
 const VISUAL_MAYBE_LOW = 0.80;
 const OCR_MATCH_THRESHOLD = 0.80;
+const MAX_CANDIDATE_PAIRS = 500;
 
 class DuplicateDetector {
     /**
@@ -80,18 +81,16 @@ class DuplicateDetector {
      * @returns {Promise<Array<{pageNum: number, buffer: Buffer}>>} PNG buffers per page, or empty array on failure
      */
     static async renderPdfPages(buffer) {
-        let doc;
         try {
             const mupdf = await import('mupdf');
-            doc = mupdf.default.Document.openDocument(buffer, 'application/pdf');
+            const doc = mupdf.default.Document.openDocument(buffer, 'application/pdf');
             const pageCount = doc.countPages();
             const pages = [];
 
             for (let i = 0; i < pageCount; i++) {
-                let page, pixmap;
                 try {
-                    page = doc.loadPage(i);
-                    pixmap = page.toPixmap(
+                    const page = doc.loadPage(i);
+                    const pixmap = page.toPixmap(
                         [0.5, 0, 0, 0.5, 0, 0],
                         mupdf.default.ColorSpace.DeviceRGB,
                         false,
@@ -101,9 +100,6 @@ class DuplicateDetector {
                     pages.push({ pageNum: i + 1, buffer: pngBuffer });
                 } catch (pageErr) {
                     logger.warn(`PDF page ${i + 1} render failed: ${pageErr.message}`);
-                } finally {
-                    if (pixmap) pixmap.destroy();
-                    if (page) page.destroy();
                 }
             }
 
@@ -111,8 +107,6 @@ class DuplicateDetector {
         } catch (err) {
             logger.warn(`PDF render failed: ${err.message}`);
             return [];
-        } finally {
-            if (doc) doc.destroy();
         }
     }
 
@@ -245,33 +239,34 @@ class DuplicateDetector {
             }
         }
 
+        // --- Cap candidate pairs to prevent combinatorial explosion ---
+        if (candidatePairs.length > MAX_CANDIDATE_PAIRS) {
+            logger.warn(`Visual duplicate candidate pairs (${candidatePairs.length}) exceeds cap (${MAX_CANDIDATE_PAIRS}), truncating`);
+            candidatePairs.length = MAX_CANDIDATE_PAIRS;
+        }
+
         // --- Pass 2: Re-render and pixel compare candidates ---
         const totalPairs = candidatePairs.length;
         let completedPairs = 0;
 
         // Helper: get PNG buffer for a visual entry (re-render if PDF page)
+        // Note: MuPDF objects are NOT manually destroyed — FinalizationRegistry handles cleanup.
+        // Manual .destroy() causes double-free crashes in WASM (null function signature mismatch).
         const getBuffer = async (entry) => {
             if (entry.page === null) {
                 return files[entry.sourceIndex].buffer; // image: use directly
             }
             // PDF page: re-render just this page
-            let doc, page, pixmap;
-            try {
-                const mupdf = await import('mupdf');
-                doc = mupdf.default.Document.openDocument(
-                    files[entry.sourceIndex].buffer, 'application/pdf'
-                );
-                page = doc.loadPage(entry.page - 1); // 0-indexed
-                pixmap = page.toPixmap(
-                    [0.5, 0, 0, 0.5, 0, 0],
-                    mupdf.default.ColorSpace.DeviceRGB, false, true
-                );
-                return Buffer.from(pixmap.asPNG());
-            } finally {
-                if (pixmap) pixmap.destroy();
-                if (page) page.destroy();
-                if (doc) doc.destroy();
-            }
+            const mupdf = await import('mupdf');
+            const doc = mupdf.default.Document.openDocument(
+                files[entry.sourceIndex].buffer, 'application/pdf'
+            );
+            const page = doc.loadPage(entry.page - 1); // 0-indexed
+            const pixmap = page.toPixmap(
+                [0.5, 0, 0, 0.5, 0, 0],
+                mupdf.default.ColorSpace.DeviceRGB, false, true
+            );
+            return Buffer.from(pixmap.asPNG());
         };
 
         // Build details string with page info
