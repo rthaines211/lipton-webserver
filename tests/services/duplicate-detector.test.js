@@ -156,6 +156,48 @@ describe('DuplicateDetector', () => {
         });
     });
 
+    describe('renderPdfPages', () => {
+        const { PDFDocument } = require('pdf-lib');
+
+        it('should render a single-page PDF to one PNG buffer', async () => {
+            const pdfDoc = await PDFDocument.create();
+            pdfDoc.addPage([200, 200]);
+            const pdfBytes = await pdfDoc.save();
+
+            const pages = await DuplicateDetector.renderPdfPages(Buffer.from(pdfBytes));
+            expect(pages).toHaveLength(1);
+            expect(pages[0].pageNum).toBe(1);
+            expect(Buffer.isBuffer(pages[0].buffer)).toBe(true);
+            // PNG magic bytes: 0x89 0x50 0x4E 0x47
+            expect(pages[0].buffer[0]).toBe(0x89);
+            expect(pages[0].buffer[1]).toBe(0x50);
+        });
+
+        it('should render a multi-page PDF to correct number of pages', async () => {
+            const pdfDoc = await PDFDocument.create();
+            pdfDoc.addPage([200, 200]);
+            pdfDoc.addPage([200, 200]);
+            pdfDoc.addPage([200, 200]);
+            const pdfBytes = await pdfDoc.save();
+
+            const pages = await DuplicateDetector.renderPdfPages(Buffer.from(pdfBytes));
+            expect(pages).toHaveLength(3);
+            expect(pages[0].pageNum).toBe(1);
+            expect(pages[1].pageNum).toBe(2);
+            expect(pages[2].pageNum).toBe(3);
+        });
+
+        it('should return empty array for corrupt buffer', async () => {
+            const pages = await DuplicateDetector.renderPdfPages(Buffer.from('not a pdf'));
+            expect(pages).toEqual([]);
+        });
+
+        it('should return empty array for empty buffer', async () => {
+            const pages = await DuplicateDetector.renderPdfPages(Buffer.alloc(0));
+            expect(pages).toEqual([]);
+        });
+    });
+
     describe('findVisualMatches with dHash pre-filter', () => {
         const sharp = require('sharp');
 
