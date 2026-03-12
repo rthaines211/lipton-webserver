@@ -89,7 +89,7 @@ jobs:
             --project=${{ env.GCP_PROJECT_ID }} \
             --platform=managed \
             --allow-unauthenticated \
-            --update-secrets="DB_PASSWORD=DB_PASSWORD:latest,ACCESS_TOKEN=ACCESS_TOKEN:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DOCMOSIS_ACCESS_KEY=docmosis-key:latest,SENTRY_DSN=SENTRY_DSN:latest" \
+            --update-secrets="DB_PASSWORD=DB_PASSWORD:latest,ACCESS_TOKEN=ACCESS_TOKEN:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DROPBOX_APP_KEY=dropbox-app-key:latest,DROPBOX_APP_SECRET=dropbox-app-secret:latest,DROPBOX_REFRESH_TOKEN=dropbox-refresh-token:latest,DOCMOSIS_ACCESS_KEY=docmosis-key:latest,SENTRY_DSN=SENTRY_DSN:latest" \
             --set-env-vars="${{ steps.load-config.outputs.env_vars }}" \
             --service-account=${{ env.SERVICE_ACCOUNT }} \
             --add-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db" \
@@ -136,10 +136,11 @@ jobs:
             --task-timeout=3600 \
             --max-retries=0 \
             --command="node" \
-            --args="job-entrypoint.js" \
-            --set-env-vars="NODE_ENV=production" \
-            --set-secrets="DB_PASSWORD=DB_PASSWORD:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DROPBOX_APP_KEY=dropbox-app-key:latest,DROPBOX_APP_SECRET=dropbox-app-secret:latest,DROPBOX_REFRESH_TOKEN=dropbox-refresh-token:latest" \
+            --args="--require,@sentry/node/preload,job-entrypoint.js" \
+            --set-env-vars="${{ steps.load-config.outputs.env_vars }}" \
+            --set-secrets="DB_PASSWORD=DB_PASSWORD:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DROPBOX_APP_KEY=dropbox-app-key:latest,DROPBOX_APP_SECRET=dropbox-app-secret:latest,DROPBOX_REFRESH_TOKEN=dropbox-refresh-token:latest,SENTRY_DSN=SENTRY_DSN:latest" \
             --service-account=${{ env.SERVICE_ACCOUNT }} \
+            --add-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db" \
             2>/dev/null || \
           gcloud run jobs update exhibit-processor-job \
             --image="$IMAGE_URL" \
@@ -150,9 +151,10 @@ jobs:
             --task-timeout=3600 \
             --max-retries=0 \
             --command="node" \
-            --args="job-entrypoint.js" \
-            --set-env-vars="NODE_ENV=production" \
-            --set-secrets="DB_PASSWORD=DB_PASSWORD:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DROPBOX_APP_KEY=dropbox-app-key:latest,DROPBOX_APP_SECRET=dropbox-app-secret:latest,DROPBOX_REFRESH_TOKEN=dropbox-refresh-token:latest" \
-            --service-account=${{ env.SERVICE_ACCOUNT }}
+            --args="--require,@sentry/node/preload,job-entrypoint.js" \
+            --set-env-vars="${{ steps.load-config.outputs.env_vars }}" \
+            --set-secrets="DB_PASSWORD=DB_PASSWORD:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DROPBOX_APP_KEY=dropbox-app-key:latest,DROPBOX_APP_SECRET=dropbox-app-secret:latest,DROPBOX_REFRESH_TOKEN=dropbox-refresh-token:latest,SENTRY_DSN=SENTRY_DSN:latest" \
+            --service-account=${{ env.SERVICE_ACCOUNT }} \
+            --add-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db"
 
           echo "✅ Cloud Run Job deployed/updated"
