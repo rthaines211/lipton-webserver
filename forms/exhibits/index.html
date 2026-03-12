@@ -158,6 +158,34 @@
     </div>
 </div>
 
+<!-- Dropbox Preview Modal -->
+    <div id="preview-modal-overlay" class="preview-modal-overlay" style="display: none;">
+        <div class="preview-modal">
+            <div class="preview-header">
+                <div class="preview-file-info">
+                    <div class="preview-filename" id="preview-filename"></div>
+                    <div class="preview-meta" id="preview-meta"></div>
+                </div>
+                <div class="preview-nav">
+                    <button type="button" id="btn-preview-prev">◀ Prev</button>
+                    <span class="preview-counter" id="preview-counter"></span>
+                    <button type="button" id="btn-preview-next">Next ▶</button>
+                    <button type="button" class="btn-close-preview" id="btn-close-preview">✕</button>
+                </div>
+            </div>
+            <div class="preview-body" id="preview-body">
+                <span class="preview-spinner">Loading preview...</span>
+            </div>
+            <div class="preview-footer">
+                <span class="preview-status" id="preview-status"></span>
+                <div class="preview-assign">
+                    <select id="preview-letter-select"></select>
+                    <button type="button" class="btn-preview-assign" id="btn-preview-assign">Assign →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <!-- PDF.js for rendering PDF previews in duplicate modal -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>

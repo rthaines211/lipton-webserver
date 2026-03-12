@@ -12,6 +12,7 @@ const DropboxBrowserUI = (() => {
     let currentEntries = []; // entries from current folder (for preview navigation)
     let thumbnailAbortController = null; // AbortController for in-flight thumbnail requests
     let lastUsedLetter = 'A'; // remembers last exhibit letter used for assignment
+    let previewIndex = -1; // current index in currentEntries being previewed
 
     function init() {
         const importBtn = document.getElementById('btn-import-dropbox');
@@ -212,9 +213,189 @@ const DropboxBrowserUI = (() => {
         loadThumbnails(sorted);
     }
 
+    function getFileAssignment(dropboxPath) {
+        for (const [letter, files] of exhibitAssignments.entries()) {
+            if (files.some(f => f.dropboxPath === dropboxPath)) return letter;
+        }
+        return null;
+    }
+
     function openPreviewModal(index) {
-        // Will be implemented in Task 10
-        console.log('Preview modal not yet implemented, index:', index);
+        const entry = currentEntries[index];
+        if (!entry || entry.type !== 'file' || !entry.supported) return;
+
+        previewIndex = index;
+        const overlay = document.getElementById('preview-modal-overlay');
+        overlay.style.display = 'flex';
+
+        // Populate letter dropdown
+        const letterSelect = document.getElementById('preview-letter-select');
+        letterSelect.innerHTML = LETTERS.map(l =>
+            `<option value="${l}" ${l === lastUsedLetter ? 'selected' : ''}>Exhibit ${l}</option>`
+        ).join('');
+
+        // Wire event listeners
+        document.getElementById('btn-preview-prev').onclick = () => navigatePreview(-1);
+        document.getElementById('btn-preview-next').onclick = () => navigatePreview(1);
+        document.getElementById('btn-close-preview').onclick = closePreviewModal;
+        document.getElementById('btn-preview-assign').onclick = () => {
+            const letter = letterSelect.value;
+            handleAssignFromModal(letter);
+        };
+        letterSelect.onchange = () => { lastUsedLetter = letterSelect.value; };
+
+        // Click outside to close
+        overlay.onclick = (e) => {
+            if (e.target === overlay) closePreviewModal();
+        };
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', previewKeyHandler);
+
+        renderPreviewContent(entry);
+    }
+
+    async function renderPreviewContent(entry) {
+        const body = document.getElementById('preview-body');
+        const filename = document.getElementById('preview-filename');
+        const meta = document.getElementById('preview-meta');
+        const counter = document.getElementById('preview-counter');
+        const status = document.getElementById('preview-status');
+
+        // Update header info
+        filename.textContent = entry.name;
+        const sizeStr = entry.size ? formatSize(entry.size) : '';
+        const fileExt = (entry.extension || '').toUpperCase();
+        meta.textContent = [sizeStr, fileExt].filter(Boolean).join(' · ');
+
+        // Update counter (count only supported files)
+        const supportedFiles = currentEntries.filter(e => e.type === 'file' && e.supported);
+        const currentNum = supportedFiles.findIndex(e => e.path === entry.path) + 1;
+        counter.textContent = `${currentNum} of ${supportedFiles.length}`;
+
+        // Update prev/next button states
+        const prevFile = findAdjacentFile(previewIndex, -1);
+        const nextFile = findAdjacentFile(previewIndex, 1);
+        document.getElementById('btn-preview-prev').disabled = prevFile === -1;
+        document.getElementById('btn-preview-next').disabled = nextFile === -1;
+
+        // Update assignment status
+        const assignedLetter = getFileAssignment(entry.path);
+        if (assignedLetter) {
+            status.textContent = `✓ Already in Exhibit ${assignedLetter}`;
+            status.className = 'preview-status assigned';
+        } else {
+            status.textContent = '';
+            status.className = 'preview-status';
+        }
+
+        // Show loading
+        body.innerHTML = '<span class="preview-spinner">Loading preview...</span>';
+
+        try {
+            const res = await fetch(`/api/dropbox/temp-link?path=${encodeURIComponent(entry.path)}`);
+            const data = await res.json();
+
+            if (!data.success || !data.link) {
+                body.innerHTML = '<span class="preview-error">Failed to load preview</span>';
+                return;
+            }
+
+            const ext = (entry.extension || '').toLowerCase();
+            const isPdf = ext === 'pdf';
+
+            if (isPdf) {
+                // Render PDF first page via PDF.js
+                body.innerHTML = '';
+                try {
+                    const pdf = await pdfjsLib.getDocument(data.link).promise;
+                    const page = await pdf.getPage(1);
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const canvas = document.createElement('canvas');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    const ctx = canvas.getContext('2d');
+                    await page.render({ canvasContext: ctx, viewport }).promise;
+                    body.innerHTML = '';
+                    body.appendChild(canvas);
+                } catch (pdfErr) {
+                    console.warn('PDF.js failed, falling back to iframe:', pdfErr);
+                    body.innerHTML = `<iframe src="${data.link}" style="width:100%;height:60vh;border:none;border-radius:4px;"></iframe>`;
+                }
+            } else {
+                // Image
+                const img = document.createElement('img');
+                img.src = data.link;
+                img.alt = entry.name;
+                img.onload = () => { body.innerHTML = ''; body.appendChild(img); };
+                img.onerror = () => { body.innerHTML = '<span class="preview-error">Failed to load image</span>'; };
+            }
+        } catch (err) {
+            body.innerHTML = '<span class="preview-error">Failed to load preview</span>';
+            console.error('Preview load error:', err);
+        }
+    }
+
+    function findAdjacentFile(fromIndex, direction) {
+        let i = fromIndex + direction;
+        while (i >= 0 && i < currentEntries.length) {
+            const entry = currentEntries[i];
+            if (entry.type === 'file' && entry.supported) return i;
+            i += direction;
+        }
+        return -1;
+    }
+
+    function navigatePreview(direction) {
+        const nextIndex = findAdjacentFile(previewIndex, direction);
+        if (nextIndex === -1) return;
+        previewIndex = nextIndex;
+        renderPreviewContent(currentEntries[previewIndex]);
+    }
+
+    function closePreviewModal() {
+        document.getElementById('preview-modal-overlay').style.display = 'none';
+        document.removeEventListener('keydown', previewKeyHandler);
+        previewIndex = -1;
+    }
+
+    function handleAssignFromModal(letter) {
+        const entry = currentEntries[previewIndex];
+        if (!entry) return;
+
+        lastUsedLetter = letter;
+        addFileToSlot(letter, { dropboxPath: entry.path, name: entry.name });
+
+        // Try to advance to next file
+        const nextIndex = findAdjacentFile(previewIndex, 1);
+        if (nextIndex === -1) {
+            // Last file — close modal
+            closePreviewModal();
+        } else {
+            previewIndex = nextIndex;
+            renderPreviewContent(currentEntries[previewIndex]);
+        }
+    }
+
+    function previewKeyHandler(e) {
+        if (document.getElementById('preview-modal-overlay').style.display === 'none') return;
+
+        switch (e.key) {
+            case 'Escape':
+                closePreviewModal();
+                break;
+            case 'ArrowLeft':
+                navigatePreview(-1);
+                break;
+            case 'ArrowRight':
+                navigatePreview(1);
+                break;
+            case 'Enter':
+                e.preventDefault();
+                const letter = document.getElementById('preview-letter-select').value;
+                handleAssignFromModal(letter);
+                break;
+        }
     }
 
     function toggleSelectAll() {
@@ -495,5 +676,5 @@ const DropboxBrowserUI = (() => {
         init();
     }
 
-    return { getExhibitMapping, getTotalFiles, loadFolder };
+    return { getExhibitMapping, getTotalFiles, loadFolder, openPreviewModal };
 })();
