@@ -81,6 +81,8 @@ const DropboxBrowserUI = (() => {
     function renderFileList(entries) {
         const fileList = document.getElementById('dropbox-file-list');
         checkedFiles.clear();
+        const selectAllCb = document.getElementById('dropbox-select-all');
+        if (selectAllCb) selectAllCb.checked = false;
 
         if (entries.length === 0) {
             fileList.innerHTML = '<div class="empty">Empty folder</div>';
@@ -291,10 +293,13 @@ const DropboxBrowserUI = (() => {
 
         // Show loading
         body.innerHTML = '<span class="preview-spinner">Loading preview...</span>';
+        const capturedIndex = previewIndex; // guard against stale renders during rapid navigation
 
         try {
             const res = await fetch(`/api/dropbox/temp-link?path=${encodeURIComponent(entry.path)}`);
             const data = await res.json();
+
+            if (previewIndex !== capturedIndex) return; // navigated away during fetch
 
             if (!data.success || !data.link) {
                 body.innerHTML = '<span class="preview-error">Failed to load preview</span>';
@@ -309,6 +314,7 @@ const DropboxBrowserUI = (() => {
                 body.innerHTML = '';
                 try {
                     const pdf = await pdfjsLib.getDocument(data.link).promise;
+                    if (previewIndex !== capturedIndex) return;
                     const page = await pdf.getPage(1);
                     const viewport = page.getViewport({ scale: 1.5 });
                     const canvas = document.createElement('canvas');
@@ -316,9 +322,11 @@ const DropboxBrowserUI = (() => {
                     canvas.height = viewport.height;
                     const ctx = canvas.getContext('2d');
                     await page.render({ canvasContext: ctx, viewport }).promise;
+                    if (previewIndex !== capturedIndex) return;
                     body.innerHTML = '';
                     body.appendChild(canvas);
                 } catch (pdfErr) {
+                    if (previewIndex !== capturedIndex) return;
                     console.warn('PDF.js failed, falling back to iframe:', pdfErr);
                     body.innerHTML = `<iframe src="${data.link}" style="width:100%;height:60vh;border:none;border-radius:4px;"></iframe>`;
                 }
@@ -327,10 +335,18 @@ const DropboxBrowserUI = (() => {
                 const img = document.createElement('img');
                 img.src = data.link;
                 img.alt = entry.name;
-                img.onload = () => { body.innerHTML = ''; body.appendChild(img); };
-                img.onerror = () => { body.innerHTML = '<span class="preview-error">Failed to load image</span>'; };
+                img.onload = () => {
+                    if (previewIndex !== capturedIndex) return;
+                    body.innerHTML = '';
+                    body.appendChild(img);
+                };
+                img.onerror = () => {
+                    if (previewIndex !== capturedIndex) return;
+                    body.innerHTML = '<span class="preview-error">Failed to load image</span>';
+                };
             }
         } catch (err) {
+            if (previewIndex !== capturedIndex) return;
             body.innerHTML = '<span class="preview-error">Failed to load preview</span>';
             console.error('Preview load error:', err);
         }
@@ -391,9 +407,9 @@ const DropboxBrowserUI = (() => {
                 navigatePreview(1);
                 break;
             case 'Enter':
+                if (document.activeElement?.id === 'preview-letter-select') break;
                 e.preventDefault();
-                const letter = document.getElementById('preview-letter-select').value;
-                handleAssignFromModal(letter);
+                handleAssignFromModal(document.getElementById('preview-letter-select').value);
                 break;
         }
     }
