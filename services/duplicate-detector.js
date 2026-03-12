@@ -142,22 +142,52 @@ class DuplicateDetector {
         const maybePairs = [];
         const IMAGE_TYPES_SET = new Set(['png', 'jpg', 'jpeg', 'tiff', 'heic']);
         const { processWithConcurrency } = require('../utils/concurrency');
+        const HAMMING_THRESHOLD = 15;
 
-        // Collect all eligible pairs
-        const pairs = [];
+        // Collect eligible image file indices
+        const imageIndices = [];
         for (let i = 0; i < files.length; i++) {
-            for (let j = i + 1; j < files.length; j++) {
+            if (IMAGE_TYPES_SET.has(files[i].type)) imageIndices.push(i);
+        }
+
+        if (imageIndices.length < 2) return { matches, maybePairs };
+
+        // Stage 1: Compute dHash for all image files
+        const hashMap = new Map();
+        await processWithConcurrency(imageIndices, async (idx) => {
+            const hash = await DuplicateDetector.computeDHash(files[idx].buffer);
+            hashMap.set(idx, hash);
+        }, 4);
+
+        // Stage 2: Filter pairs by hamming distance
+        const candidatePairs = [];
+        for (let a = 0; a < imageIndices.length; a++) {
+            for (let b = a + 1; b < imageIndices.length; b++) {
+                const i = imageIndices[a];
+                const j = imageIndices[b];
                 const pairKey = `${files[i].name}|${files[j].name}`;
                 if (alreadyMatchedPairs.has(pairKey)) continue;
-                if (!IMAGE_TYPES_SET.has(files[i].type) || !IMAGE_TYPES_SET.has(files[j].type)) continue;
-                pairs.push({ i, j });
+
+                const hash1 = hashMap.get(i);
+                const hash2 = hashMap.get(j);
+
+                // If either hash is null (failed), include as candidate (safe default)
+                if (hash1 === null || hash2 === null) {
+                    candidatePairs.push({ i, j });
+                    continue;
+                }
+
+                if (DuplicateDetector.hammingDistance(hash1, hash2) <= HAMMING_THRESHOLD) {
+                    candidatePairs.push({ i, j });
+                }
             }
         }
 
-        const totalPairs = pairs.length;
+        // Stage 3: Pixel comparison on candidates only
+        const totalPairs = candidatePairs.length;
         let completedPairs = 0;
 
-        await processWithConcurrency(pairs, async (pair) => {
+        await processWithConcurrency(candidatePairs, async (pair) => {
             const { i, j } = pair;
             completedPairs++;
             if (onPairProgress && totalPairs > 0) {
