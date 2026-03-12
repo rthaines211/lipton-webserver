@@ -127,22 +127,17 @@ jobs:
             --project=${{ env.GCP_PROJECT_ID }} \
             --format='value(spec.template.spec.containers[0].image)')
 
-          gcloud run jobs create exhibit-processor-job \
-            --image="$IMAGE_URL" \
+          JOB_EXISTS=$(gcloud run jobs describe exhibit-processor-job \
             --region=${{ env.GCP_REGION }} \
             --project=${{ env.GCP_PROJECT_ID }} \
-            --memory=8Gi \
-            --cpu=8 \
-            --task-timeout=3600 \
-            --max-retries=0 \
-            --command="node" \
-            --args="--require,@sentry/node/preload,job-entrypoint.js" \
-            --set-env-vars="${{ steps.load-config.outputs.env_vars }}" \
-            --set-secrets="DB_PASSWORD=DB_PASSWORD:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DROPBOX_APP_KEY=dropbox-app-key:latest,DROPBOX_APP_SECRET=dropbox-app-secret:latest,DROPBOX_REFRESH_TOKEN=dropbox-refresh-token:latest,SENTRY_DSN=SENTRY_DSN:latest" \
-            --service-account=${{ env.SERVICE_ACCOUNT }} \
-            --add-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db" \
-            2>/dev/null || \
-          gcloud run jobs update exhibit-processor-job \
+            --format='value(name)' 2>/dev/null || echo "")
+
+          JOB_CMD="create"
+          if [ -n "$JOB_EXISTS" ]; then
+            JOB_CMD="update"
+          fi
+
+          gcloud run jobs $JOB_CMD exhibit-processor-job \
             --image="$IMAGE_URL" \
             --region=${{ env.GCP_REGION }} \
             --project=${{ env.GCP_PROJECT_ID }} \
