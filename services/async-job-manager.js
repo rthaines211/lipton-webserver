@@ -5,7 +5,11 @@ let _pool = null;
 function getPool() {
     if (!_pool) {
         _pool = new Pool({
-            connectionString: process.env.DATABASE_URL,
+            user: process.env.DB_USER || 'ryanhaines',
+            host: process.env.DB_HOST || 'localhost',
+            database: process.env.DB_NAME || 'legal_forms_db',
+            password: process.env.DB_PASSWORD || '',
+            port: process.env.DB_PORT || 5432,
             max: 5,
             idleTimeoutMillis: 30000,
         });
