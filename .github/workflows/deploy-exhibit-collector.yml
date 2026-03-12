@@ -150,6 +150,6 @@ jobs:
             --set-env-vars="${{ steps.load-config.outputs.env_vars }}" \
             --set-secrets="DB_PASSWORD=DB_PASSWORD:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,DROPBOX_ACCESS_TOKEN=dropbox-token:latest,DROPBOX_APP_KEY=dropbox-app-key:latest,DROPBOX_APP_SECRET=dropbox-app-secret:latest,DROPBOX_REFRESH_TOKEN=dropbox-refresh-token:latest,SENTRY_DSN=SENTRY_DSN:latest" \
             --service-account=${{ env.SERVICE_ACCOUNT }} \
-            --add-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db"
+            --set-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db"
 
           echo "✅ Cloud Run Job deployed/updated"
