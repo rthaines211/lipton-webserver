@@ -1,7 +1,7 @@
 /**
  * Exhibit Collector Routes
  *
- * Handles file uploads, exhibit package generation, duplicate resolution,
+ * Handles Dropbox-based exhibit package generation, duplicate resolution,
  * SSE progress streaming, and file downloads.
  *
  * @module routes/exhibits
@@ -9,7 +9,6 @@
 
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -28,41 +27,13 @@ const gcs = new Storage();
 const GCS_BUCKET = process.env.GCS_BUCKET_NAME || 'docmosis-tornado-form-submissions';
 
 const UPLOAD_BASE = path.join(os.tmpdir(), 'exhibits');
-const CLEANUP_TTL = 60 * 60 * 1000; // 1 hour
 
-const sessions = new Map();
 const jobs = new Map();
 
 if (!fs.existsSync(UPLOAD_BASE)) {
     fs.mkdirSync(UPLOAD_BASE, { recursive: true });
 }
 
-const storage = multer.memoryStorage();
-const upload = multer({
-    storage,
-    limits: { fileSize: 100 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
-        const allowed = ['pdf', 'png', 'jpg', 'jpeg', 'tiff', 'tif', 'heic'];
-        if (allowed.includes(ext)) {
-            cb(null, true);
-        } else {
-            cb(new Error(`Unsupported file type: .${ext}`));
-        }
-    },
-});
-
-function getSession(sessionId) {
-    if (!sessions.has(sessionId)) {
-        sessions.set(sessionId, {
-            exhibits: {},
-            caseName: '',
-            description: '',
-            createdAt: Date.now(),
-        });
-    }
-    return sessions.get(sessionId);
-}
 
 function broadcastJobEvent(jobId, event, data) {
     const job = jobs.get(jobId);
@@ -77,212 +48,6 @@ function broadcastJobEvent(jobId, event, data) {
     }
 }
 
-// POST /upload
-router.post('/upload', upload.array('files', 50), asyncHandler(async (req, res) => {
-    const { sessionId, letter } = req.body;
-
-    if (!sessionId) {
-        return res.status(400).json({ success: false, error: 'sessionId is required' });
-    }
-    if (!letter || !/^[A-Z]$/i.test(letter)) {
-        return res.status(400).json({ success: false, error: 'letter must be A-Z' });
-    }
-
-    const session = getSession(sessionId);
-    const upperLetter = letter.toUpperCase();
-
-    if (!session.exhibits[upperLetter]) {
-        session.exhibits[upperLetter] = [];
-    }
-
-    const uploadedFiles = [];
-    for (const file of req.files) {
-        const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
-        session.exhibits[upperLetter].push({
-            name: file.originalname,
-            type: ext === 'tif' ? 'tiff' : ext,
-            buffer: file.buffer,
-            size: file.size,
-        });
-        uploadedFiles.push({ name: file.originalname, size: file.size, type: ext });
-
-        Sentry.addBreadcrumb({
-            category: 'exhibit.upload',
-            message: `File uploaded to Exhibit ${upperLetter}`,
-            level: 'info',
-            data: {
-                fileName: file.originalname,
-                fileSize: file.size,
-                fileType: ext,
-                exhibit: upperLetter,
-                sessionId,
-            },
-        });
-    }
-
-    // Set Sentry context for this upload batch
-    Sentry.setContext('exhibit_upload', {
-        sessionId,
-        exhibit: upperLetter,
-        fileCount: uploadedFiles.length,
-        totalSize: uploadedFiles.reduce((sum, f) => sum + f.size, 0),
-        totalFilesInExhibit: session.exhibits[upperLetter].length,
-    });
-
-    logger.info(`Uploaded ${uploadedFiles.length} file(s) to Exhibit ${upperLetter}`, { sessionId });
-
-    res.json({
-        success: true,
-        exhibit: upperLetter,
-        filesUploaded: uploadedFiles,
-        totalFilesInExhibit: session.exhibits[upperLetter].length,
-    });
-}));
-
-// POST /generate
-router.post('/generate', asyncHandler(async (req, res) => {
-    const { sessionId, caseName } = req.body;
-
-    if (!sessionId || !sessions.has(sessionId)) {
-        return res.status(400).json({ success: false, error: 'Invalid or missing sessionId' });
-    }
-
-    const session = sessions.get(sessionId);
-    session.caseName = caseName || '';
-
-    const jobId = crypto.randomUUID();
-    const outputDir = path.join(UPLOAD_BASE, sessionId);
-    if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    jobs.set(jobId, {
-        sessionId,
-        status: 'processing',
-        progress: 0,
-        phase: 'starting',
-        message: 'Starting...',
-        duplicates: null,
-        outputPath: null,
-        filename: null,
-        sseClients: [],
-    });
-
-    // Count exhibits and files for Sentry context
-    const exhibitSummary = {};
-    let totalFiles = 0;
-    for (const [letter, files] of Object.entries(session.exhibits)) {
-        if (files && files.length > 0) {
-            exhibitSummary[letter] = files.length;
-            totalFiles += files.length;
-        }
-    }
-
-    Sentry.addBreadcrumb({
-        category: 'exhibit.generate',
-        message: `Started exhibit generation`,
-        level: 'info',
-        data: { jobId, sessionId, caseName: session.caseName, totalFiles, exhibits: exhibitSummary },
-    });
-
-    res.json({ success: true, jobId });
-
-    Sentry.startSpan(
-        {
-            op: 'exhibit.process',
-            name: `Generate exhibit package: ${session.caseName || 'unnamed'}`,
-            attributes: {
-                'exhibit.job_id': jobId,
-                'exhibit.session_id': sessionId,
-                'exhibit.case_name': session.caseName || '',
-                'exhibit.total_files': totalFiles,
-                'exhibit.exhibit_count': Object.keys(exhibitSummary).length,
-            },
-        },
-        async (span) => {
-            try {
-                const result = await ExhibitProcessor.process({
-                    caseName: session.caseName,
-                    exhibits: session.exhibits,
-                    outputDir,
-                    onProgress: (pct, msg, phase) => {
-                        const job = jobs.get(jobId);
-                        if (job) {
-                            job.progress = pct;
-                            job.message = msg;
-                            if (phase) job.phase = phase;
-                            broadcastJobEvent(jobId, 'progress', {
-                                progress: pct,
-                                message: msg,
-                                phase: job.phase,
-                                timestamp: Date.now(),
-                            });
-                        }
-                    },
-                });
-
-                const job = jobs.get(jobId);
-                if (!job) return;
-
-                if (result.paused && result.duplicates) {
-                    job.status = 'awaiting_resolution';
-                    job.duplicates = result.duplicates;
-                    span.setAttribute('exhibit.outcome', 'duplicates_found');
-                    span.setAttribute('exhibit.duplicate_exhibits', Object.keys(result.duplicates).length);
-                    broadcastJobEvent(jobId, 'duplicates', { duplicates: result.duplicates });
-                } else {
-                    // Upload PDF to GCS so download works across Cloud Run instances
-                    let downloadUrl = null;
-                    try {
-                        const gcsPath = `exhibits/${sessionId}/${jobId}/${result.filename}`;
-                        const bucket = gcs.bucket(GCS_BUCKET);
-                        const file = bucket.file(gcsPath);
-                        await file.save(result.pdfBuffer, { contentType: 'application/pdf' });
-
-                        [downloadUrl] = await file.getSignedUrl({
-                            action: 'read',
-                            expires: Date.now() + 60 * 60 * 1000, // 1 hour
-                            responseDisposition: `attachment; filename="${result.filename}"`,
-                        });
-                    } catch (gcsErr) {
-                        logger.warn(`GCS upload/sign skipped (local dev?): ${gcsErr.message}`);
-                    }
-
-                    job.status = 'completed';
-                    job.outputPath = result.outputPath;
-                    job.filename = result.filename;
-                    job.downloadUrl = downloadUrl;
-                    span.setAttribute('exhibit.outcome', 'completed');
-                    span.setAttribute('exhibit.output_filename', result.filename);
-                    broadcastJobEvent(jobId, 'complete', { filename: result.filename, downloadUrl });
-                }
-            } catch (err) {
-                logger.error('Exhibit processing failed', { jobId, error: err.message, stack: err.stack });
-                span.setStatus({ code: 2, message: err.message });
-
-                Sentry.withScope(scope => {
-                    scope.setTag('exhibit.job_id', jobId);
-                    scope.setTag('exhibit.stage', 'process');
-                    scope.setContext('exhibit_job', {
-                        jobId,
-                        sessionId,
-                        caseName: session.caseName,
-                        totalFiles,
-                        exhibits: exhibitSummary,
-                    });
-                    Sentry.captureException(err);
-                });
-
-                const job = jobs.get(jobId);
-                if (job) {
-                    job.status = 'failed';
-                    job.message = err.message;
-                    broadcastJobEvent(jobId, 'error', { error: err.message });
-                }
-            }
-        }
-    );
-}));
 
 // POST /jobs/:jobId/resolve
 router.post('/jobs/:jobId/resolve', asyncHandler(async (req, res) => {
@@ -297,10 +62,8 @@ router.post('/jobs/:jobId/resolve', asyncHandler(async (req, res) => {
         return res.status(400).json({ success: false, error: 'Job is not awaiting resolution' });
     }
 
-    // Dropbox jobs store exhibits on the job object; regular uploads use sessions
-    const session = sessions.get(job.sessionId);
-    const exhibits = job.exhibits || (session && session.exhibits);
-    const caseName = job.caseName || (session && session.caseName) || '';
+    const exhibits = job.exhibits;
+    const caseName = job.caseName || '';
 
     if (!exhibits) {
         return res.status(400).json({ success: false, error: 'Session expired' });
@@ -475,40 +238,6 @@ router.get('/jobs/:jobId/download', asyncHandler(async (req, res) => {
     res.status(400).json({ success: false, error: 'PDF not available' });
 }));
 
-// DELETE /sessions/:sessionId
-router.delete('/sessions/:sessionId', asyncHandler(async (req, res) => {
-    const { sessionId } = req.params;
-
-    sessions.delete(sessionId);
-
-    const sessionDir = path.join(UPLOAD_BASE, sessionId);
-    if (fs.existsSync(sessionDir)) {
-        fs.rmSync(sessionDir, { recursive: true, force: true });
-    }
-
-    for (const [jobId, job] of jobs.entries()) {
-        if (job.sessionId === sessionId) {
-            jobs.delete(jobId);
-        }
-    }
-
-    res.json({ success: true, message: 'Session cleaned up' });
-}));
-
-// Periodic cleanup
-setInterval(() => {
-    const now = Date.now();
-    for (const [sessionId, session] of sessions.entries()) {
-        if (now - session.createdAt > CLEANUP_TTL) {
-            sessions.delete(sessionId);
-            const sessionDir = path.join(UPLOAD_BASE, sessionId);
-            if (fs.existsSync(sessionDir)) {
-                fs.rmSync(sessionDir, { recursive: true, force: true });
-            }
-            logger.info(`Cleaned up expired exhibit session: ${sessionId}`);
-        }
-    }
-}, 10 * 60 * 1000);
 
 /**
  * POST /generate-from-dropbox
@@ -524,7 +253,7 @@ router.post('/generate-from-dropbox', async (req, res) => {
         }
 
         const totalFiles = Object.values(exhibitMapping).flat().length;
-        const effectiveMode = mode || (totalFiles >= 50 ? 'async' : 'realtime');
+        const effectiveMode = mode || (totalFiles >= 500 ? 'async' : 'realtime');
 
         if (effectiveMode === 'async') {
             const job = await AsyncJobManager.createJob({

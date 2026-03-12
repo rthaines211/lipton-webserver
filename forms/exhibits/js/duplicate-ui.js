@@ -17,7 +17,7 @@ const DuplicateUI = (() => {
      * Falls back to FontAwesome icon on error.
      */
     async function renderPreview(letter, filename, serverThumbnail) {
-        // If server provided a thumbnail (Dropbox imports), use it directly
+        // Server provides thumbnails for Dropbox imports
         if (serverThumbnail) {
             const img = document.createElement('img');
             img.src = serverThumbnail;
@@ -26,50 +26,7 @@ const DuplicateUI = (() => {
             return img;
         }
 
-        const exhibits = ExhibitManager.getExhibits();
-        const files = exhibits[letter] || [];
-        const entry = files.find(f => f.name === filename);
-
-        if (!entry || !entry.file) {
-            return createFallbackIcon(filename);
-        }
-
-        const ext = filename.split('.').pop().toLowerCase();
-        const isImage = ['png', 'jpg', 'jpeg', 'tiff', 'tif', 'heic'].includes(ext);
-
-        try {
-            if (isImage) {
-                const img = document.createElement('img');
-                img.className = 'duplicate-preview-img';
-                img.alt = filename;
-                img.src = URL.createObjectURL(entry.file);
-                img.onload = () => URL.revokeObjectURL(img.src);
-                return img;
-            } else {
-                // PDF — render page 1 via PDF.js
-                const arrayBuffer = await entry.file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                const page = await pdf.getPage(1);
-                const viewport = page.getViewport({ scale: 1 });
-                const scale = 400 / viewport.width; // target ~400px wide
-                const scaledViewport = page.getViewport({ scale });
-
-                const canvas = document.createElement('canvas');
-                canvas.className = 'duplicate-preview-canvas';
-                canvas.width = scaledViewport.width;
-                canvas.height = scaledViewport.height;
-
-                await page.render({
-                    canvasContext: canvas.getContext('2d'),
-                    viewport: scaledViewport,
-                }).promise;
-
-                return canvas;
-            }
-        } catch (err) {
-            console.warn(`Preview failed for ${filename}:`, err);
-            return createFallbackIcon(filename);
-        }
+        return createFallbackIcon(filename);
     }
 
     function createFallbackIcon(filename) {
@@ -252,10 +209,6 @@ const DuplicateUI = (() => {
                 badgeContainer.appendChild(badge);
             }
 
-            // Expand the card to show the badges
-            if (typeof ExhibitManager !== 'undefined') {
-                ExhibitManager.expandCard(letter);
-            }
         }
     }
 

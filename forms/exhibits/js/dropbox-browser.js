@@ -9,24 +9,14 @@ const DropboxBrowserUI = (() => {
     const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     const checkedFiles = new Set(); // Dropbox paths of checked files in current folder
     const thumbnailCache = new Map(); // path -> base64 data (persists across folder navigation)
+    const tempLinkCache = new Map(); // path -> { link, fetchedAt } (4h Dropbox expiry, cleared on page unload)
     let currentEntries = []; // entries from current folder (for preview navigation)
     let thumbnailAbortController = null; // AbortController for in-flight thumbnail requests
     let lastUsedLetter = 'A'; // remembers last exhibit letter used for assignment
     let previewIndex = -1; // current index in currentEntries being previewed
 
     function init() {
-        const importBtn = document.getElementById('btn-import-dropbox');
         const refreshBtn = document.getElementById('btn-dropbox-refresh');
-
-        if (importBtn) {
-            importBtn.addEventListener('click', () => {
-                document.getElementById('dropbox-panel').style.display = 'flex';
-                importBtn.style.display = 'none';
-                loadFolder('/');
-                renderExhibitSlots();
-                if (typeof ExhibitManager !== 'undefined') ExhibitManager.updateGenerateButton();
-            });
-        }
 
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => loadFolder(currentPath, true));
@@ -36,6 +26,10 @@ const DropboxBrowserUI = (() => {
         if (selectAllCb) {
             selectAllCb.addEventListener('change', toggleSelectAll);
         }
+
+        // Auto-load Dropbox root and exhibit slots on page load
+        loadFolder('/');
+        renderExhibitSlots();
     }
 
     async function loadFolder(folderPath, refresh = false) {
@@ -257,6 +251,40 @@ const DropboxBrowserUI = (() => {
         renderPreviewContent(entry);
     }
 
+    /**
+     * Fetch and cache a Dropbox temp link. Returns the link string or null.
+     * Uses cache if available (links valid for 4 hours).
+     */
+    async function getTempLink(filePath) {
+        const CACHE_TTL = 3 * 60 * 60 * 1000; // 3 hours (conservative vs 4h Dropbox expiry)
+        const cached = tempLinkCache.get(filePath);
+        if (cached && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+            return cached.link;
+        }
+
+        try {
+            const res = await fetch(`/api/dropbox/temp-link?path=${encodeURIComponent(filePath)}`);
+            const data = await res.json();
+            if (data.success && data.link) {
+                tempLinkCache.set(filePath, { link: data.link, fetchedAt: Date.now() });
+                return data.link;
+            }
+        } catch (err) {
+            console.warn('Temp link fetch failed:', filePath, err);
+        }
+        return null;
+    }
+
+    /**
+     * Prefetch temp links for adjacent files (fire-and-forget).
+     */
+    function prefetchAdjacentLinks() {
+        const prevIdx = findAdjacentFile(previewIndex, -1);
+        const nextIdx = findAdjacentFile(previewIndex, 1);
+        if (prevIdx !== -1) getTempLink(currentEntries[prevIdx].path);
+        if (nextIdx !== -1) getTempLink(currentEntries[nextIdx].path);
+    }
+
     async function renderPreviewContent(entry) {
         const body = document.getElementById('preview-body');
         const filename = document.getElementById('preview-filename');
@@ -291,29 +319,33 @@ const DropboxBrowserUI = (() => {
             status.className = 'preview-status';
         }
 
-        // Show loading
-        body.innerHTML = '<span class="preview-spinner">Loading preview...</span>';
-        const capturedIndex = previewIndex; // guard against stale renders during rapid navigation
+        // Show loading only if not cached
+        const hasCachedLink = tempLinkCache.has(entry.path);
+        if (!hasCachedLink) {
+            body.innerHTML = '<span class="preview-spinner">Loading preview...</span>';
+        }
+        const capturedIndex = previewIndex;
 
         try {
-            const res = await fetch(`/api/dropbox/temp-link?path=${encodeURIComponent(entry.path)}`);
-            const data = await res.json();
+            const link = await getTempLink(entry.path);
 
-            if (previewIndex !== capturedIndex) return; // navigated away during fetch
+            if (previewIndex !== capturedIndex) return;
 
-            if (!data.success || !data.link) {
+            if (!link) {
                 body.innerHTML = '<span class="preview-error">Failed to load preview</span>';
                 return;
             }
+
+            // Prefetch neighbors in background
+            prefetchAdjacentLinks();
 
             const ext = (entry.extension || '').toLowerCase();
             const isPdf = ext === 'pdf';
 
             if (isPdf) {
-                // Render PDF first page via PDF.js
                 body.innerHTML = '';
                 try {
-                    const pdf = await pdfjsLib.getDocument(data.link).promise;
+                    const pdf = await pdfjsLib.getDocument(link).promise;
                     if (previewIndex !== capturedIndex) return;
                     const page = await pdf.getPage(1);
                     const viewport = page.getViewport({ scale: 1.5 });
@@ -328,12 +360,11 @@ const DropboxBrowserUI = (() => {
                 } catch (pdfErr) {
                     if (previewIndex !== capturedIndex) return;
                     console.warn('PDF.js failed, falling back to iframe:', pdfErr);
-                    body.innerHTML = `<iframe src="${data.link}" style="width:100%;height:60vh;border:none;border-radius:4px;"></iframe>`;
+                    body.innerHTML = `<iframe src="${link}" style="width:100%;height:60vh;border:none;border-radius:4px;"></iframe>`;
                 }
             } else {
-                // Image
                 const img = document.createElement('img');
-                img.src = data.link;
+                img.src = link;
                 img.alt = entry.name;
                 img.onload = () => {
                     if (previewIndex !== capturedIndex) return;

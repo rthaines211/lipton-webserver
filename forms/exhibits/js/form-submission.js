@@ -1,20 +1,13 @@
 /**
  * Form Submission Module
- * Orchestrates: validate → gap check → upload all files → generate → SSE progress → duplicate resolution → download.
+ * Orchestrates: validate → generate from Dropbox → SSE progress → duplicate resolution → download.
  */
 
 const FormSubmission = (() => {
 
     function init() {
         const btn = document.getElementById('btn-generate');
-        btn.addEventListener('click', () => {
-            const dropboxPanel = document.getElementById('dropbox-panel');
-            if (dropboxPanel && dropboxPanel.style.display !== 'none') {
-                handleGenerateFromDropbox();
-            } else {
-                handleGenerate();
-            }
-        });
+        btn.addEventListener('click', handleGenerate);
 
         // Blur validation for required fields
         const caseName = document.getElementById('case-name');
@@ -73,73 +66,6 @@ const FormSubmission = (() => {
     }
 
     async function handleGenerate() {
-        // Step 1: Validate required fields
-        if (!validateRequiredFields()) return;
-
-        const btn = document.getElementById('btn-generate');
-        btn.disabled = true;
-
-        // Step 2: Gap detection
-        if (typeof GapDetector !== 'undefined') {
-            const gapResult = await GapDetector.checkOnSubmit();
-            if (gapResult === 'collapse') {
-                // Gaps were collapsed — re-enable button, let user review and re-submit
-                btn.disabled = false;
-                return;
-            }
-            // 'continue' or 'none' — proceed with generation
-        }
-
-        const sessionId = ExhibitManager.getSessionId();
-        const caseName = document.getElementById('case-name').value.trim();
-        const exhibits = ExhibitManager.getExhibits();
-
-        try {
-            // Phase 1: Upload all files to server
-            showProgress('Uploading Files', 0, 'Preparing uploads...');
-
-            const activeLetters = ExhibitManager.getActiveExhibits();
-            let uploadCount = 0;
-
-            await FileUploader.uploadAllExhibits(sessionId, exhibits, (letter, status) => {
-                if (status === 'done') {
-                    uploadCount++;
-                    const pct = Math.round((uploadCount / activeLetters.length) * 20);
-                    updateProgress(pct, `Uploaded Exhibit ${letter}...`);
-                }
-            });
-
-            updateProgress(20, 'All files uploaded. Starting generation...');
-
-            // Phase 2: Trigger generation
-            const genResponse = await fetch('/api/exhibits/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId, caseName }),
-            });
-
-            if (!genResponse.ok) {
-                const err = await genResponse.json().catch(() => ({}));
-                throw new Error(err.error || 'Failed to start generation');
-            }
-
-            const { jobId } = await genResponse.json();
-
-            // Phase 3: Connect SSE for progress
-            await connectSSE(jobId);
-
-        } catch (error) {
-            hideProgress();
-            alert(`Error: ${error.message}`);
-            btn.disabled = false;
-        }
-    }
-
-    /**
-     * Handle generate from Dropbox import.
-     * Skips the upload phase — sends exhibit mapping to server for server-side download.
-     */
-    async function handleGenerateFromDropbox() {
         if (!validateRequiredFields()) return;
 
         const caseName = document.getElementById('case-name').value.trim();
@@ -155,10 +81,11 @@ const FormSubmission = (() => {
         btn.disabled = true;
 
         // Determine mode
-        const defaultMode = totalFiles >= 50 ? 'async' : 'realtime';
+        const ASYNC_THRESHOLD = 500;
+        const defaultMode = totalFiles >= ASYNC_THRESHOLD ? 'async' : 'realtime';
         let mode = defaultMode;
 
-        if (totalFiles >= 40 && totalFiles < 60) {
+        if (totalFiles >= ASYNC_THRESHOLD - 10 && totalFiles < ASYNC_THRESHOLD + 10) {
             const useAsync = confirm(
                 `You have ${totalFiles} files. Would you like to process in the background?\n\n` +
                 `OK = Background processing (email notification when done)\n` +
@@ -297,7 +224,6 @@ const FormSubmission = (() => {
                 document.getElementById('btn-generate').disabled = false;
                 document.getElementById('case-name').value = '';
                 document.getElementById('case-description').value = '';
-                ExhibitManager.clearAll();
 
                 resolve();
             });
