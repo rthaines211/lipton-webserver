@@ -90,11 +90,13 @@ const DuplicateUI = (() => {
                     ? 'Exact Duplicate'
                     : pair.matchType === 'VISUAL_MATCH'
                         ? `Visual Match (${pair.confidence}%)`
-                        : `Content Match (${pair.confidence}%)`;
+                        : pair.matchType === 'LIKELY_MATCH'
+                            ? `Likely Match (${pair.confidence}%)`
+                            : `Content Match (${pair.confidence}%)`;
 
                 // Build card shell with loading spinners as placeholders
-                const safeFile1 = escapeHtml(pair.file1);
-                const safeFile2 = escapeHtml(pair.file2);
+                const safeFile1 = escapeHtml(pair.file1) + (pair.page1 ? ` <span class="page-ref">p.${pair.page1}</span>` : '');
+                const safeFile2 = escapeHtml(pair.file2) + (pair.page2 ? ` <span class="page-ref">p.${pair.page2}</span>` : '');
 
                 card.innerHTML = `
                     <div class="duplicate-pair-header">
@@ -204,8 +206,9 @@ const DuplicateUI = (() => {
             for (const pair of pairs) {
                 const badge = document.createElement('span');
                 const isExact = pair.matchType === 'EXACT_DUPLICATE';
+                const isLikely = pair.matchType === 'LIKELY_MATCH';
                 badge.className = `duplicate-badge ${isExact ? 'exact' : 'similar'}`;
-                badge.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${isExact ? 'Duplicate' : 'Similar'}`;
+                badge.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${isExact ? 'Duplicate' : isLikely ? 'Likely' : 'Similar'}`;
                 badgeContainer.appendChild(badge);
             }
 

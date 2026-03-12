@@ -1,10 +1,9 @@
 /**
  * Duplicate Detector Service
  *
- * Three-layer duplicate detection for exhibit files:
+ * Two-layer duplicate detection for exhibit files:
  * Layer 1: SHA-256 hash comparison (instant, exact matches)
- * Layer 2: Visual similarity via sharp thumbnails (fast, visual matches)
- * Layer 3: OCR text comparison via tesseract.js (selective, content matches)
+ * Layer 2: Visual similarity via dHash pre-filter + pixel comparison (images and PDF pages)
  *
  * @module services/duplicate-detector
  */
@@ -76,6 +75,48 @@ class DuplicateDetector {
     }
 
     /**
+     * Render all pages of a PDF to PNG buffers via MuPDF WASM.
+     * @param {Buffer} buffer - PDF file contents
+     * @returns {Promise<Array<{pageNum: number, buffer: Buffer}>>} PNG buffers per page, or empty array on failure
+     */
+    static async renderPdfPages(buffer) {
+        let doc;
+        try {
+            const mupdf = await import('mupdf');
+            doc = mupdf.default.Document.openDocument(buffer, 'application/pdf');
+            const pageCount = doc.countPages();
+            const pages = [];
+
+            for (let i = 0; i < pageCount; i++) {
+                let page, pixmap;
+                try {
+                    page = doc.loadPage(i);
+                    pixmap = page.toPixmap(
+                        [0.5, 0, 0, 0.5, 0, 0],
+                        mupdf.default.ColorSpace.DeviceRGB,
+                        false,
+                        true
+                    );
+                    const pngBuffer = Buffer.from(pixmap.asPNG());
+                    pages.push({ pageNum: i + 1, buffer: pngBuffer });
+                } catch (pageErr) {
+                    logger.warn(`PDF page ${i + 1} render failed: ${pageErr.message}`);
+                } finally {
+                    if (pixmap) pixmap.destroy();
+                    if (page) page.destroy();
+                }
+            }
+
+            return pages;
+        } catch (err) {
+            logger.warn(`PDF render failed: ${err.message}`);
+            return [];
+        } finally {
+            if (doc) doc.destroy();
+        }
+    }
+
+    /**
      * Find exact duplicates by comparing SHA-256 hashes.
      * @param {Array<{name: string, buffer: Buffer}>} files
      * @returns {Array<Object>} Array of duplicate match objects
@@ -132,91 +173,162 @@ class DuplicateDetector {
 
     /**
      * Find visual matches among files using thumbnail comparison.
-     * @param {Array<{name: string, buffer: Buffer}>} files
+     * Supports both images and PDF pages via two-pass memory strategy.
+     * @param {Array<{name: string, buffer: Buffer, type: string}>} files
      * @param {Set<string>} alreadyMatchedPairs - Pair keys to skip
      * @param {Function} [onPairProgress] - Optional callback (pairNum, totalPairs)
-     * @returns {Promise<{matches: Array<Object>, maybePairs: Array<Object>}>}
+     * @param {Function} [onRenderProgress] - Optional callback (fileNum, totalFiles)
+     * @returns {Promise<{matches: Array<Object>, likelyMatches: Array<Object>}>}
      */
-    static async findVisualMatches(files, alreadyMatchedPairs = new Set(), onPairProgress) {
+    static async findVisualMatches(files, alreadyMatchedPairs = new Set(), onPairProgress, onRenderProgress) {
         const matches = [];
-        const maybePairs = [];
+        const likelyMatches = [];
         const IMAGE_TYPES_SET = new Set(['png', 'jpg', 'jpeg', 'tiff', 'heic']);
+        const PDF_TYPES_SET = new Set(['pdf']);
         const { processWithConcurrency } = require('../utils/concurrency');
         const HAMMING_THRESHOLD = 15;
 
-        // Collect eligible image file indices
-        const imageIndices = [];
-        for (let i = 0; i < files.length; i++) {
-            if (IMAGE_TYPES_SET.has(files[i].type)) imageIndices.push(i);
-        }
+        // --- Pass 1: Expand files to visual entries and compute dHash ---
+        // Each entry: { sourceIndex, page, hash }
+        // sourceIndex = index in original files array, page = null for images or 1-based for PDFs
+        const visualEntries = [];
+        let renderedFiles = 0;
+        const totalFilesToRender = files.length;
 
-        if (imageIndices.length < 2) return { matches, maybePairs };
+        await processWithConcurrency(
+            files.map((f, idx) => ({ file: f, idx })),
+            async ({ file, idx }) => {
+                if (IMAGE_TYPES_SET.has(file.type)) {
+                    const hash = await DuplicateDetector.computeDHash(file.buffer);
+                    visualEntries.push({ sourceIndex: idx, page: null, hash });
+                } else if (PDF_TYPES_SET.has(file.type)) {
+                    const pages = await DuplicateDetector.renderPdfPages(file.buffer);
+                    for (const { pageNum, buffer: pngBuf } of pages) {
+                        const hash = await DuplicateDetector.computeDHash(pngBuf);
+                        // pngBuf is NOT stored — only the hash is kept (memory optimization)
+                        visualEntries.push({ sourceIndex: idx, page: pageNum, hash });
+                    }
+                }
+                renderedFiles++;
+                if (onRenderProgress) {
+                    onRenderProgress(renderedFiles, totalFilesToRender);
+                }
+            },
+            4
+        );
 
-        // Stage 1: Compute dHash for all image files
-        const hashMap = new Map();
-        await processWithConcurrency(imageIndices, async (idx) => {
-            const hash = await DuplicateDetector.computeDHash(files[idx].buffer);
-            hashMap.set(idx, hash);
-        }, 4);
+        if (visualEntries.length < 2) return { matches, likelyMatches };
 
-        // Stage 2: Filter pairs by hamming distance
+        // --- Hamming distance filter ---
         const candidatePairs = [];
-        for (let a = 0; a < imageIndices.length; a++) {
-            for (let b = a + 1; b < imageIndices.length; b++) {
-                const i = imageIndices[a];
-                const j = imageIndices[b];
-                const pairKey = `${files[i].name}|${files[j].name}`;
+        for (let a = 0; a < visualEntries.length; a++) {
+            for (let b = a + 1; b < visualEntries.length; b++) {
+                const ea = visualEntries[a];
+                const eb = visualEntries[b];
+
+                // Skip same-file pairs (pages within the same PDF)
+                if (ea.sourceIndex === eb.sourceIndex) continue;
+
+                // Skip already matched pairs (use original file names)
+                const pairKey = `${files[ea.sourceIndex].name}|${files[eb.sourceIndex].name}`;
                 if (alreadyMatchedPairs.has(pairKey)) continue;
 
-                const hash1 = hashMap.get(i);
-                const hash2 = hashMap.get(j);
-
-                // If either hash is null (failed), include as candidate (safe default)
-                if (hash1 === null || hash2 === null) {
-                    candidatePairs.push({ i, j });
+                // Null hash = include as candidate (safe fallback)
+                if (ea.hash === null || eb.hash === null) {
+                    candidatePairs.push({ a, b });
                     continue;
                 }
 
-                if (DuplicateDetector.hammingDistance(hash1, hash2) <= HAMMING_THRESHOLD) {
-                    candidatePairs.push({ i, j });
+                if (DuplicateDetector.hammingDistance(ea.hash, eb.hash) <= HAMMING_THRESHOLD) {
+                    candidatePairs.push({ a, b });
                 }
             }
         }
 
-        // Stage 3: Pixel comparison on candidates only
+        // --- Pass 2: Re-render and pixel compare candidates ---
         const totalPairs = candidatePairs.length;
         let completedPairs = 0;
 
-        await processWithConcurrency(candidatePairs, async (pair) => {
-            const { i, j } = pair;
+        // Helper: get PNG buffer for a visual entry (re-render if PDF page)
+        const getBuffer = async (entry) => {
+            if (entry.page === null) {
+                return files[entry.sourceIndex].buffer; // image: use directly
+            }
+            // PDF page: re-render just this page
+            let doc, page, pixmap;
+            try {
+                const mupdf = await import('mupdf');
+                doc = mupdf.default.Document.openDocument(
+                    files[entry.sourceIndex].buffer, 'application/pdf'
+                );
+                page = doc.loadPage(entry.page - 1); // 0-indexed
+                pixmap = page.toPixmap(
+                    [0.5, 0, 0, 0.5, 0, 0],
+                    mupdf.default.ColorSpace.DeviceRGB, false, true
+                );
+                return Buffer.from(pixmap.asPNG());
+            } finally {
+                if (pixmap) pixmap.destroy();
+                if (page) page.destroy();
+                if (doc) doc.destroy();
+            }
+        };
+
+        // Build details string with page info
+        const detailStr = (similarity, ea, eb) => {
+            const pct = Math.round(similarity * 100);
+            const name1 = files[ea.sourceIndex].name;
+            const name2 = files[eb.sourceIndex].name;
+            const p1 = ea.page ? ` p.${ea.page}` : '';
+            const p2 = eb.page ? ` p.${eb.page}` : '';
+            if (p1 || p2) {
+                return `Visual similarity: ${pct}% (${name1}${p1} vs ${name2}${p2})`;
+            }
+            return `Visual similarity: ${pct}%`;
+        };
+
+        await processWithConcurrency(candidatePairs, async ({ a, b }) => {
+            const ea = visualEntries[a];
+            const eb = visualEntries[b];
+
             completedPairs++;
             if (onPairProgress && totalPairs > 0) {
                 onPairProgress(completedPairs, totalPairs);
             }
 
             try {
-                const similarity = await DuplicateDetector.computeVisualSimilarity(
-                    files[i].buffer, files[j].buffer
-                );
+                const [buf1, buf2] = await Promise.all([getBuffer(ea), getBuffer(eb)]);
+                const similarity = await DuplicateDetector.computeVisualSimilarity(buf1, buf2);
 
                 if (similarity >= VISUAL_MATCH_THRESHOLD) {
                     matches.push({
-                        file1: files[i].name,
-                        file2: files[j].name,
+                        file1: files[ea.sourceIndex].name,
+                        file2: files[eb.sourceIndex].name,
+                        page1: ea.page,
+                        page2: eb.page,
                         matchType: 'VISUAL_MATCH',
                         confidence: Math.round(similarity * 100),
                         layer: 2,
-                        details: `Visual similarity: ${Math.round(similarity * 100)}%`,
+                        details: detailStr(similarity, ea, eb),
                     });
                 } else if (similarity >= VISUAL_MAYBE_LOW) {
-                    maybePairs.push({ file1Index: i, file2Index: j, similarity });
+                    likelyMatches.push({
+                        file1: files[ea.sourceIndex].name,
+                        file2: files[eb.sourceIndex].name,
+                        page1: ea.page,
+                        page2: eb.page,
+                        matchType: 'LIKELY_MATCH',
+                        confidence: Math.round(similarity * 100),
+                        layer: 2,
+                        details: detailStr(similarity, ea, eb),
+                    });
                 }
             } catch (err) {
-                logger.warn(`Visual comparison failed for ${files[i].name} vs ${files[j].name}: ${err.message}`);
+                logger.warn(`Visual comparison failed for ${files[ea.sourceIndex].name} vs ${files[eb.sourceIndex].name}: ${err.message}`);
             }
         }, 4);
 
-        return { matches, maybePairs };
+        return { matches, likelyMatches };
     }
 
     /**
@@ -290,11 +402,10 @@ class DuplicateDetector {
     }
 
     /**
-     * Run the full three-layer duplicate detection pipeline.
+     * Run the full two-layer duplicate detection pipeline.
      *
-     * Layer 1: Exact hash comparison (~0-10% of dup phase)
-     * Layer 2: Visual similarity via thumbnails (~10-70% of dup phase)
-     * Layer 3: OCR text comparison for "maybe" zone pairs (~70-100% of dup phase)
+     * Layer 1: Exact hash comparison (0-10%)
+     * Layer 2: Visual similarity with PDF pages (10-90%)
      *
      * @param {Array<{name: string, buffer: Buffer, type: string}>} files
      * @param {Function} [onProgress] - Optional callback (subPercent, message) where subPercent is 0-100
@@ -306,7 +417,7 @@ class DuplicateDetector {
         const allDuplicates = [];
         const progressFn = onProgress || (() => {});
 
-        // Layer 1: Exact hash matching (~0-10% of dup phase)
+        // Layer 1: Exact hash matching (0-10%)
         progressFn(0, `Checking exact hashes: ${files.length} files`);
         const exactDupes = DuplicateDetector.findExactDuplicates(files);
         allDuplicates.push(...exactDupes);
@@ -314,30 +425,23 @@ class DuplicateDetector {
 
         const matchedPairs = new Set(exactDupes.map(d => `${d.file1}|${d.file2}`));
 
-        // Layer 2: Visual similarity (~10-70% of dup phase)
-        const { matches: visualMatches, maybePairs } = await DuplicateDetector.findVisualMatches(
+        // Layer 2: Visual similarity with PDF pages (10-90%)
+        const { matches: visualMatches, likelyMatches } = await DuplicateDetector.findVisualMatches(
             files,
             matchedPairs,
             (pairNum, totalPairs) => {
-                const subPct = 10 + Math.round((pairNum / totalPairs) * 60);
+                const subPct = 30 + Math.round((pairNum / totalPairs) * 60);
                 progressFn(subPct, `Visual comparison: pair ${pairNum} of ${totalPairs}`);
+            },
+            (fileNum, totalFiles) => {
+                const subPct = 10 + Math.round((fileNum / totalFiles) * 20);
+                progressFn(subPct, `Rendering pages: file ${fileNum} of ${totalFiles}`);
             }
         );
         allDuplicates.push(...visualMatches);
-        progressFn(70, `Visual check complete: ${visualMatches.length} match(es)`);
+        allDuplicates.push(...likelyMatches);
+        progressFn(90, `Visual check complete: ${visualMatches.length} match(es), ${likelyMatches.length} likely`);
 
-        // Layer 3: OCR text comparison (~70-100% of dup phase)
-        if (maybePairs.length > 0) {
-            const contentMatches = await DuplicateDetector.findContentMatches(
-                files,
-                maybePairs,
-                (pairNum, totalPairs) => {
-                    const subPct = 70 + Math.round((pairNum / totalPairs) * 30);
-                    progressFn(subPct, `OCR analysis: pair ${pairNum} of ${maybePairs.length}`);
-                }
-            );
-            allDuplicates.push(...contentMatches);
-        }
         progressFn(100, `Duplicate scan complete: ${allDuplicates.length} total match(es)`);
 
         return { duplicates: allDuplicates };
