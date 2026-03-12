@@ -1,10 +1,9 @@
 /**
  * Duplicate Detector Service
  *
- * Three-layer duplicate detection for exhibit files:
+ * Two-layer duplicate detection for exhibit files:
  * Layer 1: SHA-256 hash comparison (instant, exact matches)
- * Layer 2: Visual similarity via sharp thumbnails (fast, visual matches)
- * Layer 3: OCR text comparison via tesseract.js (selective, content matches)
+ * Layer 2: Visual similarity via dHash pre-filter + pixel comparison (images and PDF pages)
  *
  * @module services/duplicate-detector
  */
@@ -403,11 +402,10 @@ class DuplicateDetector {
     }
 
     /**
-     * Run the full three-layer duplicate detection pipeline.
+     * Run the full two-layer duplicate detection pipeline.
      *
-     * Layer 1: Exact hash comparison (~0-10% of dup phase)
-     * Layer 2: Visual similarity via thumbnails (~10-70% of dup phase)
-     * Layer 3: OCR text comparison for "maybe" zone pairs (~70-100% of dup phase)
+     * Layer 1: Exact hash comparison (0-10%)
+     * Layer 2: Visual similarity with PDF pages (10-90%)
      *
      * @param {Array<{name: string, buffer: Buffer, type: string}>} files
      * @param {Function} [onProgress] - Optional callback (subPercent, message) where subPercent is 0-100
@@ -419,7 +417,7 @@ class DuplicateDetector {
         const allDuplicates = [];
         const progressFn = onProgress || (() => {});
 
-        // Layer 1: Exact hash matching (~0-10% of dup phase)
+        // Layer 1: Exact hash matching (0-10%)
         progressFn(0, `Checking exact hashes: ${files.length} files`);
         const exactDupes = DuplicateDetector.findExactDuplicates(files);
         allDuplicates.push(...exactDupes);
@@ -427,30 +425,23 @@ class DuplicateDetector {
 
         const matchedPairs = new Set(exactDupes.map(d => `${d.file1}|${d.file2}`));
 
-        // Layer 2: Visual similarity (~10-70% of dup phase)
-        const { matches: visualMatches, maybePairs } = await DuplicateDetector.findVisualMatches(
+        // Layer 2: Visual similarity with PDF pages (10-90%)
+        const { matches: visualMatches, likelyMatches } = await DuplicateDetector.findVisualMatches(
             files,
             matchedPairs,
             (pairNum, totalPairs) => {
-                const subPct = 10 + Math.round((pairNum / totalPairs) * 60);
+                const subPct = 30 + Math.round((pairNum / totalPairs) * 60);
                 progressFn(subPct, `Visual comparison: pair ${pairNum} of ${totalPairs}`);
+            },
+            (fileNum, totalFiles) => {
+                const subPct = 10 + Math.round((fileNum / totalFiles) * 20);
+                progressFn(subPct, `Rendering pages: file ${fileNum} of ${totalFiles}`);
             }
         );
         allDuplicates.push(...visualMatches);
-        progressFn(70, `Visual check complete: ${visualMatches.length} match(es)`);
+        allDuplicates.push(...likelyMatches);
+        progressFn(90, `Visual check complete: ${visualMatches.length} match(es), ${likelyMatches.length} likely`);
 
-        // Layer 3: OCR text comparison (~70-100% of dup phase)
-        if (maybePairs.length > 0) {
-            const contentMatches = await DuplicateDetector.findContentMatches(
-                files,
-                maybePairs,
-                (pairNum, totalPairs) => {
-                    const subPct = 70 + Math.round((pairNum / totalPairs) * 30);
-                    progressFn(subPct, `OCR analysis: pair ${pairNum} of ${maybePairs.length}`);
-                }
-            );
-            allDuplicates.push(...contentMatches);
-        }
         progressFn(100, `Duplicate scan complete: ${allDuplicates.length} total match(es)`);
 
         return { duplicates: allDuplicates };
