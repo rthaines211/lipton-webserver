@@ -251,7 +251,11 @@ const ExhibitManager = (() => {
     function updateGenerateButton() {
         const btn = document.getElementById('btn-generate');
         const hasFiles = LETTERS.some(l => exhibits[l].length > 0);
-        btn.disabled = !hasFiles;
+        // Also enable if Dropbox panel is active with assigned files
+        const dropboxPanel = document.getElementById('dropbox-panel');
+        const hasDropboxFiles = dropboxPanel && dropboxPanel.style.display !== 'none'
+            && typeof DropboxBrowserUI !== 'undefined' && DropboxBrowserUI.getTotalFiles() > 0;
+        btn.disabled = !(hasFiles || hasDropboxFiles);
     }
 
     function updateSummary() {

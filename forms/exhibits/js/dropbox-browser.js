@@ -18,6 +18,7 @@ const DropboxBrowserUI = (() => {
                 importBtn.style.display = 'none';
                 loadFolder('/');
                 renderExhibitSlots();
+                if (typeof ExhibitManager !== 'undefined') ExhibitManager.updateGenerateButton();
             });
         }
 
@@ -230,6 +231,9 @@ const DropboxBrowserUI = (() => {
                 updateSlotUI(letter);
             });
         });
+
+        // Update generate button state
+        if (typeof ExhibitManager !== 'undefined') ExhibitManager.updateGenerateButton();
     }
 
     function getExhibitMapping() {

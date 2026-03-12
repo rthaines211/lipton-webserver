@@ -441,11 +441,23 @@ router.get('/jobs/:jobId/download', asyncHandler(async (req, res) => {
     if (!job) {
         return res.status(404).json({ success: false, error: 'Job not found' });
     }
-    if (job.status !== 'completed' || !job.outputPath) {
+    if (job.status !== 'completed') {
         return res.status(400).json({ success: false, error: 'PDF not ready yet' });
     }
 
-    res.download(job.outputPath, job.filename);
+    // Serve from in-memory buffer (temp dir may have been cleaned up)
+    if (job.pdfBuffer) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${job.filename}"`);
+        return res.send(Buffer.from(job.pdfBuffer));
+    }
+
+    // Fallback to file on disk
+    if (job.outputPath) {
+        return res.download(job.outputPath, job.filename);
+    }
+
+    res.status(400).json({ success: false, error: 'PDF not available' });
 }));
 
 // DELETE /sessions/:sessionId
@@ -644,7 +656,7 @@ router.post('/generate-from-dropbox', async (req, res) => {
                 // Send complete event
                 broadcastJobEvent(jobId, 'complete', {
                     filename: result.filename,
-                    downloadUrl: downloadUrl || `/api/exhibits/download/${jobId}`,
+                    downloadUrl: downloadUrl || `/api/exhibits/jobs/${jobId}/download`,
                 });
 
             } catch (error) {
