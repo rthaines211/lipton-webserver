@@ -12,7 +12,7 @@ The current Dropbox file browser in the exhibit collector only supports single-f
 
 Three additions to the existing Dropbox browser UI:
 
-1. **Thumbnails** — 40x40 thumbnail previews in the file list, fetched via Dropbox `getThumbnailBatchV2` API
+1. **Thumbnails** — 40x40 thumbnail previews in the file list, fetched via Dropbox `filesGetThumbnailBatch` API (images only; PDFs keep a generic icon placeholder)
 2. **Multi-select** — checkboxes on each file row with Select All, selection toolbar, and multi-drag
 3. **Preview modal** — Quick Look-style modal with full-size preview, navigation, and quick assign
 
@@ -24,12 +24,13 @@ Two new routes on the existing `/api/dropbox` router (`routes/dropbox.js`):
 
 #### `POST /api/dropbox/thumbnails`
 
-Batch thumbnail fetcher using Dropbox `filesGetThumbnailBatchV2`.
+Batch thumbnail fetcher using Dropbox `filesGetThumbnailBatch`.
 
 - **Request**: `{ paths: string[] }` (max 25 per call, enforced server-side)
 - **Response**: `{ thumbnails: [{ path: string, data: string|null }] }` where `data` is base64 JPEG or null on failure
 - **Dropbox params**: `size: "w64h64"`, `format: "jpeg"`
-- **Error handling**: individual thumbnail failures return `null` data, request-level errors return 500
+- **Error handling**: individual thumbnail failures return `null` data (including PDFs — Dropbox only generates thumbnails for image files), request-level errors return 500
+- **Note**: The Dropbox SDK method is `filesGetThumbnailBatch` (not V2). Response entries have `.tag: 'success'` with a `thumbnail` field; the server normalizes this to the simplified `{ path, data }` format above.
 
 #### `GET /api/dropbox/temp-link?path=<dropboxPath>`
 
@@ -50,13 +51,15 @@ All changes scoped to existing files. No new JS files.
 - Rename existing `selectedFiles` Map to `exhibitAssignments` (letter → file array, exhibit slot assignments)
 - Add `checkedFiles` Set (Dropbox paths of checked files in the file list)
 
-**Modified functions:**
+**Modified functions (rename `selectedFiles` → `exhibitAssignments`):**
 - `renderFileList(entries)` — add checkbox + 40x40 thumbnail placeholder per file row. Folders keep folder icon, no checkbox. Wire click handler on thumbnail/filename to open preview modal.
-- `updateSlotUI(letter)` — update references from `selectedFiles` to `exhibitAssignments`
+- `renderExhibitSlots()` — update clear button handler reference
+- `updateSlotUI(letter)` — update references
 - `addFileToSlot()`, `addFolderToSlot()`, `getExhibitMapping()`, `getTotalFiles()` — update references
+- `dblclick` handler in `renderFileList()` — update `selectedFiles` → `exhibitAssignments` reference
 
 **New functions:**
-- `loadThumbnails(entries)` — after file list renders, filters to supported files, chunks paths into groups of 25, fires sequential `POST /api/dropbox/thumbnails` requests, swaps placeholder icons with `<img>` tags as each batch returns. Aborts in-flight requests when navigating to a new folder.
+- `loadThumbnails(entries)` — after file list renders, filters to supported **image** files (PDFs excluded — Dropbox API only thumbnails images), chunks paths into groups of 25, fires sequential `POST /api/dropbox/thumbnails` requests, swaps placeholder icons with `<img>` tags as each batch returns. Aborts in-flight requests when navigating to a new folder. PDF files retain their generic PDF placeholder icon in the list view.
 - `openPreviewModal(fileIndex)` — opens modal overlay for the file at given index in the current folder's file list. Fetches temp link via `GET /api/dropbox/temp-link`, shows spinner while loading, renders `<img>` for images or `<iframe>` for PDFs.
 - `closePreviewModal()` — closes modal, cleans up event listeners
 - `navigatePreview(direction)` — moves to prev/next file in folder, skips folders and unsupported files
@@ -67,9 +70,9 @@ All changes scoped to existing files. No new JS files.
 
 **Multi-drag:**
 - In `dragstart` handler: if the dragged file is in `checkedFiles`, serialize all checked files into dataTransfer (as JSON array). Otherwise, drag only the single file (current behavior).
-- In exhibit slot `drop` handler: detect array vs single object in dataTransfer, handle both.
+- In exhibit slot `drop` handler: use `Array.isArray(data)` to detect array vs single object in dataTransfer. If array, loop and call `addFileToSlot()` for each. If single object, handle as before (including folder case via `data.type === 'folder'`).
 
-#### `styles.css`
+#### `forms/exhibits/styles.css`
 
 New CSS classes:
 - `.dropbox-entry .thumbnail` — 40x40, border-radius: 4px, object-fit: cover, flex-shrink: 0
@@ -97,7 +100,7 @@ Optimized for 200-1000 files:
 2. **Sequential batch requests** — `loadThumbnails()` chunks paths into groups of 25, fires them one after another
 3. **Progressive swap** — each batch response swaps placeholder icons for real `<img>` thumbnails
 4. **Abort on navigation** — navigating to a new folder aborts in-flight thumbnail requests via AbortController
-5. **No client-side caching** — thumbnails are small (~2-5KB base64 each), server-side Dropbox cache handles repeat visits within 30s
+5. **Client-side thumbnail cache** — in-memory Map (path → base64), cleared on page unload. Avoids re-fetching thumbnails when navigating back to a previously visited folder. The server-side Dropbox folder list cache (30s TTL) is separate and unrelated.
 
 Performance expectations:
 - 200 files: 8 batch calls, ~2-3 seconds for all thumbnails
@@ -112,7 +115,7 @@ Performance expectations:
 - **Dropdown memory**: last-used exhibit letter persists across navigations (enables rapid-fire assignment)
 - **Status indicator**: left side of footer shows "✓ Already in Exhibit X" if file is assigned
 - **Image preview**: `<img>` tag with Dropbox temporary link
-- **PDF preview**: `<iframe>` with Dropbox temporary link (browser native PDF viewer)
+- **PDF preview**: rendered via PDF.js (project already depends on it for duplicate preview modal) using Dropbox temporary link. Falls back to `<iframe>` if PDF.js fails.
 - **Loading state**: spinner shown while temp link is being fetched
 - **Last file**: after assigning the last file in the folder, modal closes automatically
 - **Keyboard shortcuts**: Enter = Assign + advance, ← → = prev/next, Esc = close
@@ -138,7 +141,7 @@ renderFileList() → placeholders visible
     → chunk paths into groups of 25
     → for each chunk:
         POST /api/dropbox/thumbnails { paths }
-          → server: filesGetThumbnailBatchV2()
+          → server: filesGetThumbnailBatch()
           → response: { thumbnails: [{path, data}] }
         → swap placeholder → <img src="data:image/jpeg;base64,{data}">
 ```
