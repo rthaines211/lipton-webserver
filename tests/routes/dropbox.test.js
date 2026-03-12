@@ -154,3 +154,51 @@ describe('POST /api/dropbox/thumbnails', () => {
         expect(res.status).toBe(500);
     });
 });
+
+describe('GET /api/dropbox/temp-link', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it('should return a temporary link for a file', async () => {
+        mockDbxClient.filesGetTemporaryLink.mockResolvedValue({
+            result: { link: 'https://dl.dropboxusercontent.com/temp/file.jpg' },
+        });
+
+        const res = await request(app)
+            .get('/api/dropbox/temp-link')
+            .query({ path: '/photo.jpg' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.link).toBe('https://dl.dropboxusercontent.com/temp/file.jpg');
+        expect(mockDbxClient.filesGetTemporaryLink).toHaveBeenCalledWith({ path: '/photo.jpg' });
+    });
+
+    it('should return 400 if path is missing', async () => {
+        const res = await request(app).get('/api/dropbox/temp-link');
+        expect(res.status).toBe(400);
+    });
+
+    it('should return 503 when Dropbox is disabled', async () => {
+        const dropboxService = require('../../dropbox-service');
+        const original = dropboxService.getDropboxClient;
+        dropboxService.getDropboxClient = () => null;
+        try {
+            const res = await request(app)
+                .get('/api/dropbox/temp-link')
+                .query({ path: '/photo.jpg' });
+            expect(res.status).toBe(503);
+        } finally {
+            dropboxService.getDropboxClient = original;
+        }
+    });
+
+    it('should return 500 on Dropbox API error', async () => {
+        mockDbxClient.filesGetTemporaryLink.mockRejectedValue(new Error('Not found'));
+
+        const res = await request(app)
+            .get('/api/dropbox/temp-link')
+            .query({ path: '/missing.jpg' });
+
+        expect(res.status).toBe(500);
+    });
+});

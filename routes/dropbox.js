@@ -81,4 +81,32 @@ router.post('/thumbnails', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/dropbox/temp-link
+ * Get a temporary direct download link for a Dropbox file.
+ *
+ * Query params:
+ *   path - Dropbox file path (required)
+ * Returns: { success: true, link: string }
+ */
+router.get('/temp-link', async (req, res) => {
+    try {
+        const filePath = req.query.path;
+        if (!filePath) {
+            return res.status(400).json({ success: false, error: 'path query parameter is required' });
+        }
+
+        const dbx = dropboxService.getDropboxClient();
+        if (!dbx) {
+            return res.status(503).json({ success: false, error: 'Dropbox is not configured' });
+        }
+
+        const response = await dbx.filesGetTemporaryLink({ path: filePath });
+        res.json({ success: true, link: response.result.link });
+    } catch (error) {
+        console.error('Dropbox temp-link error:', error.message);
+        res.status(500).json({ success: false, error: 'Failed to get temporary link' });
+    }
+});
+
 module.exports = router;
