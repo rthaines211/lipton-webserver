@@ -76,6 +76,48 @@ class DuplicateDetector {
     }
 
     /**
+     * Render all pages of a PDF to PNG buffers via MuPDF WASM.
+     * @param {Buffer} buffer - PDF file contents
+     * @returns {Promise<Array<{pageNum: number, buffer: Buffer}>>} PNG buffers per page, or empty array on failure
+     */
+    static async renderPdfPages(buffer) {
+        let doc;
+        try {
+            const mupdf = await import('mupdf');
+            doc = mupdf.default.Document.openDocument(buffer, 'application/pdf');
+            const pageCount = doc.countPages();
+            const pages = [];
+
+            for (let i = 0; i < pageCount; i++) {
+                let page, pixmap;
+                try {
+                    page = doc.loadPage(i);
+                    pixmap = page.toPixmap(
+                        [0.5, 0, 0, 0.5, 0, 0],
+                        mupdf.default.ColorSpace.DeviceRGB,
+                        false,
+                        true
+                    );
+                    const pngBuffer = Buffer.from(pixmap.asPNG());
+                    pages.push({ pageNum: i + 1, buffer: pngBuffer });
+                } catch (pageErr) {
+                    logger.warn(`PDF page ${i + 1} render failed: ${pageErr.message}`);
+                } finally {
+                    if (pixmap) pixmap.destroy();
+                    if (page) page.destroy();
+                }
+            }
+
+            return pages;
+        } catch (err) {
+            logger.warn(`PDF render failed: ${err.message}`);
+            return [];
+        } finally {
+            if (doc) doc.destroy();
+        }
+    }
+
+    /**
      * Find exact duplicates by comparing SHA-256 hashes.
      * @param {Array<{name: string, buffer: Buffer}>} files
      * @returns {Array<Object>} Array of duplicate match objects
