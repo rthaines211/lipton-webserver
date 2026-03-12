@@ -417,5 +417,49 @@ describe('DuplicateDetector', () => {
             expect(result.duplicates[0].matchType).toBe('EXACT_DUPLICATE');
             expect(result.duplicates[0].layer).toBe(1);
         });
+        it('should not call findContentMatches (Layer 3 removed)', async () => {
+            const spy = jest.spyOn(DuplicateDetector, 'findContentMatches');
+            const sharp = require('sharp');
+            const img = await sharp({
+                create: { width: 100, height: 100, channels: 3, background: { r: 255, g: 0, b: 0 } }
+            }).png().toBuffer();
+
+            const files = [
+                { name: 'a.png', buffer: img, type: 'png' },
+                { name: 'b.png', buffer: Buffer.from(img), type: 'png' },
+            ];
+
+            await DuplicateDetector.detectDuplicates(files);
+            expect(spy).not.toHaveBeenCalled();
+            spy.mockRestore();
+        });
+
+        it('should include LIKELY_MATCH results in duplicates array', async () => {
+            // Mock findVisualMatches to return a likelyMatch
+            const originalFVM = DuplicateDetector.findVisualMatches;
+            DuplicateDetector.findVisualMatches = jest.fn().mockResolvedValue({
+                matches: [],
+                likelyMatches: [{
+                    file1: 'a.png',
+                    file2: 'b.png',
+                    page1: null,
+                    page2: null,
+                    matchType: 'LIKELY_MATCH',
+                    confidence: 87,
+                    layer: 2,
+                    details: 'Visual similarity: 87%',
+                }],
+            });
+
+            const files = [
+                { name: 'a.png', buffer: Buffer.from('x'), type: 'png' },
+                { name: 'b.png', buffer: Buffer.from('y'), type: 'png' },
+            ];
+
+            const result = await DuplicateDetector.detectDuplicates(files);
+            expect(result.duplicates.some(d => d.matchType === 'LIKELY_MATCH')).toBe(true);
+
+            DuplicateDetector.findVisualMatches = originalFVM;
+        });
     });
 });
