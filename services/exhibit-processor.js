@@ -57,16 +57,12 @@ async function generateThumbnail(file) {
 
         if (ext === '.pdf') {
             try {
-                const pdfjsLib = require('pdfjs-dist/legacy/build/pdf');
-                const { createCanvas } = require('canvas');
-                const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
-                const page = await doc.getPage(1);
-                const viewport = page.getViewport({ scale: 0.5 });
-                const canvas = createCanvas(viewport.width, viewport.height);
-                const ctx = canvas.getContext('2d');
-                await page.render({ canvasContext: ctx, viewport }).promise;
-                const pngBuffer = canvas.toBuffer('image/png');
-                return `data:image/png;base64,${pngBuffer.toString('base64')}`;
+                const mupdf = await import('mupdf');
+                const doc = mupdf.default.Document.openDocument(buffer, 'application/pdf');
+                const page = doc.loadPage(0);
+                const pixmap = page.toPixmap([0.5, 0, 0, 0.5, 0, 0], mupdf.default.ColorSpace.DeviceRGB, false, true);
+                const pngBuffer = pixmap.asPNG();
+                return `data:image/png;base64,${Buffer.from(pngBuffer).toString('base64')}`;
             } catch (pdfError) {
                 console.error(`PDF thumbnail failed for ${file.name}:`, pdfError.message);
                 return null;
