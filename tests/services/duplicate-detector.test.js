@@ -231,9 +231,9 @@ describe('DuplicateDetector', () => {
                 { name: 'gradient.png', buffer: gradient, type: 'png' },
             ];
 
-            const { matches, maybePairs } = await DuplicateDetector.findVisualMatches(files);
+            const { matches, likelyMatches } = await DuplicateDetector.findVisualMatches(files);
             expect(matches).toHaveLength(0);
-            expect(maybePairs).toHaveLength(0);
+            expect(likelyMatches).toHaveLength(0);
         });
 
         it('should report filtered candidate count in progress callback', async () => {
@@ -276,6 +276,107 @@ describe('DuplicateDetector', () => {
             // computeVisualSimilarity should have been called (pair wasn't filtered out)
             expect(spy).toHaveBeenCalled();
             spy.mockRestore();
+        });
+    });
+
+    describe('findVisualMatches with PDF pages', () => {
+        const sharp = require('sharp');
+        const { PDFDocument, rgb } = require('pdf-lib');
+
+        async function createPdfWithColor(r, g, b, pageCount = 1) {
+            const pdfDoc = await PDFDocument.create();
+            for (let i = 0; i < pageCount; i++) {
+                const page = pdfDoc.addPage([200, 200]);
+                page.drawRectangle({ x: 0, y: 0, width: 200, height: 200, color: rgb(r, g, b) });
+            }
+            return Buffer.from(await pdfDoc.save());
+        }
+
+        it('should detect identical PDFs as VISUAL_MATCH', async () => {
+            const pdf = await createPdfWithColor(1, 0, 0);
+            const files = [
+                { name: 'doc1.pdf', buffer: pdf, type: 'pdf' },
+                { name: 'doc2.pdf', buffer: Buffer.from(pdf), type: 'pdf' },
+            ];
+
+            const { matches } = await DuplicateDetector.findVisualMatches(files);
+            expect(matches.length).toBeGreaterThanOrEqual(1);
+            expect(matches[0].file1).toBe('doc1.pdf');
+            expect(matches[0].file2).toBe('doc2.pdf');
+            expect(matches[0].page1).toBe(1);
+            expect(matches[0].page2).toBe(1);
+            expect(matches[0].matchType).toBe('VISUAL_MATCH');
+        });
+
+        it('should skip same-file page pairs', async () => {
+            const pdf = await createPdfWithColor(1, 0, 0, 3);
+            const files = [
+                { name: 'multi.pdf', buffer: pdf, type: 'pdf' },
+            ];
+
+            // Single file with 3 pages — no cross-file pairs exist
+            const { matches, likelyMatches } = await DuplicateDetector.findVisualMatches(files);
+            expect(matches).toHaveLength(0);
+            expect(likelyMatches).toHaveLength(0);
+        });
+
+        it('should include page numbers in match details', async () => {
+            const pdf = await createPdfWithColor(1, 0, 0);
+            const files = [
+                { name: 'a.pdf', buffer: pdf, type: 'pdf' },
+                { name: 'b.pdf', buffer: Buffer.from(pdf), type: 'pdf' },
+            ];
+
+            const { matches } = await DuplicateDetector.findVisualMatches(files);
+            expect(matches[0].details).toContain('p.1');
+        });
+
+        it('should compare images and PDF pages cross-type', async () => {
+            // Create a red image and a red-background PDF — they should be somewhat similar
+            const redImage = await sharp({
+                create: { width: 200, height: 200, channels: 3, background: { r: 255, g: 0, b: 0 } }
+            }).png().toBuffer();
+            const redPdf = await createPdfWithColor(1, 0, 0);
+
+            const files = [
+                { name: 'red.png', buffer: redImage, type: 'png' },
+                { name: 'red.pdf', buffer: redPdf, type: 'pdf' },
+            ];
+
+            // Should at minimum not crash — cross-type comparison works
+            const result = await DuplicateDetector.findVisualMatches(files);
+            expect(result).toHaveProperty('matches');
+            expect(result).toHaveProperty('likelyMatches');
+        });
+
+        it('should report render progress', async () => {
+            const pdf = await createPdfWithColor(1, 0, 0);
+            const files = [
+                { name: 'a.pdf', buffer: pdf, type: 'pdf' },
+                { name: 'b.pdf', buffer: Buffer.from(pdf), type: 'pdf' },
+            ];
+
+            const renderCalls = [];
+            await DuplicateDetector.findVisualMatches(
+                files,
+                new Set(),
+                null,
+                (done, total) => renderCalls.push({ done, total })
+            );
+
+            expect(renderCalls.length).toBeGreaterThan(0);
+            expect(renderCalls[renderCalls.length - 1].done).toBe(2);
+        });
+
+        it('should handle corrupt PDF gracefully (no visual entries)', async () => {
+            const files = [
+                { name: 'bad.pdf', buffer: Buffer.from('not a pdf'), type: 'pdf' },
+                { name: 'also-bad.pdf', buffer: Buffer.from('also not a pdf'), type: 'pdf' },
+            ];
+
+            const { matches, likelyMatches } = await DuplicateDetector.findVisualMatches(files);
+            expect(matches).toHaveLength(0);
+            expect(likelyMatches).toHaveLength(0);
         });
     });
 
