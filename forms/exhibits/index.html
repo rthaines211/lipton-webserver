@@ -44,7 +44,12 @@
                 <div class="dropbox-breadcrumb" id="dropbox-breadcrumb">
                     <span class="breadcrumb-item" data-path="/">/</span>
                 </div>
-                <button type="button" id="btn-dropbox-refresh" class="btn-small" title="Refresh">↻</button>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label class="select-all-label">
+                        <input type="checkbox" id="dropbox-select-all"> Select All
+                    </label>
+                    <button type="button" id="btn-dropbox-refresh" class="btn-small" title="Refresh">↻</button>
+                </div>
             </div>
             <div class="dropbox-file-list" id="dropbox-file-list">
                 <div class="loading-placeholder">Click "Import from Dropbox" to browse files</div>

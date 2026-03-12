@@ -7,6 +7,11 @@ const DropboxBrowserUI = (() => {
     let currentPath = '/';
     const exhibitAssignments = new Map(); // letter -> [{dropboxPath, name}]
     const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    const checkedFiles = new Set(); // Dropbox paths of checked files in current folder
+    const thumbnailCache = new Map(); // path -> base64 data (persists across folder navigation)
+    let currentEntries = []; // entries from current folder (for preview navigation)
+    let thumbnailAbortController = null; // AbortController for in-flight thumbnail requests
+    let lastUsedLetter = 'A'; // remembers last exhibit letter used for assignment
 
     function init() {
         const importBtn = document.getElementById('btn-import-dropbox');
@@ -24,6 +29,11 @@ const DropboxBrowserUI = (() => {
 
         if (refreshBtn) {
             refreshBtn.addEventListener('click', () => loadFolder(currentPath, true));
+        }
+
+        const selectAllCb = document.getElementById('dropbox-select-all');
+        if (selectAllCb) {
+            selectAllCb.addEventListener('change', toggleSelectAll);
         }
     }
 
@@ -69,9 +79,12 @@ const DropboxBrowserUI = (() => {
 
     function renderFileList(entries) {
         const fileList = document.getElementById('dropbox-file-list');
+        checkedFiles.clear();
 
         if (entries.length === 0) {
             fileList.innerHTML = '<div class="empty">Empty folder</div>';
+            currentEntries = [];
+            renderSelectionToolbar();
             return;
         }
 
@@ -79,38 +92,98 @@ const DropboxBrowserUI = (() => {
             if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
             return a.name.localeCompare(b.name);
         });
+        currentEntries = sorted;
 
-        fileList.innerHTML = sorted.map(entry => {
-            const icon = entry.type === 'folder' ? '📁' :
-                entry.supported ? '📄' : '⚠️';
-            const sizeStr = entry.size ? formatSize(entry.size) : '';
-            const disabledClass = (!entry.supported && entry.type !== 'folder') ? 'disabled' : '';
+        fileList.innerHTML = sorted.map((entry, index) => {
+            const isFile = entry.type === 'file';
+            const isSupported = isFile && entry.supported;
+            const disabledClass = (isFile && !entry.supported) ? 'disabled' : '';
             const tooltip = disabledClass ? 'title="Unsupported file type"' : '';
-            const draggable = entry.type === 'file' && entry.supported ? 'draggable="true"' : '';
+            const draggable = isSupported ? 'draggable="true"' : '';
+
+            const checkbox = isSupported
+                ? `<input type="checkbox" class="entry-checkbox" data-path="${escapeAttr(entry.path)}">`
+                : '';
+
+            let thumbnailHtml;
+            if (!isFile) {
+                thumbnailHtml = '<span class="entry-icon">📁</span>';
+            } else if (thumbnailCache.has(entry.path)) {
+                thumbnailHtml = `<img class="thumbnail" src="data:image/jpeg;base64,${thumbnailCache.get(entry.path)}" alt="">`;
+            } else {
+                const ext = (entry.extension || '').toLowerCase();
+                const isPdf = ext === 'pdf';
+                const icon = !entry.supported ? '⚠️' : isPdf ? '📄' : '🖼️';
+                thumbnailHtml = `<div class="thumbnail-placeholder" data-path="${escapeAttr(entry.path)}">${icon}</div>`;
+            }
+
+            const sizeStr = entry.size ? formatSize(entry.size) : '';
 
             return `
                 <div class="dropbox-entry ${entry.type} ${disabledClass}" ${tooltip}
                      data-path="${escapeAttr(entry.path)}"
                      data-name="${escapeAttr(entry.name)}"
                      data-type="${entry.type}"
+                     data-index="${index}"
                      ${draggable}>
-                    <span class="entry-icon">${icon}</span>
+                    ${checkbox}
+                    ${thumbnailHtml}
                     <span class="entry-name">${escapeHtml(entry.name)}</span>
                     <span class="entry-size">${sizeStr}</span>
                 </div>
             `;
         }).join('');
 
+        // Wire folder click handlers
         fileList.querySelectorAll('.dropbox-entry.folder').forEach(el => {
             el.addEventListener('click', () => loadFolder(el.dataset.path));
         });
 
+        // Wire checkbox handlers
+        fileList.querySelectorAll('.entry-checkbox').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                e.stopPropagation();
+                const path = cb.dataset.path;
+                const row = cb.closest('.dropbox-entry');
+                if (cb.checked) {
+                    checkedFiles.add(path);
+                    row.classList.add('checked');
+                } else {
+                    checkedFiles.delete(path);
+                    row.classList.remove('checked');
+                }
+                renderSelectionToolbar();
+                updateSelectAllCheckbox();
+            });
+            cb.addEventListener('click', (e) => e.stopPropagation());
+        });
+
+        // Wire file click for preview modal
+        fileList.querySelectorAll('.dropbox-entry.file:not(.disabled)').forEach(el => {
+            el.addEventListener('click', (e) => {
+                if (e.target.classList.contains('entry-checkbox')) return;
+                const index = parseInt(el.dataset.index);
+                openPreviewModal(index);
+            });
+        });
+
+        // Wire drag handlers (single + multi)
         fileList.querySelectorAll('.dropbox-entry.file:not(.disabled)').forEach(el => {
             el.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('application/json', JSON.stringify({
-                    dropboxPath: el.dataset.path,
-                    name: el.dataset.name,
-                }));
+                const filePath = el.dataset.path;
+                if (checkedFiles.has(filePath) && checkedFiles.size > 1) {
+                    const files = [];
+                    checkedFiles.forEach(p => {
+                        const entry = currentEntries.find(ent => ent.path === p);
+                        if (entry) files.push({ dropboxPath: entry.path, name: entry.name });
+                    });
+                    e.dataTransfer.setData('application/json', JSON.stringify(files));
+                } else {
+                    e.dataTransfer.setData('application/json', JSON.stringify({
+                        dropboxPath: el.dataset.path,
+                        name: el.dataset.name,
+                    }));
+                }
                 e.dataTransfer.effectAllowed = 'copy';
             });
 
@@ -122,6 +195,7 @@ const DropboxBrowserUI = (() => {
             });
         });
 
+        // Wire folder drag
         fileList.querySelectorAll('.dropbox-entry.folder').forEach(el => {
             el.setAttribute('draggable', 'true');
             el.addEventListener('dragstart', (e) => {
@@ -133,6 +207,151 @@ const DropboxBrowserUI = (() => {
                 e.dataTransfer.effectAllowed = 'copy';
             });
         });
+
+        renderSelectionToolbar();
+        loadThumbnails(sorted);
+    }
+
+    function openPreviewModal(index) {
+        // Will be implemented in Task 10
+        console.log('Preview modal not yet implemented, index:', index);
+    }
+
+    function toggleSelectAll() {
+        const selectAllCb = document.getElementById('dropbox-select-all');
+        const checkboxes = document.querySelectorAll('#dropbox-file-list .entry-checkbox');
+
+        if (selectAllCb.checked) {
+            checkboxes.forEach(cb => {
+                cb.checked = true;
+                checkedFiles.add(cb.dataset.path);
+                cb.closest('.dropbox-entry').classList.add('checked');
+            });
+        } else {
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+                checkedFiles.delete(cb.dataset.path);
+                cb.closest('.dropbox-entry').classList.remove('checked');
+            });
+        }
+        renderSelectionToolbar();
+    }
+
+    function updateSelectAllCheckbox() {
+        const selectAllCb = document.getElementById('dropbox-select-all');
+        if (!selectAllCb) return;
+        const checkboxes = document.querySelectorAll('#dropbox-file-list .entry-checkbox');
+        const allChecked = checkboxes.length > 0 && [...checkboxes].every(cb => cb.checked);
+        selectAllCb.checked = allChecked;
+    }
+
+    async function loadThumbnails(entries) {
+        if (thumbnailAbortController) {
+            thumbnailAbortController.abort();
+        }
+        thumbnailAbortController = new AbortController();
+        const signal = thumbnailAbortController.signal;
+
+        const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'tiff', 'tif', 'heic']);
+        const imageEntries = entries.filter(e =>
+            e.type === 'file' && e.supported && IMAGE_EXTENSIONS.has((e.extension || '').toLowerCase())
+            && !thumbnailCache.has(e.path)
+        );
+
+        if (imageEntries.length === 0) return;
+
+        const chunks = [];
+        for (let i = 0; i < imageEntries.length; i += 25) {
+            chunks.push(imageEntries.slice(i, i + 25));
+        }
+
+        for (const chunk of chunks) {
+            if (signal.aborted) return;
+
+            try {
+                const res = await fetch('/api/dropbox/thumbnails', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paths: chunk.map(e => e.path) }),
+                    signal,
+                });
+
+                if (!res.ok) continue;
+                const data = await res.json();
+
+                for (const thumb of data.thumbnails) {
+                    if (thumb.data && thumb.path) {
+                        thumbnailCache.set(thumb.path, thumb.data);
+                        const placeholder = document.querySelector(
+                            `.thumbnail-placeholder[data-path="${CSS.escape(thumb.path)}"]`
+                        );
+                        if (placeholder) {
+                            const img = document.createElement('img');
+                            img.className = 'thumbnail';
+                            img.src = `data:image/jpeg;base64,${thumb.data}`;
+                            img.alt = '';
+                            placeholder.replaceWith(img);
+                        }
+                    }
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                console.error('Thumbnail batch error:', err);
+            }
+        }
+    }
+
+    function renderSelectionToolbar() {
+        const fileList = document.getElementById('dropbox-file-list');
+        const existing = fileList.parentElement.querySelector('.selection-toolbar');
+        if (existing) existing.remove();
+
+        if (checkedFiles.size === 0) return;
+
+        const toolbar = document.createElement('div');
+        toolbar.className = 'selection-toolbar';
+
+        const letterOptions = LETTERS.map(l =>
+            `<option value="${l}" ${l === lastUsedLetter ? 'selected' : ''}>Exhibit ${l}</option>`
+        ).join('');
+
+        toolbar.innerHTML = `
+            <span class="selection-count">${checkedFiles.size} file${checkedFiles.size !== 1 ? 's' : ''} selected</span>
+            <div class="selection-actions">
+                <select class="toolbar-letter-select">${letterOptions}</select>
+                <button type="button" class="btn-assign">Assign</button>
+            </div>
+        `;
+
+        toolbar.querySelector('.btn-assign').addEventListener('click', () => {
+            const letter = toolbar.querySelector('.toolbar-letter-select').value;
+            assignCheckedFiles(letter);
+        });
+
+        toolbar.querySelector('.toolbar-letter-select').addEventListener('change', (e) => {
+            lastUsedLetter = e.target.value;
+        });
+
+        fileList.after(toolbar);
+    }
+
+    function assignCheckedFiles(letter) {
+        lastUsedLetter = letter;
+        checkedFiles.forEach(path => {
+            const entry = currentEntries.find(e => e.path === path);
+            if (entry) {
+                addFileToSlot(letter, { dropboxPath: entry.path, name: entry.name });
+            }
+        });
+        checkedFiles.clear();
+        document.querySelectorAll('#dropbox-file-list .dropbox-entry.checked').forEach(el => {
+            el.classList.remove('checked');
+        });
+        document.querySelectorAll('#dropbox-file-list .entry-checkbox').forEach(cb => {
+            cb.checked = false;
+        });
+        updateSelectAllCheckbox();
+        renderSelectionToolbar();
     }
 
     function renderExhibitSlots() {
@@ -167,7 +386,11 @@ const DropboxBrowserUI = (() => {
                 const letter = slot.dataset.letter;
                 const data = JSON.parse(e.dataTransfer.getData('application/json'));
 
-                if (data.type === 'folder') {
+                if (Array.isArray(data)) {
+                    for (const file of data) {
+                        addFileToSlot(letter, file);
+                    }
+                } else if (data.type === 'folder') {
                     await addFolderToSlot(letter, data.folderPath);
                 } else {
                     addFileToSlot(letter, data);
