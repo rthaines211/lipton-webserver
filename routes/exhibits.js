@@ -297,8 +297,12 @@ router.post('/jobs/:jobId/resolve', asyncHandler(async (req, res) => {
         return res.status(400).json({ success: false, error: 'Job is not awaiting resolution' });
     }
 
+    // Dropbox jobs store exhibits on the job object; regular uploads use sessions
     const session = sessions.get(job.sessionId);
-    if (!session) {
+    const exhibits = job.exhibits || (session && session.exhibits);
+    const caseName = job.caseName || (session && session.caseName) || '';
+
+    if (!exhibits) {
         return res.status(400).json({ success: false, error: 'Session expired' });
     }
 
@@ -309,8 +313,8 @@ router.post('/jobs/:jobId/resolve', asyncHandler(async (req, res) => {
                 if (pair.action === 'remove_file1') filesToRemove.add(pair.file1);
                 if (pair.action === 'remove_file2') filesToRemove.add(pair.file2);
             }
-            if (filesToRemove.size > 0 && session.exhibits[letter]) {
-                session.exhibits[letter] = session.exhibits[letter].filter(
+            if (filesToRemove.size > 0 && exhibits[letter]) {
+                exhibits[letter] = exhibits[letter].filter(
                     f => !filesToRemove.has(f.name)
                 );
             }
@@ -328,18 +332,18 @@ router.post('/jobs/:jobId/resolve', asyncHandler(async (req, res) => {
         data: { jobId, sessionId: job.sessionId },
     });
 
-    const outputDir = path.join(UPLOAD_BASE, job.sessionId);
+    const outputDir = job.tempDir || path.join(UPLOAD_BASE, job.sessionId);
     Sentry.startSpan(
         {
             op: 'exhibit.resume',
-            name: `Resume exhibit package: ${session.caseName || 'unnamed'}`,
+            name: `Resume exhibit package: ${caseName || 'unnamed'}`,
             attributes: { 'exhibit.job_id': jobId },
         },
         async (span) => {
             try {
                 const result = await ExhibitProcessor.resume({
-                    caseName: session.caseName,
-                    exhibits: session.exhibits,
+                    caseName,
+                    exhibits,
                     outputDir,
                     onProgress: (pct, msg, phase) => {
                         job.progress = pct;
@@ -374,9 +378,20 @@ router.post('/jobs/:jobId/resolve', asyncHandler(async (req, res) => {
                 job.status = 'completed';
                 job.outputPath = result.outputPath;
                 job.filename = result.filename;
+                job.pdfBuffer = result.pdfBuffer;
                 job.downloadUrl = downloadUrl;
                 span.setAttribute('exhibit.outcome', 'completed');
-                broadcastJobEvent(jobId, 'complete', { filename: result.filename, downloadUrl });
+                broadcastJobEvent(jobId, 'complete', {
+                    filename: result.filename,
+                    downloadUrl: downloadUrl || `/api/exhibits/jobs/${jobId}/download`,
+                });
+
+                // Clean up temp dir for Dropbox jobs
+                if (job.tempDir) {
+                    fsPromises.rm(job.tempDir, { recursive: true, force: true }).catch(e =>
+                        logger.error('Temp cleanup failed after resume:', e.message)
+                    );
+                }
             } catch (err) {
                 logger.error('Exhibit resume failed', { jobId, error: err.message });
                 span.setStatus({ code: 2, message: err.message });

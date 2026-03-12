@@ -9,7 +9,8 @@
 - [Rate Limiting](#rate-limiting)
 - [Endpoints](#endpoints)
   - [Form Entries](#form-entries)
-  - [PDF Generation](#pdf-generation) **NEW**
+  - [Exhibit Collector](#exhibit-collector) **NEW**
+  - [PDF Generation](#pdf-generation)
   - [Pipeline Management](#pipeline-management)
   - [Health & Monitoring](#health--monitoring)
   - [Static Pages](#static-pages)
@@ -48,6 +49,7 @@ The following endpoints are always accessible without authentication:
 - `/health/ready`
 - `/health/detailed`
 - `/metrics`
+- `/api/exhibits/*` (uses session-based password auth instead)
 
 ## Base URL
 
@@ -425,6 +427,292 @@ Delete a specific form submission.
 - Deletes all JSON files in `data/` directory
 - Does NOT delete database records
 - Use with extreme caution in production
+
+---
+
+## Exhibit Collector
+
+**Base URL:** `https://exhibits.liptonlegal.com`
+**Service:** `exhibit-collector` (separate Cloud Run service)
+
+The Exhibit Collector provides exhibit package assembly with file upload, duplicate detection, Bates stamping, and PDF generation. All endpoints bypass token authentication but require session-based password authentication via the form login.
+
+---
+
+### Upload Files to Exhibit
+
+Upload one or more files to a specific exhibit within a session.
+
+**Endpoint:** `POST /api/exhibits/upload`
+
+**Content-Type:** `multipart/form-data`
+
+**Form Fields:**
+- `files` (file[], required) - One or more files to upload
+- `sessionId` (string, required) - Session identifier
+- `exhibitLabel` (string, required) - Exhibit label (e.g., "A", "B")
+- `exhibitTitle` (string, optional) - Exhibit title/description
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Uploaded 3 file(s) to Exhibit A"
+}
+```
+
+---
+
+### Generate Exhibit Package
+
+Start processing uploaded exhibits into a single Bates-stamped PDF package.
+
+**Endpoint:** `POST /api/exhibits/generate`
+
+**Request Body:**
+```json
+{
+  "sessionId": "abc123",
+  "caseName": "Smith v. Jones"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "jobId": "75505edd-8ba2-4e71-bdde-e6bd517896c5"
+}
+```
+
+**Processing Pipeline:**
+1. Duplicate detection (hash, visual similarity, OCR)
+2. If duplicates found → pauses and sends `duplicates` SSE event
+3. If no duplicates → builds PDF with separator pages and Bates stamps
+4. Sends `complete` SSE event with filename
+
+---
+
+### Generate from Dropbox
+
+Start processing exhibits directly from Dropbox files. Supports real-time mode (< 50 files) and async mode (50+ files via Cloud Run Jobs).
+
+**Endpoint:** `POST /api/exhibits/generate-from-dropbox`
+
+**Request Body:**
+```json
+{
+  "caseName": "Smith v. Jones",
+  "exhibitMapping": {
+    "A": [{"dropboxPath": "/Cases/Smith/lease.pdf", "name": "lease.pdf"}],
+    "B": [{"dropboxPath": "/Cases/Smith/photo1.jpg", "name": "photo1.jpg"}]
+  },
+  "mode": "realtime",
+  "email": "user@example.com"
+}
+```
+
+**Parameters:**
+- `caseName` (string, required) - Case name for the output filename
+- `exhibitMapping` (object, required) - Map of exhibit letters to arrays of Dropbox file references
+- `mode` (string, optional) - `"realtime"` or `"async"`. Defaults based on file count (≥50 = async)
+- `email` (string, optional) - Email for async job completion notification (SendGrid)
+
+**Response (realtime):** `200 OK`
+```json
+{
+  "success": true,
+  "mode": "realtime",
+  "jobId": "job-1773273644538-27o1lf"
+}
+```
+
+**Response (async):** `200 OK`
+```json
+{
+  "success": true,
+  "mode": "async",
+  "jobId": "abc123",
+  "message": "Processing 75 files. You'll receive an email when it's ready."
+}
+```
+
+> **Note:** Real-time mode follows the same SSE progress flow as `/generate`. Async mode dispatches a Cloud Run Job and stores status in PostgreSQL.
+
+---
+
+### Dropbox Folder Listing
+
+Browse Dropbox folders to select files for exhibit import.
+
+**Endpoint:** `GET /api/dropbox/list`
+
+**Query Parameters:**
+- `path` (string, required) - Dropbox folder path (e.g., `/` or `/Cases/Smith`)
+- `refresh` (boolean, optional) - Force refresh cached listing
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "entries": [
+    {"name": "lease.pdf", "path": "/Cases/Smith/lease.pdf", "type": "file", "size": 245760, "supported": true},
+    {"name": "photos", "path": "/Cases/Smith/photos", "type": "folder", "size": null, "supported": true}
+  ]
+}
+```
+
+---
+
+### Resolve Duplicate Conflicts
+
+When the processor detects duplicate files, it pauses and waits for user resolution. Works with both regular upload and Dropbox import flows.
+
+**Endpoint:** `POST /api/exhibits/jobs/:jobId/resolve`
+
+**Path Parameters:**
+- `jobId` (string, required) - Job ID from generate or generate-from-dropbox response
+
+**Request Body:**
+```json
+{
+  "resolutions": {
+    "A": [
+      {"file1": "document.pdf", "file2": "document copy.pdf", "action": "remove_file2"}
+    ]
+  }
+}
+```
+
+**Resolution Actions:**
+- `"remove_file1"` - Remove the first file in the duplicate pair
+- `"remove_file2"` - Remove the second file in the duplicate pair
+- `"keep_both"` - Keep both files (omit the pair from resolutions)
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Resuming pipeline..."
+}
+```
+
+---
+
+### SSE Progress Stream
+
+Subscribe to real-time processing progress via Server-Sent Events.
+
+**Endpoint:** `GET /api/exhibits/jobs/:jobId/stream`
+
+**Response:** `200 OK` (text/event-stream)
+
+**Event Types:**
+```
+event: progress
+data: {"progress": 45, "phase": "duplicate_detection", "message": "Exhibit A: visual comparison 7 of 120 pairs", "timestamp": 1741520000000}
+
+event: duplicates
+data: {"duplicates": [{"file": "photo.jpg", "exhibits": ["A", "C"], "similarity": 0.95}]}
+
+event: complete
+data: {"filename": "Smith_v_Jones_Exhibits.pdf", "downloadUrl": "https://storage.googleapis.com/...signed-url..."}
+
+event: error
+data: {"error": "Failed to process image file"}
+```
+
+**Progress Phases:**
+
+| Phase | Progress Range | Description |
+|-------|---------------|-------------|
+| `validation` | 0-5% | Validating exhibit file types |
+| `duplicate_detection` | 5-40% | Per-pair hash, visual, and OCR comparison |
+| `processing` | 40-85% | Per-file PDF assembly |
+| `stamping` | 85-95% | Bates stamp application |
+| `finalizing` | 95-100% | Save PDF, upload to GCS |
+
+---
+
+### Download Exhibit Package
+
+The primary download mechanism uses a **signed GCS URL** returned in the SSE `complete` event's `downloadUrl` field. The frontend opens this URL directly — no additional API call needed.
+
+A fallback endpoint exists for local development:
+
+**Endpoint:** `GET /api/exhibits/jobs/:jobId/download`
+
+**Response:** `200 OK`
+- **Content-Type:** `application/pdf`
+- **Content-Disposition:** `attachment; filename="Smith_v_Jones_Exhibits.pdf"`
+
+**Error Responses:**
+- `404` - Job not found (expired or wrong Cloud Run instance)
+- `400` - PDF not ready yet
+
+> **Note:** On Cloud Run, this endpoint may 404 if the request is routed to a different instance than the one that processed the job. Always prefer the `downloadUrl` from the SSE `complete` event.
+
+---
+
+### Jobs Dashboard
+
+List and manage async processing jobs (for Dropbox imports with 50+ files).
+
+**List Jobs:**
+
+**Endpoint:** `GET /api/exhibits/jobs`
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "jobs": [
+    {
+      "id": "abc123",
+      "case_name": "Smith v. Jones",
+      "status": "completed",
+      "total_files": 75,
+      "progress": 100,
+      "created_at": "2026-03-11T10:00:00Z",
+      "completed_at": "2026-03-11T10:05:00Z",
+      "download_url": "https://storage.googleapis.com/...signed-url..."
+    }
+  ]
+}
+```
+
+**Get Job Status:**
+
+**Endpoint:** `GET /api/exhibits/jobs/:jobId/status`
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "job": {
+    "id": "abc123",
+    "status": "processing",
+    "progress": 45,
+    "message": "Processing file 12 of 75..."
+  }
+}
+```
+
+---
+
+### Clean Up Session
+
+Delete uploaded files and job data for a session.
+
+**Endpoint:** `DELETE /api/exhibits/sessions/:sessionId`
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Session cleaned up"
+}
+```
 
 ---
 
@@ -1189,6 +1477,6 @@ eventSource.addEventListener('pipeline-update', (event) => {
 
 ---
 
-**Document Version:** 1.0.0
-**Last Updated:** 2025-10-21
+**Document Version:** 1.2.0
+**Last Updated:** 2026-03-09
 **Maintained By:** Development Team

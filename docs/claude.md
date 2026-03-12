@@ -104,7 +104,7 @@ A separate Cloud Run service (`exhibit-collector`) for assembling exhibit packag
 - `js/exhibit-manager.js` - Exhibit card state, file tracking, gap detection
 - `js/file-upload.js` - Parallel multipart upload (3 concurrent exhibits)
 - `js/form-submission.js` - SSE progress with phase labels, elapsed timer, stale detection, GCS signed URL download
-- `js/duplicate-ui.js` - Duplicate conflict resolution UI
+- `js/duplicate-ui.js` - Duplicate conflict resolution UI with inline image/PDF previews and visual keep/remove feedback
 - `js/gap-detector.js` - Exhibit letter gap detection
 - `styles.css` - Shimmer animation on progress bar, stale pulse animation
 
@@ -122,7 +122,7 @@ A separate Cloud Run service (`exhibit-collector`) for assembling exhibit packag
 - Sharp optimization: metadata extraction + JPEG conversion run in parallel (was sequential)
 - Separator page caching: generated once per letter, reused across calls
 - Frontend uploads: 3 exhibits upload simultaneously (was sequential)
-- Cloud Run bumped to 4 vCPU / 4 GiB / concurrency 1 (dedicated instance per job)
+- Cloud Run bumped to 4 vCPU / 4 GiB / concurrency 2
 - Design doc: `docs/plans/2026-03-09-exhibit-consolidator-performance-design.md`
 - Implementation plan: `docs/plans/2026-03-09-exhibit-performance-plan.md`
 
@@ -140,14 +140,57 @@ A separate Cloud Run service (`exhibit-collector`) for assembling exhibit packag
 - GCS upload/sign wrapped in try/catch for graceful local dev fallback
 - IAM: Cloud Run SA needs `roles/iam.serviceAccountTokenCreator` for `getSignedUrl()`
 
+**Duplicate Preview Modal** (2026-03-09):
+- Inline image thumbnails via `URL.createObjectURL()` (revoked after load)
+- PDF first-page previews rendered via PDF.js `<canvas>`
+- Loading spinners while previews render asynchronously
+- Visual feedback: cards start green (`.marked-keep`), dim red on removal (`.marked-remove`)
+- XSS protection: `escapeHtml()` helper sanitizes filenames in innerHTML
+- Client-side only — no backend changes; File objects from `ExhibitManager.getExhibits()`
+- Design doc: `docs/plans/2026-03-09-duplicate-preview-design.md`
+- Implementation plan: `docs/plans/2026-03-09-duplicate-preview-plan.md`
+
+**Concurrency Fix** (2026-03-09):
+- `concurrency=1` caused 404 on `/resolve` POST: SSE stream held the only slot, so POST routed to a different instance without the job
+- Fix: bumped to `concurrency=2` so SSE and resolve POST can coexist on the same instance
+
+**Dropbox Import Mode** (2026-03-11):
+- In-app Dropbox file browser (`forms/exhibits/js/dropbox-browser.js`) with breadcrumb navigation
+- Drag-and-drop files/folders onto exhibit slots (A-Z)
+- Server-side file download via `services/dropbox-browser.js` (batch download with concurrency limit of 15)
+- Reuses existing `dropbox-service.js` firm-wide token (no per-user OAuth)
+- Server-side duplicate thumbnails via Sharp (images) and pdfjs-dist+canvas (PDFs)
+- Duplicate resolution works for both regular upload and Dropbox flows (resolve endpoint handles both)
+- Real-time mode: < 50 files, downloads from Dropbox → processes → SSE stream → signed GCS URL
+- Frontend: `form-submission.js` detects Dropbox panel visibility to choose generate path
+
+**Async Processing Mode** (2026-03-11):
+- For 50+ file sets, dispatches Cloud Run Job (`exhibit-processor-job`, 8 vCPU / 8 GiB)
+- `job-entrypoint.js` — standalone entrypoint reads job config from PostgreSQL
+- `services/async-job-manager.js` — PostgreSQL-backed job CRUD (`exhibit_jobs` table)
+- Migration: `migrations/005_create_exhibit_jobs_table.sql`
+- Email notification via SendGrid on completion
+- GCS signed URLs: 72h expiry for async jobs (vs 1h for realtime)
+- Jobs dashboard (`forms/exhibits/js/jobs-dashboard.js`) for monitoring async jobs
+- API: `GET /api/exhibits/jobs`, `GET /api/exhibits/jobs/:jobId/status`
+
+**Key Bugfixes** (2026-03-11):
+- Generate button not enabling in Dropbox mode: `updateGenerateButton()` now checks `DropboxBrowserUI.getTotalFiles()`
+- Download fallback URL was wrong path: fixed to `/api/exhibits/jobs/${jobId}/download`
+- Download race condition: `finally` block deleted temp dir before download request; now serves from `job.pdfBuffer` in memory
+- Duplicate resolve 400 for Dropbox jobs: resolve endpoint assumed `sessions` Map has entry; Dropbox jobs store exhibits on the `job` object directly. Fixed to check `job.exhibits` first, fall back to `session.exhibits`
+
 **Deployment**:
 - Separate Cloud Run service with its own GitHub Actions workflow (`.github/workflows/deploy-exhibit-collector.yml`)
 - Auto-deploys on push to `main` when exhibit-relevant paths change
 - Session affinity enabled (in-memory job state requires sticky sessions)
-- 4 vCPU, 4 GiB memory, concurrency 1 (dedicated instance per job)
+- 4 vCPU, 4 GiB memory, concurrency 2 (SSE stream + resolve POST need concurrent slots)
+- Cloud Run Job: `exhibit-processor-job` (8 vCPU / 8 GiB) for async processing
+- IAM: web service SA needs `roles/run.developer` for job dispatch
 - Auth: `/api/exhibits` bypasses token auth in `middleware/auth.js`; form pages use session-based password auth
+- Request timeout bumped to 15 min for large real-time jobs
 
-**Dependencies**: `sharp`, `multer`, `tesseract.js`, `pdf-lib`, `@google-cloud/storage`
+**Dependencies**: `sharp`, `multer`, `tesseract.js`, `pdf-lib`, `@google-cloud/storage`, `@google-cloud/run`, `@sendgrid/mail`, `canvas`, `pdfjs-dist`
 
 ### 4. REST API Endpoints
 - `GET /` - Serve main form page

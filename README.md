@@ -6,7 +6,7 @@ This application provides comprehensive legal forms for document generation and 
 
 - **Document Generation Form**: `https://docs.liptonlegal.com` - Discovery document generation (SROGs, PODs, Admissions)
 - **Contingency Agreement Form**: `https://agreement.liptonlegal.com` - Client contingency fee agreements with multi-party support
-- **Exhibit Collector**: `https://exhibits.liptonlegal.com` - Exhibit package assembly with Bates stamping, duplicate detection with image/PDF previews, parallel processing, and PDF generation
+- **Exhibit Collector**: `https://exhibits.liptonlegal.com` - Exhibit package assembly with Bates stamping, duplicate detection with image/PDF previews, parallel processing, Dropbox import, async processing for large jobs, and PDF generation
 
 ## Features
 
@@ -185,9 +185,13 @@ The application uses GitHub Actions for CI/CD with a **linear promotion model**:
 ### Exhibit Collector (exhibits.liptonlegal.com)
 - `POST /api/exhibits/upload` - Upload files to an exhibit
 - `POST /api/exhibits/generate` - Generate exhibit package (triggers processing)
+- `POST /api/exhibits/generate-from-dropbox` - Generate from Dropbox files (realtime or async mode)
+- `GET /api/dropbox/list` - Browse Dropbox folders for file selection
 - `POST /api/exhibits/jobs/:jobId/resolve` - Resolve duplicate conflicts
 - `GET /api/exhibits/jobs/:jobId/stream` - SSE progress stream (phases: validation, duplicate_detection, processing, stamping, finalizing)
 - `GET /api/exhibits/jobs/:jobId/download` - Download generated PDF (local dev fallback; production uses signed GCS URL from SSE `complete` event)
+- `GET /api/exhibits/jobs` - List async processing jobs
+- `GET /api/exhibits/jobs/:jobId/status` - Get async job status
 - `DELETE /api/exhibits/sessions/:sessionId` - Clean up session/temp files
 
 ### PDF Generation
@@ -429,14 +433,22 @@ The test suite includes:
 │       ├── file-upload.js            # Parallel file upload handler (3 concurrent)
 │       ├── form-submission.js        # Form submission & SSE progress
 │       ├── duplicate-ui.js           # Duplicate resolution with image/PDF previews
-│       └── gap-detector.js           # Exhibit gap detection
-├── routes/exhibits.js  # Exhibit API routes
+│       ├── gap-detector.js           # Exhibit gap detection
+│       ├── dropbox-browser.js        # Dropbox file browser & exhibit slot assignment
+│       └── jobs-dashboard.js         # Async job monitoring dashboard
+├── routes/exhibits.js  # Exhibit API routes (upload, generate, Dropbox, jobs)
+├── routes/dropbox.js   # Dropbox folder browsing API
 ├── utils/              # Shared utilities
 │   └── concurrency.js                # Bounded concurrency processing
 ├── services/           # Backend services
-│   ├── exhibit-processor.js          # Parallel PDF assembly, Bates stamping
+│   ├── exhibit-processor.js          # Parallel PDF assembly, Bates stamping, server-side thumbnails
 │   ├── duplicate-detector.js         # 3-layer duplicate detection (concurrent)
-│   └── pdf-page-builder.js           # Separator pages (cached), image-to-page
+│   ├── pdf-page-builder.js           # Separator pages (cached), image-to-page
+│   ├── dropbox-browser.js            # Dropbox folder listing & batch file download
+│   └── async-job-manager.js          # PostgreSQL-backed async job persistence
+├── job-entrypoint.js   # Cloud Run Job entrypoint for async processing
+├── migrations/         # Database migrations
+│   └── 005_create_exhibit_jobs_table.sql  # Async job tracking table
 ├── normalization work/
 │   └── pdf_templates/  # CM-110 PDF templates
 │       ├── cm110.pdf                 # Original encrypted template
