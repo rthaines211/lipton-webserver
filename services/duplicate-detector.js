@@ -12,9 +12,9 @@ const crypto = require('crypto');
 const sharp = require('sharp');
 const logger = require('../monitoring/logger');
 
-const THUMB_SIZE = 64;
-const VISUAL_MATCH_THRESHOLD = 0.95;
-const VISUAL_MAYBE_LOW = 0.80;
+const THUMB_SIZE = 128;
+const VISUAL_MATCH_THRESHOLD = 0.97;
+const VISUAL_MAYBE_LOW = 0.90;
 const OCR_MATCH_THRESHOLD = 0.80;
 const MAX_CANDIDATE_PAIRS = 500;
 
@@ -140,7 +140,7 @@ class DuplicateDetector {
 
     /**
      * Compute visual similarity between two image buffers.
-     * Resizes both to 64x64 grayscale thumbnails and compares pixel values.
+     * Resizes both to 128x128 RGB thumbnails and compares pixel values.
      * @param {Buffer} buffer1 - First image buffer
      * @param {Buffer} buffer2 - Second image buffer
      * @returns {Promise<number>} Similarity score between 0.0 and 1.0
@@ -149,7 +149,7 @@ class DuplicateDetector {
         const toThumb = async (buf) => {
             return sharp(buf)
                 .resize(THUMB_SIZE, THUMB_SIZE, { fit: 'fill' })
-                .grayscale()
+                .removeAlpha()
                 .raw()
                 .toBuffer();
         };
@@ -180,7 +180,7 @@ class DuplicateDetector {
         const IMAGE_TYPES_SET = new Set(['png', 'jpg', 'jpeg', 'tiff', 'heic']);
         const PDF_TYPES_SET = new Set(['pdf']);
         const { processWithConcurrency } = require('../utils/concurrency');
-        const HAMMING_THRESHOLD = 15;
+        const HAMMING_THRESHOLD = 10;
 
         // --- Pass 1: Expand files to visual entries and compute dHash ---
         // Each entry: { sourceIndex, page, hash }
