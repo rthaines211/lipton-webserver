@@ -81,7 +81,7 @@ const FormSubmission = (() => {
         btn.disabled = true;
 
         // Determine mode
-        const ASYNC_THRESHOLD = 500;
+        const ASYNC_THRESHOLD = 2000;
         const defaultMode = totalFiles >= ASYNC_THRESHOLD ? 'async' : 'realtime';
         let mode = defaultMode;
 
