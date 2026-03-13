@@ -93,10 +93,10 @@ jobs:
             --set-env-vars="${{ steps.load-config.outputs.env_vars }}" \
             --service-account=${{ env.SERVICE_ACCOUNT }} \
             --add-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db" \
-            --memory=4Gi \
+            --memory=8Gi \
             --cpu=4 \
             --concurrency=2 \
-            --timeout=900 \
+            --timeout=3600 \
             --max-instances=10 \
             --min-instances=1 \
             --session-affinity

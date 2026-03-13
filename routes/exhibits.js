@@ -253,7 +253,7 @@ router.post('/generate-from-dropbox', async (req, res) => {
         }
 
         const totalFiles = Object.values(exhibitMapping).flat().length;
-        const effectiveMode = mode || (totalFiles >= 500 ? 'async' : 'realtime');
+        const effectiveMode = mode || (totalFiles >= 2000 ? 'async' : 'realtime');
 
         if (effectiveMode === 'async') {
             const job = await AsyncJobManager.createJob({
