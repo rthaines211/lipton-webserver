@@ -822,11 +822,57 @@ textarea.input-error:focus {
     font-style: italic;
 }
 
+/* === TAB NAVIGATION === */
+
+.nav-tabs {
+    display: flex;
+    background: #F5F5F5;
+    border-bottom: 2px solid #E2E8F0;
+    padding: 0 30px;
+}
+
+.nav-tab {
+    background: none;
+    border: none;
+    padding: 15px 25px;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    margin-right: 5px;
+    transition: all 0.3s ease;
+}
+
+.nav-tab:hover {
+    background: #E2E8F0;
+    color: #1F2A44;
+}
+
+.nav-tab.active {
+    background: #FFFFFF;
+    color: #1F2A44;
+    border-bottom: 3px solid #00AEEF;
+}
+
+.nav-tab i {
+    margin-right: 8px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
 /* === JOBS DASHBOARD === */
 
-#jobs-dashboard {
+#jobs-tab {
     padding: 20px 40px;
-    border-top: 1px solid var(--border-color);
+    background: #F5F5F5;
 }
 
 .jobs-list {
@@ -835,10 +881,16 @@ textarea.input-error:focus {
 }
 
 .job-card {
-    border: 1px solid #ddd;
+    background: white;
+    border: 1px solid #E2E8F0;
     border-radius: 6px;
-    padding: 12px;
-    margin-bottom: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.job-card strong {
+    color: #1F2A44;
 }
 
 .job-card .job-status {
@@ -870,7 +922,7 @@ textarea.input-error:focus {
 
 .progress-text {
     font-size: 0.8em;
-    color: #555;
+    color: #64748B;
 }
 
 .error-text {
