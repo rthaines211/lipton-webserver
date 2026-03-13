@@ -69,7 +69,44 @@ describe('DuplicateDetector', () => {
             }).png().toBuffer();
 
             const similarity = await DuplicateDetector.computeVisualSimilarity(red, blue);
-            expect(similarity).toBeLessThan(0.85);
+            expect(similarity).toBeLessThan(0.70);
+        });
+
+        it('should score low for same-layout different-color images (RGB sensitivity)', async () => {
+            const sharp = require('sharp');
+            const redOnWhite = await sharp({
+                create: { width: 200, height: 200, channels: 3, background: { r: 255, g: 240, b: 240 } }
+            }).png().toBuffer();
+            const blueOnWhite = await sharp({
+                create: { width: 200, height: 200, channels: 3, background: { r: 240, g: 240, b: 255 } }
+            }).png().toBuffer();
+
+            const similarity = await DuplicateDetector.computeVisualSimilarity(redOnWhite, blueOnWhite);
+            expect(similarity).toBeLessThan(0.97);
+        });
+
+        it('should still return 1.0 for identical color images (RGB mode)', async () => {
+            const sharp = require('sharp');
+            const img = await sharp({
+                create: { width: 150, height: 150, channels: 3, background: { r: 100, g: 200, b: 50 } }
+            }).png().toBuffer();
+
+            const similarity = await DuplicateDetector.computeVisualSimilarity(img, Buffer.from(img));
+            expect(similarity).toBeCloseTo(1.0, 2);
+        });
+
+        it('should classify slight variations in the 90-97% band', async () => {
+            const sharp = require('sharp');
+            const base = await sharp({
+                create: { width: 200, height: 200, channels: 3, background: { r: 200, g: 100, b: 50 } }
+            }).png().toBuffer();
+            const variant = await sharp({
+                create: { width: 200, height: 200, channels: 3, background: { r: 205, g: 103, b: 52 } }
+            }).png().toBuffer();
+
+            const similarity = await DuplicateDetector.computeVisualSimilarity(base, variant);
+            expect(similarity).toBeGreaterThan(0.90);
+            expect(similarity).toBeLessThan(1.0);
         });
     });
 
@@ -105,7 +142,7 @@ describe('DuplicateDetector', () => {
 
             const hash1 = await DuplicateDetector.computeDHash(small);
             const hash2 = await DuplicateDetector.computeDHash(large);
-            expect(DuplicateDetector.hammingDistance(hash1, hash2)).toBeLessThanOrEqual(15);
+            expect(DuplicateDetector.hammingDistance(hash1, hash2)).toBeLessThanOrEqual(10);
         });
 
         it('should produce different hashes for visually distinct images', async () => {
@@ -144,15 +181,14 @@ describe('DuplicateDetector', () => {
             expect(DuplicateDetector.hammingDistance(0b1010n, 0b1001n)).toBe(2);
         });
 
-        it('should return 15 for exactly 15 differing bits (boundary: included)', () => {
-            // First 15 bits set = 0x7FFF
-            const hash = (1n << 15n) - 1n;
-            expect(DuplicateDetector.hammingDistance(0n, hash)).toBe(15);
+        it('should return 10 for exactly 10 differing bits (boundary: included)', () => {
+            const hash = (1n << 10n) - 1n;
+            expect(DuplicateDetector.hammingDistance(0n, hash)).toBe(10);
         });
 
-        it('should return 16 for exactly 16 differing bits (boundary: excluded)', () => {
-            const hash = (1n << 16n) - 1n;
-            expect(DuplicateDetector.hammingDistance(0n, hash)).toBe(16);
+        it('should return 11 for exactly 11 differing bits (boundary: excluded)', () => {
+            const hash = (1n << 11n) - 1n;
+            expect(DuplicateDetector.hammingDistance(0n, hash)).toBe(11);
         });
     });
 
