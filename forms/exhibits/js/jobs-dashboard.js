@@ -5,18 +5,6 @@
 const JobsDashboard = (() => {
     let pollInterval = null;
 
-    function show() {
-        document.getElementById('jobs-dashboard').style.display = 'block';
-        document.getElementById('btn-show-jobs').style.display = 'inline';
-        loadJobs();
-        startPolling();
-    }
-
-    function hide() {
-        document.getElementById('jobs-dashboard').style.display = 'none';
-        stopPolling();
-    }
-
     async function loadJobs() {
         try {
             const res = await fetch('/api/jobs');
@@ -63,7 +51,7 @@ const JobsDashboard = (() => {
                         <strong>${escapeHtml(job.case_name)}</strong>
                         <span class="job-status ${statusClass}">${job.status}</span>
                     </div>
-                    <div style="color:#888;font-size:0.85em;">${job.total_files} files — ${timeStr}</div>
+                    <div style="color:#64748B;font-size:0.85em;">${job.total_files} files — ${timeStr}</div>
                     ${progressBar}
                     ${errorMsg}
                     ${downloadBtn}
@@ -94,13 +82,5 @@ const JobsDashboard = (() => {
         return (str || '').replace(/"/g, '&quot;');
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const closeBtn = document.getElementById('btn-close-dashboard');
-        if (closeBtn) closeBtn.addEventListener('click', hide);
-
-        const showBtn = document.getElementById('btn-show-jobs');
-        if (showBtn) showBtn.addEventListener('click', show);
-    });
-
-    return { show, hide, loadJobs };
+    return { loadJobs, startPolling, stopPolling };
 })();
