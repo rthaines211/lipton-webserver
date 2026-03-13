@@ -26,7 +26,7 @@ An occasional false positive is acceptable. Half the results being false positiv
 In `computeVisualSimilarity()`:
 - Remove `.grayscale()` from the Sharp pipeline
 - Compare 3-channel (RGB) pixel data instead of 1-channel
-- Similarity formula stays the same but operates on 3x the pixel data, making it sensitive to color differences
+- The existing similarity formula (`1.0 - (totalDiff / pixelCount / 255)`) works unchanged because `pixelCount` is `thumb.length` (total bytes = W×H×channels), not pixel count. Each byte is still 0-255, so the normalization holds.
 
 This is the highest-impact change. Different documents almost always have different color profiles (logos, headers, form tints, photo content).
 
@@ -38,9 +38,10 @@ This is the highest-impact change. Different documents almost always have differ
 
 ### Change 3: Tighten dHash Hamming Threshold
 
-- `HAMMING_THRESHOLD`: 15 → **10**
+- `HAMMING_THRESHOLD`: 15 → **10** (note: this is a local `const` inside `findVisualMatches()`, not a module-level constant)
 - Reduces candidate pairs entering the expensive pixel comparison pass
 - 10 bits of 64 still allows ~15% structural difference, enough for compression/quality variants
+- **Risk**: JPEG quality variants and brightness tweaks that previously had hamming distance 11-15 will be filtered out before pixel comparison. If stress testing shows missed matches, increase back toward 12-13 before reverting fully to 15.
 
 ### Change 4: Raise Visual Similarity Thresholds
 
@@ -73,10 +74,15 @@ The dHash computation also uses grayscale. Update to compute dHash on each RGB c
 - **Missed matches where color differs**: A photo with very different white balance or color grading across two copies might score lower with RGB. Mitigation: real duplicates of the same photo will still be near-identical in color. Only extreme color shifts would cause a miss, and those are rare in legal document workflows.
 - **Still some false positives**: Text-only pages with identical color schemes (e.g., two plain white pages with black text) may still match at high similarity. The 128x128 resolution helps distinguish different text layouts, and the 97%/90% thresholds set a higher bar.
 
+## Rollback
+
+If false negatives increase after deploy: revert `HAMMING_THRESHOLD` to 15 and `VISUAL_MAYBE_LOW` to 0.80 first, then investigate.
+
 ## Testing
 
 - Run against existing stress test files (1000 files in `test-exhibit-files/stress-test-1000/`)
 - Verify exact clones still detected
 - Verify JPEG quality variants still detected
+- Verify LIKELY_MATCH band (90-97%) fires for compression variants and screenshots
 - Verify different documents no longer flagged as matches
-- Update unit tests for new threshold values
+- Update unit tests for new threshold values and RGB mode
