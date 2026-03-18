@@ -82,7 +82,8 @@ describe('Exhibit Processor Integration', () => {
         expect(result.paused).toBe(true);
         expect(result.duplicates).toBeDefined();
         expect(result.duplicates.A).toHaveLength(1);
-        expect(result.duplicates.A[0].matchType).toBe('EXACT_DUPLICATE');
+        expect(result.duplicates.A[0].files).toHaveLength(2);
+        expect(result.duplicates.A[0].edges[0].matchType).toBe('EXACT_DUPLICATE');
     }, 15000);
 
     it('should resume after duplicate resolution and produce output', async () => {
@@ -137,4 +138,72 @@ describe('Exhibit Processor Integration', () => {
         // separator A + 3 pages = 4 pages
         expect(outputDoc.getPageCount()).toBe(4);
     }, 15000);
+
+    describe('Group duplicate detection integration', () => {
+        it('should detect a group of 3 exact duplicates and resolve correctly', async () => {
+            const buf = await sharp({
+                create: { width: 100, height: 100, channels: 3, background: { r: 128, g: 64, b: 32 } }
+            }).png().toBuffer();
+
+            const exhibits = {
+                A: [
+                    { name: 'original.png', buffer: buf, type: 'png' },
+                    { name: 'copy1.png', buffer: Buffer.from(buf), type: 'png' },
+                    { name: 'copy2.png', buffer: Buffer.from(buf), type: 'png' },
+                ],
+            };
+
+            const result = await ExhibitProcessor.process({
+                caseName: 'GroupTest',
+                exhibits,
+                outputDir: tempDir,
+            });
+
+            expect(result.paused).toBe(true);
+            const groups = result.duplicates.A;
+            expect(groups).toHaveLength(1);
+            expect(groups[0].files).toHaveLength(3);
+            expect(groups[0].files).toContain('original.png');
+            expect(groups[0].files).toContain('copy1.png');
+            expect(groups[0].files).toContain('copy2.png');
+
+            // Simulate resolution: keep original, remove copies
+            const filesToRemove = new Set(['copy1.png', 'copy2.png']);
+            exhibits.A = exhibits.A.filter(f => !filesToRemove.has(f.name));
+            expect(exhibits.A).toHaveLength(1);
+            expect(exhibits.A[0].name).toBe('original.png');
+        }, 30000);
+
+        it('should detect two separate groups in one exhibit', async () => {
+            const buf1 = await sharp({
+                create: { width: 100, height: 100, channels: 3, background: { r: 255, g: 0, b: 0 } }
+            }).png().toBuffer();
+            const buf2 = await sharp({
+                create: { width: 100, height: 100, channels: 3, background: { r: 0, g: 0, b: 255 } }
+            }).png().toBuffer();
+            const buf3 = await sharp({
+                create: { width: 100, height: 100, channels: 3, background: { r: 0, g: 255, b: 0 } }
+            }).png().toBuffer();
+
+            const exhibits = {
+                A: [
+                    { name: 'set1-a.png', buffer: buf1, type: 'png' },
+                    { name: 'set1-b.png', buffer: Buffer.from(buf1), type: 'png' },
+                    { name: 'set2-a.png', buffer: buf2, type: 'png' },
+                    { name: 'set2-b.png', buffer: Buffer.from(buf2), type: 'png' },
+                    { name: 'unique.png', buffer: buf3, type: 'png' },
+                ],
+            };
+
+            const result = await ExhibitProcessor.process({
+                caseName: 'MultiGroupTest',
+                exhibits,
+                outputDir: tempDir,
+            });
+
+            expect(result.paused).toBe(true);
+            const groups = result.duplicates.A;
+            expect(groups).toHaveLength(2);
+        }, 30000);
+    });
 });
