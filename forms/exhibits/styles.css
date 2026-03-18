@@ -423,11 +423,12 @@ textarea {
     margin-bottom: 12px;
 }
 
+/* Group file cards - horizontal wrap layout */
 .duplicate-group-files {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 12px;
-    margin-bottom: 12px;
+    padding: 12px;
 }
 
 .duplicate-file-card {
@@ -490,6 +491,36 @@ textarea {
 
 .duplicate-toggle.toggle-remove:hover {
     box-shadow: 0 4px 12px rgba(220, 53, 69, 0.35);
+}
+
+/* Locked keep state - last remaining kept file */
+.duplicate-file-card.marked-keep-locked {
+    border-color: #28a745;
+    background-color: rgba(40, 167, 69, 0.08);
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.duplicate-file-card.marked-keep-locked .duplicate-toggle {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Relationship lines section */
+.duplicate-relationships {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #666;
+    border-top: 1px solid #eee;
+}
+
+.duplicate-relationship-line {
+    padding: 2px 0;
+}
+
+.duplicate-relationship-line .duplicate-badge {
+    font-size: 0.75rem;
+    padding: 1px 6px;
 }
 
 .duplicate-preview {
