@@ -13,19 +13,22 @@ The current duplicate detection system compares files in pairs and presents each
 - **Resolution UX:** Keep/remove toggle per file within a group (option C). Default: keep first file alphabetically, remove rest. User can flip any file. Must keep at least 1.
 - **Mixed-confidence groups:** One consolidated group (option A). If A↔B is exact and A↔C is visual, they're shown as one group with per-edge relationship details.
 - **Transitive grouping:** Group by connected component (option A). If A matches B and B matches C, all three are in one group even if A↔C isn't a direct match.
-- **Algorithm:** Hybrid approach — keep existing three-layer pair pipeline, add dHash pre-filter to Layer 2, post-process pairs into groups via Union-Find.
+- **Algorithm:** Hybrid approach — keep existing pair pipeline (Layers 1 + 2), add dHash pre-filter to Layer 2, post-process pairs into groups via Union-Find.
+- **Edge completeness:** Star topology edges are sufficient. `findExactDuplicates` only pairs each file with the first occurrence sharing the same hash (e.g., 3 identical files A,B,C produce edges A↔B and A↔C, not B↔C). Union-Find still groups them correctly. The UI shows the edges that were detected, not all possible edges — this is intentional and clearly conveys the group membership.
 
 ## Architecture
 
 ### Detection Pipeline (unchanged flow, new post-processing)
 
 ```
-Files → Layer 1 (SHA-256 exact) → Layer 2 (dHash pre-filter + pixel comparison) → Layer 3 (OCR) → Flat pairs
-                                                                                                        ↓
-                                                                                              Union-Find grouping
-                                                                                                        ↓
-                                                                                                  Group output
+Files → Layer 1 (SHA-256 exact) → Layer 2 (dHash pre-filter + pixel comparison) → Flat pairs
+                                                                                       ↓
+                                                                             Union-Find grouping
+                                                                                       ↓
+                                                                                 Group output
 ```
+
+> **Note:** Layer 3 (OCR) was previously removed from the pipeline. If re-enabled in the future, its pairs would feed into the same Union-Find post-processing step.
 
 ### Data Structures
 
@@ -38,11 +41,16 @@ Files → Layer 1 (SHA-256 exact) → Layer 2 (dHash pre-filter + pixel comparis
     {
       groupId: 'A-g0',
       files: ['scan-001.pdf', 'scan-001-copy.pdf', 'scan-001-resized.jpg'],
-      defaultKeep: 'scan-001.pdf',  // first file alphabetically
+      defaultKeep: 'scan-001.pdf',  // first file alphabetically — frontend uses this as authoritative default
       edges: [
         { file1: 'scan-001.pdf', file2: 'scan-001-copy.pdf', matchType: 'EXACT_DUPLICATE', confidence: 100, layer: 1 },
         { file1: 'scan-001.pdf', file2: 'scan-001-resized.jpg', matchType: 'VISUAL_MATCH', confidence: 96, layer: 2 },
-      ]
+      ],
+      thumbnails: {
+        'scan-001.pdf': 'data:image/jpeg;base64,...',
+        'scan-001-copy.pdf': 'data:image/jpeg;base64,...',
+        'scan-001-resized.jpg': 'data:image/jpeg;base64,...',
+      }  // server-provided thumbnails (Dropbox imports); null/absent for local uploads
     }
   ]
 }
@@ -84,6 +92,13 @@ New `buildGroups(files, pairs)` function in `duplicate-detector.js`:
 Single-file components (no matches) are excluded from output.
 
 The Union-Find uses path compression and union-by-rank. ~30 lines, no external dependencies.
+
+**Group ordering:** Groups are sorted by the alphabetically-first filename in each group before assigning `groupId` indices. This ensures deterministic IDs across runs for the same input.
+
+**Error handling in `buildGroups`:**
+- Pairs referencing unknown filenames are skipped (log warning)
+- Self-pairs (`file1 === file2`) are skipped
+- Empty input returns empty groups array
 
 `detectDuplicates` return type changes from `{ duplicates: Array<Pair> }` to `{ groups: Array<Group> }`.
 
@@ -128,7 +143,7 @@ The modal changes from pair cards to group cards:
 - **Default state:** First file (alphabetically) = keep, rest = remove
 - **Toggle:** Click a file card to flip keep ↔ remove
 - **Guard:** Cannot remove the last kept file — toggle disabled when only 1 file is kept
-- **"Keep All" button:** Resets all files in the group to keep
+- **"Keep All" button:** Resets all files in the group to keep. "Remove All" is intentionally omitted to prevent accidental data loss.
 - **Relationship lines:** One line per edge, shown below file cards
 - **File count summary:** Total removals across all groups (same location as current)
 
@@ -156,7 +171,7 @@ No change to downstream pipeline — it still receives a filtered file list.
 
 ## Backward Compatibility
 
-- **SSE event:** `event: duplicates` payload changes from `{ letter: [pairs] }` to `{ letter: [groups] }`. Breaking change to frontend contract, but frontend/backend deploy together (same Cloud Run service) — no versioning needed.
+- **SSE event:** `event: duplicates` payload changes from `{ letter: [pairs] }` to `{ letter: [groups] }`. Breaking change to frontend contract, but frontend/backend deploy together (same Cloud Run service) — no versioning needed. During rolling deploys, Cloud Run may briefly run two versions; with `concurrency=2` and session affinity, the window where an old frontend hits a new backend is negligible. No dual-format support needed.
 - **Async jobs (2000+ files):** Skip duplicate detection entirely. No change needed.
 - **Database:** No schema changes. Duplicate reports are held in memory during SSE sessions, not persisted to `exhibit_jobs`.
 
