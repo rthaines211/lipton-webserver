@@ -498,4 +498,92 @@ describe('DuplicateDetector', () => {
             DuplicateDetector.findVisualMatches = originalFVM;
         });
     });
+
+    describe('buildGroups', () => {
+        it('should group a simple pair into one group', () => {
+            const files = ['a.png', 'b.png', 'c.png'];
+            const pairs = [
+                { file1: 'a.png', file2: 'b.png', matchType: 'EXACT_DUPLICATE', confidence: 100, layer: 1, details: 'test' },
+            ];
+            const groups = DuplicateDetector.buildGroups(files, pairs, 'A');
+            expect(groups).toHaveLength(1);
+            expect(groups[0].files).toEqual(['a.png', 'b.png']);
+            expect(groups[0].edges).toEqual(pairs);
+            expect(groups[0].defaultKeep).toBe('a.png');
+            expect(groups[0].groupId).toBe('A-g0');
+        });
+
+        it('should merge transitive matches into one group', () => {
+            const files = ['a.png', 'b.png', 'c.png'];
+            const pairs = [
+                { file1: 'a.png', file2: 'b.png', matchType: 'EXACT_DUPLICATE', confidence: 100, layer: 1, details: 'test' },
+                { file1: 'b.png', file2: 'c.png', matchType: 'VISUAL_MATCH', confidence: 96, layer: 2, details: 'test' },
+            ];
+            const groups = DuplicateDetector.buildGroups(files, pairs, 'A');
+            expect(groups).toHaveLength(1);
+            expect(groups[0].files).toEqual(['a.png', 'b.png', 'c.png']);
+            expect(groups[0].edges).toHaveLength(2);
+        });
+
+        it('should produce separate groups for unconnected pairs', () => {
+            const files = ['a.png', 'b.png', 'c.png', 'd.png'];
+            const pairs = [
+                { file1: 'a.png', file2: 'b.png', matchType: 'EXACT_DUPLICATE', confidence: 100, layer: 1, details: 'test' },
+                { file1: 'c.png', file2: 'd.png', matchType: 'VISUAL_MATCH', confidence: 97, layer: 2, details: 'test' },
+            ];
+            const groups = DuplicateDetector.buildGroups(files, pairs, 'X');
+            expect(groups).toHaveLength(2);
+            expect(groups[0].groupId).toBe('X-g0');
+            expect(groups[1].groupId).toBe('X-g1');
+        });
+
+        it('should handle a large group (5+ files all connected)', () => {
+            const files = ['a.png', 'b.png', 'c.png', 'd.png', 'e.png'];
+            const pairs = [
+                { file1: 'a.png', file2: 'b.png', matchType: 'EXACT_DUPLICATE', confidence: 100, layer: 1, details: 'test' },
+                { file1: 'a.png', file2: 'c.png', matchType: 'EXACT_DUPLICATE', confidence: 100, layer: 1, details: 'test' },
+                { file1: 'a.png', file2: 'd.png', matchType: 'VISUAL_MATCH', confidence: 98, layer: 2, details: 'test' },
+                { file1: 'd.png', file2: 'e.png', matchType: 'VISUAL_MATCH', confidence: 95, layer: 2, details: 'test' },
+            ];
+            const groups = DuplicateDetector.buildGroups(files, pairs, 'A');
+            expect(groups).toHaveLength(1);
+            expect(groups[0].files).toEqual(['a.png', 'b.png', 'c.png', 'd.png', 'e.png']);
+            expect(groups[0].edges).toHaveLength(4);
+        });
+
+        it('should skip pairs with unknown filenames and log warning', () => {
+            const files = ['a.png', 'b.png'];
+            const pairs = [
+                { file1: 'a.png', file2: 'unknown.png', matchType: 'EXACT_DUPLICATE', confidence: 100, layer: 1, details: 'test' },
+            ];
+            const groups = DuplicateDetector.buildGroups(files, pairs, 'A');
+            expect(groups).toHaveLength(0);
+        });
+
+        it('should skip self-pairs', () => {
+            const files = ['a.png'];
+            const pairs = [
+                { file1: 'a.png', file2: 'a.png', matchType: 'EXACT_DUPLICATE', confidence: 100, layer: 1, details: 'test' },
+            ];
+            const groups = DuplicateDetector.buildGroups(files, pairs, 'A');
+            expect(groups).toHaveLength(0);
+        });
+
+        it('should return empty array for empty input', () => {
+            expect(DuplicateDetector.buildGroups([], [], 'A')).toEqual([]);
+        });
+
+        it('should sort groups by alphabetically-first filename', () => {
+            const files = ['x.png', 'y.png', 'a.png', 'b.png'];
+            const pairs = [
+                { file1: 'x.png', file2: 'y.png', matchType: 'EXACT_DUPLICATE', confidence: 100, layer: 1, details: 'test' },
+                { file1: 'a.png', file2: 'b.png', matchType: 'EXACT_DUPLICATE', confidence: 100, layer: 1, details: 'test' },
+            ];
+            const groups = DuplicateDetector.buildGroups(files, pairs, 'Z');
+            expect(groups[0].files[0]).toBe('a.png');
+            expect(groups[0].groupId).toBe('Z-g0');
+            expect(groups[1].files[0]).toBe('x.png');
+            expect(groups[1].groupId).toBe('Z-g1');
+        });
+    });
 });

@@ -397,6 +397,74 @@ class DuplicateDetector {
     }
 
     /**
+     * Group duplicate pairs into connected components using Union-Find.
+     * @param {Array<string>} fileNames - All filenames in the exhibit
+     * @param {Array<Object>} pairs - Flat array of pair objects from detection
+     * @param {string} letter - Exhibit letter for groupId prefix
+     * @returns {Array<Object>} Array of group objects with files, edges, defaultKeep, groupId
+     */
+    static buildGroups(fileNames, pairs, letter) {
+        if (fileNames.length === 0 || pairs.length === 0) return [];
+
+        const fileSet = new Set(fileNames);
+        const parent = new Map();
+        const rank = new Map();
+
+        function find(x) {
+            if (!parent.has(x)) { parent.set(x, x); rank.set(x, 0); }
+            if (parent.get(x) !== x) parent.set(x, find(parent.get(x)));
+            return parent.get(x);
+        }
+
+        function union(a, b) {
+            const ra = find(a), rb = find(b);
+            if (ra === rb) return;
+            if (rank.get(ra) < rank.get(rb)) { parent.set(ra, rb); }
+            else if (rank.get(ra) > rank.get(rb)) { parent.set(rb, ra); }
+            else { parent.set(rb, ra); rank.set(ra, rank.get(ra) + 1); }
+        }
+
+        // Build unions from valid pairs
+        const validPairs = [];
+        for (const pair of pairs) {
+            if (pair.file1 === pair.file2) continue;
+            if (!fileSet.has(pair.file1) || !fileSet.has(pair.file2)) {
+                logger.warn(`buildGroups: skipping pair with unknown file(s): ${pair.file1}, ${pair.file2}`);
+                continue;
+            }
+            union(pair.file1, pair.file2);
+            validPairs.push(pair);
+        }
+
+        // Collect connected components
+        const components = new Map(); // root -> { files: Set, edges: [] }
+        for (const pair of validPairs) {
+            const root = find(pair.file1);
+            if (!components.has(root)) components.set(root, { files: new Set(), edges: [] });
+            const comp = components.get(root);
+            comp.files.add(pair.file1);
+            comp.files.add(pair.file2);
+            comp.edges.push(pair);
+        }
+
+        // Build sorted group objects
+        const groups = [...components.values()]
+            .map(comp => ({
+                files: [...comp.files].sort(),
+                edges: comp.edges,
+            }))
+            .sort((a, b) => a.files[0].localeCompare(b.files[0]))
+            .map((group, idx) => ({
+                groupId: `${letter}-g${idx}`,
+                files: group.files,
+                defaultKeep: group.files[0],
+                edges: group.edges,
+            }));
+
+        return groups;
+    }
+
+    /**
      * Run the full two-layer duplicate detection pipeline.
      *
      * Layer 1: Exact hash comparison (0-10%)
