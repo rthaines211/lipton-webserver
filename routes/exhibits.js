@@ -190,6 +190,53 @@ router.post('/jobs/:jobId/resolve', asyncHandler(async (req, res) => {
     );
 }));
 
+// GET /jobs/:jobId/duplicates
+router.get('/jobs/:jobId/duplicates', (req, res) => {
+    const { jobId } = req.params;
+    const job = jobs.get(jobId);
+
+    if (!job) {
+        return res.status(404).json({ error: 'Job not found' });
+    }
+
+    if (job.status !== 'awaiting_resolution' || !job.duplicates) {
+        return res.status(400).json({ error: 'No duplicates pending review for this job' });
+    }
+
+    const exhibitFilter = req.query.exhibit;
+
+    if (exhibitFilter) {
+        // Per-exhibit response WITH thumbnails (lazy-load per tab)
+        const groups = job.duplicates[exhibitFilter] || [];
+        return res.json({
+            caseName: job.caseName,
+            totalFiles: job.totalFiles || 0,
+            groups: { [exhibitFilter]: groups }
+        });
+    }
+
+    // Initial response WITHOUT thumbnails (lightweight metadata)
+    const groupsWithoutThumbnails = {};
+    for (const [letter, groups] of Object.entries(job.duplicates)) {
+        groupsWithoutThumbnails[letter] = groups.map(g => ({
+            groupId: g.groupId,
+            files: g.files,
+            defaultKeep: g.defaultKeep,
+            edges: g.edges,
+            metadata: g.metadata
+            // thumbnails intentionally omitted
+        }));
+    }
+
+    return res.json({
+        caseName: job.caseName,
+        totalFiles: job.totalFiles || 0,
+        groupCounts: job.groupCounts || {},
+        totalGroups: job.totalGroups || 0,
+        groups: groupsWithoutThumbnails
+    });
+});
+
 // GET /jobs/:jobId/stream (SSE)
 router.get('/jobs/:jobId/stream', (req, res) => {
     const { jobId } = req.params;
@@ -218,8 +265,13 @@ router.get('/jobs/:jobId/stream', (req, res) => {
     if (job.status === 'completed') {
         res.write(`event: complete\ndata: ${JSON.stringify({ filename: job.filename, downloadUrl: job.downloadUrl })}\n\n`);
         if (res.flush) res.flush();
-    } else if (job.status === 'awaiting_resolution') {
-        res.write(`event: duplicates\ndata: ${JSON.stringify({ duplicates: job.duplicates })}\n\n`);
+    } else if (job.status === 'awaiting_resolution' && job.duplicates) {
+        res.write(`event: scan-complete\ndata: ${JSON.stringify({
+            duplicates: true,
+            groupCounts: job.groupCounts || {},
+            totalGroups: job.totalGroups || 0,
+            totalFiles: job.totalFiles || 0
+        })}\n\n`);
         if (res.flush) res.flush();
     } else if (job.status === 'failed') {
         res.write(`event: error\ndata: ${JSON.stringify({ error: job.message })}\n\n`);
@@ -369,14 +421,65 @@ router.post('/generate-from-dropbox', async (req, res) => {
                     }));
                 }
 
-                // Phase 2-5: Process (20-100%)
+                // Store job context for both scan and process phases
+                job.exhibits = exhibits;
+                job.tempDir = tempDir;
+                job.caseName = caseName;
+
+                // Step 1: Scan for duplicates
+                broadcastJobEvent(jobId, 'progress', {
+                    phase: 'duplicate_detection',
+                    message: 'Scanning for duplicates...',
+                    progress: 25,
+                    timestamp: Date.now(),
+                });
+
+                const scanResult = await ExhibitProcessor.scanForDuplicates({
+                    exhibits,
+                    onProgress: (pct, msg, phase) => {
+                        const adjusted = 20 + Math.round(pct * 0.3);
+                        broadcastJobEvent(jobId, 'progress', {
+                            progress: adjusted,
+                            message: msg,
+                            phase: phase || 'duplicate_detection',
+                            timestamp: Date.now(),
+                        });
+                    },
+                    generateThumbnails: true,
+                });
+
+                if (scanResult) {
+                    // Duplicates found — pause for review
+                    job.status = 'awaiting_resolution';
+                    job.duplicates = scanResult.groups;
+                    job.groupCounts = scanResult.groupCounts;
+                    job.totalGroups = scanResult.totalGroups;
+                    job.totalFiles = scanResult.totalFiles;
+
+                    broadcastJobEvent(jobId, 'scan-complete', {
+                        duplicates: true,
+                        groupCounts: scanResult.groupCounts,
+                        totalGroups: scanResult.totalGroups,
+                        totalFiles: scanResult.totalFiles,
+                    });
+                    return;
+                }
+
+                // No duplicates — proceed to processing
+                broadcastJobEvent(jobId, 'scan-complete', { duplicates: false });
+                broadcastJobEvent(jobId, 'progress', {
+                    phase: 'processing',
+                    message: 'Generating exhibits...',
+                    progress: 50,
+                    timestamp: Date.now(),
+                });
+
                 const result = await ExhibitProcessor.process({
                     caseName,
                     exhibits,
                     outputDir: tempDir,
-                    generateThumbnails: true,
                     onProgress: (percent, message, phase) => {
-                        const adjusted = 20 + Math.round(percent * 0.8);
+                        const adjusted = 50 + Math.round(percent * 0.5);
                         broadcastJobEvent(jobId, 'progress', {
                             progress: adjusted,
                             phase: phase || 'processing',
@@ -385,18 +488,6 @@ router.post('/generate-from-dropbox', async (req, res) => {
                         });
                     },
                 });
-
-                // Handle duplicate pause
-                if (result.paused) {
-                    job.status = 'awaiting_resolution';
-                    job.duplicates = result.duplicates;
-                    job.exhibits = exhibits;
-                    job.tempDir = tempDir;
-                    job.caseName = caseName;
-
-                    broadcastJobEvent(jobId, 'duplicates', { duplicates: result.duplicates });
-                    return;
-                }
 
                 // Upload to GCS
                 job.status = 'completed';
