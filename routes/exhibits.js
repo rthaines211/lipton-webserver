@@ -16,7 +16,7 @@ const Sentry = require('@sentry/node');
 const { Storage } = require('@google-cloud/storage');
 const ExhibitProcessor = require('../services/exhibit-processor');
 const DropboxBrowser = require('../services/dropbox-browser');
-const AsyncJobManager = require('../services/async-job-manager');
+
 const logger = require('../monitoring/logger');
 const { asyncHandler } = require('../middleware/error-handler');
 
@@ -333,56 +333,16 @@ router.get('/jobs/:jobId/ping', (req, res) => {
 
 /**
  * POST /generate-from-dropbox
- * Generate exhibit package from Dropbox files.
- * Supports real-time (SSE) and async (job queue) modes.
+ * Generate exhibit package from Dropbox files via real-time SSE streaming.
  */
 router.post('/generate-from-dropbox', async (req, res) => {
     try {
-        const { caseName, exhibitMapping, mode, email } = req.body;
+        const { caseName, exhibitMapping } = req.body;
 
         if (!caseName || !exhibitMapping) {
             return res.status(400).json({ success: false, error: 'caseName and exhibitMapping are required' });
         }
 
-        const totalFiles = Object.values(exhibitMapping).flat().length;
-        const effectiveMode = mode || (totalFiles >= 2000 ? 'async' : 'realtime');
-
-        if (effectiveMode === 'async') {
-            const job = await AsyncJobManager.createJob({
-                caseName,
-                totalFiles,
-                exhibitMapping,
-                dropboxSourcePath: null,
-                email,
-            });
-
-            // Dispatch Cloud Run Job
-            try {
-                const { JobsClient } = require('@google-cloud/run').v2;
-                const jobsClient = new JobsClient();
-                await jobsClient.runJob({
-                    name: `projects/docmosis-tornado/locations/us-central1/jobs/exhibit-processor-job`,
-                    overrides: {
-                        containerOverrides: [{
-                            env: [{ name: 'JOB_ID', value: job.id }],
-                        }],
-                    },
-                });
-            } catch (dispatchError) {
-                logger.error('Failed to dispatch Cloud Run Job:', dispatchError.message);
-                await AsyncJobManager.failJob(job.id, 'Failed to dispatch processing job');
-                return res.status(500).json({ success: false, error: 'Failed to start processing' });
-            }
-
-            return res.json({
-                success: true,
-                mode: 'async',
-                jobId: job.id,
-                message: `Processing ${totalFiles} files. ${email ? 'You\'ll receive an email when it\'s ready.' : 'Processing will continue in the background.'}`,
-            });
-        }
-
-        // Real-time mode
         const sessionId = `dropbox-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         const tempDir = path.join(os.tmpdir(), 'exhibits', sessionId);
         await fsPromises.mkdir(tempDir, { recursive: true });
@@ -398,7 +358,7 @@ router.post('/generate-from-dropbox', async (req, res) => {
             sseClients: [],
         });
 
-        res.json({ success: true, mode: 'realtime', jobId });
+        res.json({ success: true, jobId });
 
         // Process in background (after response sent)
         setImmediate(async () => {

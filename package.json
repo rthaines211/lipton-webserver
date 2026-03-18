@@ -23,13 +23,11 @@
     "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
-    "@google-cloud/run": "^3.2.0",
     "@google-cloud/storage": "^7.7.0",
     "@sendgrid/mail": "^8.1.6",
     "@sentry/node": "^10.41.0",
     "archiver": "^7.0.1",
     "axios": "^1.12.2",
-    "canvas": "^3.2.1",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "docxtemplater": "^3.67.6",

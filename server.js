@@ -484,10 +484,6 @@ app.use('/api', contingencyRoutes);
 const exhibitRoutes = require('./routes/exhibits');
 app.use('/api/exhibits', exhibitRoutes);
 
-// Jobs dashboard routes
-const jobsRoutes = require('./routes/jobs');
-app.use('/api/jobs', jobsRoutes);
-
 // Dropbox browser routes
 const dropboxRoutes = require('./routes/dropbox');
 app.use('/api/dropbox', dropboxRoutes);

@@ -80,49 +80,12 @@ const FormSubmission = (() => {
         const btn = document.getElementById('btn-generate');
         btn.disabled = true;
 
-        // Determine mode
-        const ASYNC_THRESHOLD = 2000;
-        const defaultMode = totalFiles >= ASYNC_THRESHOLD ? 'async' : 'realtime';
-        let mode = defaultMode;
-
-        if (totalFiles >= ASYNC_THRESHOLD - 10 && totalFiles < ASYNC_THRESHOLD + 10) {
-            const useAsync = confirm(
-                `You have ${totalFiles} files. Would you like to process in the background?\n\n` +
-                `OK = Background processing (email notification when done)\n` +
-                `Cancel = Wait for results now`
-            );
-            mode = useAsync ? 'async' : 'realtime';
-        }
-
-        if (mode === 'async') {
-            const email = prompt('Enter email for notification when processing is complete:');
-            try {
-                const res = await fetch('/api/exhibits/generate-from-dropbox', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ caseName, exhibitMapping, mode: 'async', email }),
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    alert(data.message);
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            } catch (error) {
-                alert('Failed to start processing: ' + error.message);
-            }
-            btn.disabled = false;
-            return;
-        }
-
-        // Real-time mode
         showProgress('Downloading from Dropbox', 0, 'Starting Dropbox download...');
         try {
             const res = await fetch('/api/exhibits/generate-from-dropbox', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ caseName, exhibitMapping, mode: 'realtime' }),
+                body: JSON.stringify({ caseName, exhibitMapping }),
             });
             const data = await res.json();
 
