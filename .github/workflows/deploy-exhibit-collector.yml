@@ -95,9 +95,9 @@ jobs:
             --add-cloudsql-instances="${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:legal-forms-db" \
             --memory=8Gi \
             --cpu=4 \
-            --concurrency=2 \
+            --concurrency=80 \
             --timeout=3600 \
-            --max-instances=1 \
+            --max-instances=3 \
             --min-instances=1 \
             --session-affinity
 
