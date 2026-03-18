@@ -1,23 +1,12 @@
-/**
- * Duplicate UI Module
- * Renders duplicate resolution modal and inline badges.
- */
-
 const DuplicateUI = (() => {
     let currentReport = null;
-    const resolutions = {}; // { letter: [{ file1, file2, action }] }
+    const resolutions = {}; // { letter: [{ groupId, keep: [], remove: [] }] }
 
     function escapeHtml(str) {
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    /**
-     * Render a preview element for a file in the duplicate modal.
-     * Images: <img> via object URL. PDFs: <canvas> via PDF.js page 1.
-     * Falls back to FontAwesome icon on error.
-     */
-    async function renderPreview(letter, filename, serverThumbnail) {
-        // Server provides thumbnails for Dropbox imports
+    function renderPreview(filename, serverThumbnail) {
         if (serverThumbnail) {
             const img = document.createElement('img');
             img.src = serverThumbnail;
@@ -25,11 +14,6 @@ const DuplicateUI = (() => {
             img.alt = filename;
             return img;
         }
-
-        return createFallbackIcon(filename);
-    }
-
-    function createFallbackIcon(filename) {
         const ext = filename.split('.').pop().toLowerCase();
         const isImage = ['png', 'jpg', 'jpeg', 'tiff', 'tif', 'heic'].includes(ext);
         const icon = document.createElement('i');
@@ -38,30 +22,23 @@ const DuplicateUI = (() => {
         return icon;
     }
 
-    /**
-     * Show the duplicate modal with the report.
-     * @param {Object} report - { letter: [{ file1, file2, matchType, confidence, layer, details }] }
-     * @returns {Promise<Object>} Resolved resolutions when user clicks Continue
-     */
     function showModal(report) {
         currentReport = report;
 
-        // Initialize resolutions with 'keep_both' default
-        for (const [letter, pairs] of Object.entries(report)) {
-            resolutions[letter] = pairs.map(p => ({
-                file1: p.file1,
-                file2: p.file2,
-                action: 'keep_both',
+        // Initialize resolutions from groups
+        for (const [letter, groups] of Object.entries(report)) {
+            resolutions[letter] = groups.map(group => ({
+                groupId: group.groupId,
+                keep: [group.defaultKeep],
+                remove: group.files.filter(f => f !== group.defaultKeep),
             }));
         }
 
-        renderPairs();
+        renderGroups();
         updateFileCount();
 
         const modal = document.getElementById('duplicate-modal');
         modal.style.display = 'flex';
-
-        // Also add inline badges to exhibit cards
         addInlineBadges(report);
 
         return new Promise((resolve) => {
@@ -76,105 +53,140 @@ const DuplicateUI = (() => {
         });
     }
 
-    function renderPairs() {
+    function renderGroups() {
         const container = document.getElementById('duplicate-pairs');
         container.innerHTML = '';
 
-        for (const [letter, pairs] of Object.entries(currentReport)) {
-            pairs.forEach((pair, idx) => {
+        for (const [letter, groups] of Object.entries(currentReport)) {
+            groups.forEach((group, groupIdx) => {
                 const card = document.createElement('div');
                 card.className = 'duplicate-pair-card';
+                card.dataset.groupIdx = groupIdx;
+                card.dataset.letter = letter;
 
-                const badgeClass = pair.matchType === 'EXACT_DUPLICATE' ? 'exact' : 'similar';
-                const badgeText = pair.matchType === 'EXACT_DUPLICATE'
-                    ? 'Exact Duplicate'
-                    : pair.matchType === 'VISUAL_MATCH'
-                        ? `Visual Match (${pair.confidence}%)`
-                        : pair.matchType === 'LIKELY_MATCH'
-                            ? `Likely Match (${pair.confidence}%)`
-                            : `Content Match (${pair.confidence}%)`;
-
-                // Build card shell with loading spinners as placeholders
-                const safeFile1 = escapeHtml(pair.file1) + (pair.page1 ? ` <span class="page-ref">p.${pair.page1}</span>` : '');
-                const safeFile2 = escapeHtml(pair.file2) + (pair.page2 ? ` <span class="page-ref">p.${pair.page2}</span>` : '');
-
-                card.innerHTML = `
-                    <div class="duplicate-pair-header">
-                        <span>Exhibit ${letter}:</span>
-                        <span class="duplicate-badge ${badgeClass}">
-                            <i class="fas ${pair.matchType === 'EXACT_DUPLICATE' ? 'fa-copy' : 'fa-eye'}"></i>
-                            ${badgeText}
-                        </span>
-                    </div>
-                    <div class="duplicate-pair-files">
-                        <div class="duplicate-file-card marked-keep" id="file-card-${letter}-${idx}-1">
-                            <div class="duplicate-preview">
-                                <i class="fas fa-spinner fa-spin" style="font-size:1.5rem;"></i>
-                            </div>
-                            <div class="file-name">${safeFile1}</div>
-                        </div>
-                        <div class="duplicate-file-card marked-keep" id="file-card-${letter}-${idx}-2">
-                            <div class="duplicate-preview">
-                                <i class="fas fa-spinner fa-spin" style="font-size:1.5rem;"></i>
-                            </div>
-                            <div class="file-name">${safeFile2}</div>
-                        </div>
-                    </div>
-                    <div class="duplicate-actions" id="actions-${letter}-${idx}">
-                        <button data-action="keep_both" class="selected">Keep Both</button>
-                        <button data-action="remove_file1">Remove ${safeFile1}</button>
-                        <button data-action="remove_file2">Remove ${safeFile2}</button>
-                    </div>
+                // Header
+                const header = document.createElement('div');
+                header.className = 'duplicate-pair-header';
+                header.innerHTML = `
+                    <span>Exhibit ${escapeHtml(letter)}: Group ${groupIdx + 1} &mdash; ${group.files.length} duplicates</span>
                 `;
+                card.appendChild(header);
 
-                // Action button handlers with card marking
-                const file1Card = card.querySelector(`#file-card-${letter}-${idx}-1`);
-                const file2Card = card.querySelector(`#file-card-${letter}-${idx}-2`);
-                const actionsEl = card.querySelector('.duplicate-actions');
+                // File cards container
+                const filesContainer = document.createElement('div');
+                filesContainer.className = 'duplicate-group-files';
 
-                actionsEl.querySelectorAll('button').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        actionsEl.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
-                        btn.classList.add('selected');
-                        resolutions[letter][idx].action = btn.dataset.action;
+                group.files.forEach(filename => {
+                    const fileCard = document.createElement('div');
+                    fileCard.className = 'duplicate-file-card';
+                    fileCard.dataset.filename = filename;
 
-                        // Update card marking
-                        file1Card.classList.remove('marked-keep', 'marked-remove');
-                        file2Card.classList.remove('marked-keep', 'marked-remove');
+                    const isKept = resolutions[letter][groupIdx].keep.includes(filename);
+                    fileCard.classList.add(isKept ? 'marked-keep' : 'marked-remove');
 
-                        switch (btn.dataset.action) {
-                            case 'keep_both':
-                                file1Card.classList.add('marked-keep');
-                                file2Card.classList.add('marked-keep');
-                                break;
-                            case 'remove_file1':
-                                file1Card.classList.add('marked-remove');
-                                file2Card.classList.add('marked-keep');
-                                break;
-                            case 'remove_file2':
-                                file1Card.classList.add('marked-keep');
-                                file2Card.classList.add('marked-remove');
-                                break;
-                        }
+                    // Preview
+                    const previewEl = document.createElement('div');
+                    previewEl.className = 'duplicate-preview';
+                    const thumbnail = group.thumbnails ? group.thumbnails[filename] : null;
+                    previewEl.appendChild(renderPreview(filename, thumbnail));
+                    fileCard.appendChild(previewEl);
 
-                        updateFileCount();
+                    // Filename
+                    const nameEl = document.createElement('div');
+                    nameEl.className = 'file-name';
+                    nameEl.textContent = filename;
+                    fileCard.appendChild(nameEl);
+
+                    // Toggle button
+                    const toggleBtn = document.createElement('button');
+                    toggleBtn.className = `duplicate-toggle ${isKept ? 'toggle-keep' : 'toggle-remove'}`;
+                    toggleBtn.textContent = isKept ? 'Keep' : 'Remove';
+                    toggleBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleFile(letter, groupIdx, filename);
                     });
+                    fileCard.appendChild(toggleBtn);
+
+                    filesContainer.appendChild(fileCard);
                 });
+
+                card.appendChild(filesContainer);
+
+                // Relationships section
+                if (group.edges.length > 0) {
+                    const relSection = document.createElement('div');
+                    relSection.className = 'duplicate-relationships';
+                    relSection.innerHTML = '<strong>Relationships:</strong>';
+                    for (const edge of group.edges) {
+                        const line = document.createElement('div');
+                        line.className = 'duplicate-relationship-line';
+                        const badgeClass = edge.matchType === 'EXACT_DUPLICATE' ? 'exact' : 'similar';
+                        const label = edge.matchType === 'EXACT_DUPLICATE'
+                            ? 'Exact Duplicate'
+                            : `Visual Match (${edge.confidence}%)`;
+                        line.innerHTML = `${escapeHtml(edge.file1)} &harr; ${escapeHtml(edge.file2)} &mdash; <span class="duplicate-badge ${badgeClass}">${label}</span>`;
+                        relSection.appendChild(line);
+                    }
+                    card.appendChild(relSection);
+                }
+
+                // Keep All button
+                const actionsEl = document.createElement('div');
+                actionsEl.className = 'duplicate-actions';
+                const keepAllBtn = document.createElement('button');
+                keepAllBtn.textContent = 'Keep All';
+                keepAllBtn.addEventListener('click', () => {
+                    resolutions[letter][groupIdx].keep = [...group.files];
+                    resolutions[letter][groupIdx].remove = [];
+                    renderGroups();
+                    updateFileCount();
+                });
+                actionsEl.appendChild(keepAllBtn);
+                card.appendChild(actionsEl);
 
                 container.appendChild(card);
+            });
+        }
 
-                // Async: load previews and replace spinners
-                const preview1 = card.querySelector(`#file-card-${letter}-${idx}-1 .duplicate-preview`);
-                const preview2 = card.querySelector(`#file-card-${letter}-${idx}-2 .duplicate-preview`);
+        updateToggleStates();
+    }
 
-                renderPreview(letter, pair.file1, pair.thumbnail1).then(el => {
-                    preview1.innerHTML = '';
-                    preview1.appendChild(el);
-                });
-                renderPreview(letter, pair.file2, pair.thumbnail2).then(el => {
-                    preview2.innerHTML = '';
-                    preview2.appendChild(el);
-                });
+    function toggleFile(letter, groupIdx, filename) {
+        const res = resolutions[letter][groupIdx];
+        if (res.keep.includes(filename)) {
+            // Don't allow removing the last kept file
+            if (res.keep.length <= 1) return;
+            res.keep = res.keep.filter(f => f !== filename);
+            res.remove.push(filename);
+        } else {
+            res.remove = res.remove.filter(f => f !== filename);
+            res.keep.push(filename);
+        }
+        renderGroups();
+        updateFileCount();
+    }
+
+    function updateToggleStates() {
+        // Lock the last kept file's toggle in each group
+        // Scope to group cards to avoid cross-group filename collisions
+        const container = document.getElementById('duplicate-pairs');
+        const groupCards = container.querySelectorAll('.duplicate-pair-card');
+        let cardIdx = 0;
+
+        for (const [letter, groupResolutions] of Object.entries(resolutions)) {
+            groupResolutions.forEach((res) => {
+                const groupCard = groupCards[cardIdx++];
+                if (!groupCard) return;
+                if (res.keep.length === 1) {
+                    const fileCards = groupCard.querySelectorAll('.duplicate-file-card');
+                    fileCards.forEach(card => {
+                        if (card.dataset.filename === res.keep[0] && card.classList.contains('marked-keep')) {
+                            card.classList.add('marked-keep-locked');
+                            const btn = card.querySelector('.duplicate-toggle');
+                            if (btn) btn.disabled = true;
+                        }
+                    });
+                }
             });
         }
     }
@@ -182,43 +194,31 @@ const DuplicateUI = (() => {
     function updateFileCount() {
         const countEl = document.getElementById('duplicate-file-count');
         let removeCount = 0;
-        for (const pairs of Object.values(resolutions)) {
-            for (const pair of pairs) {
-                if (pair.action === 'remove_file1' || pair.action === 'remove_file2') {
-                    removeCount++;
-                }
+        for (const groups of Object.values(resolutions)) {
+            for (const group of groups) {
+                removeCount += group.remove.length;
             }
         }
-
-        if (removeCount === 0) {
-            countEl.textContent = 'Keeping all files';
-        } else {
-            countEl.textContent = `Removing ${removeCount} file(s)`;
-        }
+        countEl.textContent = removeCount === 0
+            ? 'Keeping all files'
+            : `Removing ${removeCount} file(s)`;
     }
 
     function addInlineBadges(report) {
-        for (const [letter, pairs] of Object.entries(report)) {
+        for (const [letter, groups] of Object.entries(report)) {
             const badgeContainer = document.getElementById(`dup-badges-${letter}`);
             if (!badgeContainer) continue;
-
             badgeContainer.innerHTML = '';
-            for (const pair of pairs) {
-                const badge = document.createElement('span');
-                const isExact = pair.matchType === 'EXACT_DUPLICATE';
-                const isLikely = pair.matchType === 'LIKELY_MATCH';
-                badge.className = `duplicate-badge ${isExact ? 'exact' : 'similar'}`;
-                badge.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${isExact ? 'Duplicate' : isLikely ? 'Likely' : 'Similar'}`;
-                badgeContainer.appendChild(badge);
-            }
-
+            const totalDupes = groups.reduce((sum, g) => sum + g.files.length, 0);
+            const badge = document.createElement('span');
+            badge.className = 'duplicate-badge exact';
+            badge.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${totalDupes} duplicates`;
+            badgeContainer.appendChild(badge);
         }
     }
 
     function clearInlineBadges() {
-        document.querySelectorAll('.duplicate-badges').forEach(el => {
-            el.innerHTML = '';
-        });
+        document.querySelectorAll('.duplicate-badges').forEach(el => { el.innerHTML = ''; });
     }
 
     function hide() {
@@ -226,8 +226,5 @@ const DuplicateUI = (() => {
         clearInlineBadges();
     }
 
-    return {
-        showModal,
-        hide,
-    };
+    return { showModal, hide };
 })();

@@ -589,6 +589,7 @@ const DropboxBrowserUI = (() => {
                 <div class="slot-header">
                     <strong>Exhibit ${letter}</strong>
                     <span class="file-count" id="count-${letter}">0 files</span>
+                    <span class="duplicate-badges" id="dup-badges-${letter}"></span>
                     <button type="button" class="btn-clear-slot" data-letter="${letter}" title="Clear">✕</button>
                 </div>
                 <div class="slot-files" id="files-${letter}">
