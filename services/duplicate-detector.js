@@ -474,8 +474,8 @@ class DuplicateDetector {
      * @param {Function} [onProgress] - Optional callback (subPercent, message) where subPercent is 0-100
      * @returns {Promise<{duplicates: Array<Object>}>}
      */
-    static async detectDuplicates(files, onProgress) {
-        if (files.length < 2) return { duplicates: [] };
+    static async detectDuplicates(files, onProgress, letter = '') {
+        if (files.length < 2) return { groups: [] };
 
         const allDuplicates = [];
         const progressFn = onProgress || (() => {});
@@ -507,7 +507,9 @@ class DuplicateDetector {
 
         progressFn(100, `Duplicate scan complete: ${allDuplicates.length} total match(es)`);
 
-        return { duplicates: allDuplicates };
+        const fileNames = files.map(f => f.name);
+        const groups = DuplicateDetector.buildGroups(fileNames, allDuplicates, letter);
+        return { groups };
     }
 }
 

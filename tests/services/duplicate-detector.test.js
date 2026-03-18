@@ -438,7 +438,7 @@ describe('DuplicateDetector', () => {
                 { name: 'only.pdf', buffer: Buffer.from('solo content'), type: 'pdf' },
             ];
             const result = await DuplicateDetector.detectDuplicates(files);
-            expect(result.duplicates).toHaveLength(0);
+            expect(result.groups).toHaveLength(0);
         });
 
         it('should catch exact duplicates at layer 1 without running deeper layers', async () => {
@@ -449,9 +449,9 @@ describe('DuplicateDetector', () => {
             ];
             const result = await DuplicateDetector.detectDuplicates(files);
 
-            expect(result.duplicates).toHaveLength(1);
-            expect(result.duplicates[0].matchType).toBe('EXACT_DUPLICATE');
-            expect(result.duplicates[0].layer).toBe(1);
+            expect(result.groups).toHaveLength(1);
+            expect(result.groups[0].edges[0].matchType).toBe('EXACT_DUPLICATE');
+            expect(result.groups[0].edges[0].layer).toBe(1);
         });
         it('should not call findContentMatches (Layer 3 removed)', async () => {
             const spy = jest.spyOn(DuplicateDetector, 'findContentMatches');
@@ -470,7 +470,7 @@ describe('DuplicateDetector', () => {
             spy.mockRestore();
         });
 
-        it('should include LIKELY_MATCH results in duplicates array', async () => {
+        it('should include LIKELY_MATCH results in groups', async () => {
             // Mock findVisualMatches to return a likelyMatch
             const originalFVM = DuplicateDetector.findVisualMatches;
             DuplicateDetector.findVisualMatches = jest.fn().mockResolvedValue({
@@ -493,9 +493,38 @@ describe('DuplicateDetector', () => {
             ];
 
             const result = await DuplicateDetector.detectDuplicates(files);
-            expect(result.duplicates.some(d => d.matchType === 'LIKELY_MATCH')).toBe(true);
+            expect(result.groups.some(g => g.edges.some(e => e.matchType === 'LIKELY_MATCH'))).toBe(true);
 
             DuplicateDetector.findVisualMatches = originalFVM;
+        });
+    });
+
+    describe('detectDuplicates returns groups', () => {
+        it('should return { groups: [] } for files with no duplicates', async () => {
+            const files = [
+                { name: 'unique1.png', buffer: Buffer.from('aaa'), type: 'png' },
+                { name: 'unique2.png', buffer: Buffer.from('bbb'), type: 'png' },
+            ];
+            const result = await DuplicateDetector.detectDuplicates(files);
+            expect(result).toHaveProperty('groups');
+            expect(result.groups).toEqual([]);
+            expect(result).not.toHaveProperty('duplicates');
+        });
+
+        it('should return groups with edges for exact duplicates', async () => {
+            const buf = Buffer.from('identical-content');
+            const files = [
+                { name: 'a.png', buffer: buf, type: 'png' },
+                { name: 'b.png', buffer: buf, type: 'png' },
+                { name: 'c.png', buffer: buf, type: 'png' },
+            ];
+            const result = await DuplicateDetector.detectDuplicates(files, null, 'A');
+            expect(result.groups).toHaveLength(1);
+            expect(result.groups[0].files).toEqual(['a.png', 'b.png', 'c.png']);
+            expect(result.groups[0].groupId).toBe('A-g0');
+            expect(result.groups[0].defaultKeep).toBe('a.png');
+            expect(result.groups[0].edges.length).toBeGreaterThanOrEqual(2);
+            expect(result.groups[0].edges[0].matchType).toBe('EXACT_DUPLICATE');
         });
     });
 
