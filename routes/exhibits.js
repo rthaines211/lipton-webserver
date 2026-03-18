@@ -207,7 +207,15 @@ router.get('/jobs/:jobId/duplicates', (req, res) => {
 
     if (exhibitFilter) {
         // Per-exhibit response WITH thumbnails (lazy-load per tab)
-        const groups = job.duplicates[exhibitFilter] || [];
+        const rawGroups = job.duplicates[exhibitFilter] || [];
+        const groups = rawGroups.map(g => ({
+            groupId: g.groupId,
+            files: g.files,
+            defaultKeep: g.defaultKeep,
+            edges: g.edges,
+            metadata: g.fileMetadata,
+            thumbnails: g.thumbnails
+        }));
         return res.json({
             caseName: job.caseName,
             totalFiles: job.totalFiles || 0,
@@ -223,7 +231,7 @@ router.get('/jobs/:jobId/duplicates', (req, res) => {
             files: g.files,
             defaultKeep: g.defaultKeep,
             edges: g.edges,
-            metadata: g.metadata
+            metadata: g.fileMetadata
             // thumbnails intentionally omitted
         }));
     }

@@ -388,7 +388,7 @@ const ReviewUI = (() => {
             const res = await fetch(`/api/exhibits/jobs/${jobId}/resolve`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: JSON.stringify({ resolutions: payload }),
             });
 
             if (!res.ok) {
