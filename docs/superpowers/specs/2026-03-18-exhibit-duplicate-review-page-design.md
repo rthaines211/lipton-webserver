@@ -66,16 +66,31 @@ Appears as a centered overlay when the user clicks "Continue to Processing":
 ## Backend Changes
 
 ### Pipeline Split
-The current pipeline runs duplicate detection inline during processing. This changes to:
+The current pipeline runs duplicate detection inline within `ExhibitProcessor.process()`. This refactor extracts scanning into a separate phase:
 
-1. **Scan phase:** On `POST /api/exhibits/generate-from-dropbox` (or equivalent), run **only** duplicate detection as a first pass
+**Current flow in `ExhibitProcessor.process()`:**
+1. Download files from Dropbox (or receive uploads)
+2. Run duplicate detection per exhibit
+3. If duplicates found, pause and wait for resolution
+4. Generate PDFs
+
+**New flow:**
+1. `POST /api/exhibits/generate-from-dropbox` (or upload equivalent) creates the job and downloads/receives files as before
+2. Instead of calling the full `process()`, call a new `ExhibitProcessor.scanForDuplicates(jobId)` method that runs **only** the duplicate detection step across all exhibits
+3. If duplicates found → set status to `awaiting_resolution`, store groups on job, send `scan-complete` SSE with `{ duplicates: true }` (groups fetched separately via GET endpoint)
+4. If no duplicates → proceed directly to `ExhibitProcessor.process(jobId)` for PDF generation
+5. On `POST /resolve` → existing behavior: filters exhibits, sets status to `processing`, calls `ExhibitProcessor.resume()`
+
+**Implementation detail:** Extract the duplicate detection loop from `process()` into `scanForDuplicates()`. The `process()` / `resume()` methods continue to handle PDF generation. This is a method extraction refactor, not a rewrite.
+
+1. **Scan phase:** On `POST /api/exhibits/generate-from-dropbox` (or equivalent upload endpoint), run **only** duplicate detection as a first pass
 2. **SSE events for scan phase:**
    - `scan-start` — scan has begun
    - `scan-progress` — progress updates (e.g., "Scanning exhibit A: 45/120 files...")
-   - `scan-complete` — scan finished, payload contains either `{ duplicates: false }` or `{ groups: [...] }` with the full duplicate group data including thumbnails
-3. **Review pending state:** Job record tracks `status: 'review_pending'` when duplicates are found
-4. **Resolution:** Existing `POST /api/exhibits/jobs/{jobId}/resolve` endpoint stays the same — same payload format `{ groupId, keep[], remove[] }`
-5. **Resume processing:** After resolution, the main page hits a resume endpoint or reconnects to SSE which triggers the PDF generation phase
+   - `scan-complete` — scan finished, payload contains either `{ duplicates: false }` or `{ duplicates: true, groupCounts: { A: 3, C: 7, ... }, totalGroups: 23, totalFiles: 847 }`. Full group data (files, edges, metadata, thumbnails) is **not** included in the SSE event — the review page fetches it via the `GET /duplicates` endpoint with per-exhibit lazy loading.
+3. **Review pending state:** Job record tracks `status: 'awaiting_resolution'` (matches existing codebase convention) when duplicates are found. Duplicate group data + thumbnails + metadata are stored on the job object so the review page can fetch them via GET endpoint.
+4. **Resolution:** Existing `POST /api/exhibits/jobs/{jobId}/resolve` endpoint stays the same — same payload format `{ groupId, keep[], remove[] }`. **Important:** The current resolve endpoint sets status to `processing` and calls `ExhibitProcessor.resume()` inline, meaning processing starts immediately on resolve. The review page should NOT redirect to index.html expecting to "trigger" processing — instead, after posting resolve, it redirects to `index.html?jobId=xxx&resume=true` where the main page reconnects to the **already-running** SSE stream to show progress.
+5. **Resume on main page:** `index.html` with `?resume=true&jobId=xxx` reconnects to `GET /api/exhibits/jobs/{jobId}/stream` to pick up the in-flight processing progress. No separate resume endpoint needed — resolve already kicks off processing.
 
 ### No Changes Required
 - Duplicate detection logic (two-layer: exact hash + visual dHash)
@@ -113,6 +128,7 @@ The current pipeline runs duplicate detection inline during processing. This cha
 
 ### Removed: `forms/exhibits/js/duplicate-ui.js`
 - Entire file replaced by `review-ui.js` on the new page
+- **Dependency cleanup:** `form-submission.js` currently calls `DuplicateUI.showModal()` when duplicates are detected via SSE. This code path must be replaced with the redirect-to-review-page logic before `duplicate-ui.js` is deleted. The `<script src="js/duplicate-ui.js">` tag in `index.html` should also be removed.
 
 ### Modified: `forms/exhibits/styles.css`
 - Remove modal-specific duplicate styles (`.modal-overlay`, `.duplicate-modal-content`, etc.)
@@ -122,7 +138,7 @@ The current pipeline runs duplicate detection inline during processing. This cha
 ## New Backend Endpoint
 
 ### `GET /api/exhibits/jobs/{jobId}/duplicates`
-Returns the duplicate groups data for a job that is in `review_pending` status.
+Returns the duplicate groups data for a job that is in `awaiting_resolution` status.
 
 **Response:**
 ```json
@@ -149,11 +165,17 @@ Returns the duplicate groups data for a job that is in `review_pending` status.
 
 **Note:** File metadata (size, page count/dimensions) needs to be collected during the scan phase and included in the response. This is new data not currently captured by `detectDuplicates()`.
 
+**Thumbnail payload size mitigation:** Thumbnails are base64-encoded JPEG (not PNG) at quality 60 to reduce payload size. For jobs with 200+ duplicate files, the endpoint supports an optional `?exhibit=A` query parameter to fetch groups for a single exhibit at a time (lazy-load per tab). The initial response without `?exhibit` returns group metadata (file list, match types, metadata) but **excludes thumbnails** — thumbnails are fetched per-exhibit when the user switches tabs.
+
+## Upload Mode Support
+
+The review page works identically for both **direct upload** and **Dropbox import** flows. Both flows create a job with downloaded/uploaded files on disk. The scan phase runs the same `detectDuplicates()` logic regardless of source. The only difference is the initial trigger endpoint (`/generate` vs `/generate-from-dropbox`), which is already handled before the scan phase begins.
+
 ## Edge Cases
 
 - **No duplicates found:** Skip review page entirely, show inline message "No duplicates detected — proceeding to processing", continue pipeline
 - **All groups resolved as "Keep All":** Valid — no files removed, processing proceeds with all files
-- **User navigates away from review page:** Job stays in `review_pending` state. Returning to the URL with the same jobId reloads the review page
+- **User navigates away from review page:** Job stays in `awaiting_resolution` state. Returning to the URL with the same jobId reloads the review page
 - **Browser refresh on review page:** Fetches duplicate data again from the endpoint, state is server-side
 - **Single file in a group after resolution:** Not possible — last-kept-file guard prevents removing all files
 
@@ -168,4 +190,5 @@ Returns the duplicate groups data for a job that is in `review_pending` status.
 | `forms/exhibits/index.html` | Modify | Remove duplicate modal markup, add scan progress |
 | `forms/exhibits/styles.css` | Modify | Remove modal styles, add review page styles |
 | `routes/exhibits.js` | Modify | Split pipeline, add duplicates endpoint, scan SSE events |
-| `services/duplicate-detector.js` | Modify | Return file metadata alongside groups |
+| `services/exhibit-processor.js` | Modify | Extract `scanForDuplicates()` method; collect file metadata (size, pages/dimensions) during scan since it has access to file paths |
+| `services/duplicate-detector.js` | No change | Detection logic stays the same — metadata is collected by the caller (`scanForDuplicates`) not by `detectDuplicates()` |
