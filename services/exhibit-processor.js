@@ -134,25 +134,22 @@ class ExhibitProcessor {
     }
 
     /**
-     * Run the full exhibit processing pipeline.
+     * Scan exhibits for duplicate files without building the PDF.
+     * Extracts duplicate detection, thumbnail generation, and file metadata collection
+     * into a standalone pre-processing step.
+     *
      * @param {Object} params
-     * @param {string} params.caseName - Case name for the output filename
      * @param {Object<string, Array<{name: string, type: string, buffer: Buffer}>>} params.exhibits
-     * @param {string} params.outputDir - Directory to write the final PDF
      * @param {Function} [params.onProgress] - Progress callback: (percent, message, phase) => void
-     * @returns {Promise<{outputPath: string, filename: string}|{duplicates: Object, paused: boolean}>}
+     * @param {boolean} [params.generateThumbnails=true] - Whether to generate preview thumbnails
+     * @returns {Promise<{groups: Object, groupCounts: Object<string, number>, totalGroups: number, totalFiles: number}|null>}
+     *   Returns null if no duplicates found.
      */
-    static async process({ caseName, exhibits, outputDir, onProgress, skipDuplicateDetection = false, generateThumbnails = false }) {
+    static async scanForDuplicates({ exhibits, onProgress, generateThumbnails = true }) {
         const progress = onProgress || (() => {});
-
-        // Step 1: Validate (0-5%)
-        progress(2, 'Validating exhibits...', 'validation');
-        ExhibitProcessor.validateExhibits(exhibits);
         const activeLetters = ExhibitProcessor.getActiveExhibits(exhibits);
-        progress(5, `Validated ${activeLetters.length} exhibit(s)`, 'validation');
 
-        // Pre-load buffers for disk-based files before duplicate detection
-        // (DuplicateDetector expects file.buffer to exist)
+        // Pre-load buffers for disk-based files (DuplicateDetector expects file.buffer to exist)
         for (const letter of activeLetters) {
             for (const file of exhibits[letter]) {
                 if (!file.buffer && file.filePath) {
@@ -161,66 +158,145 @@ class ExhibitProcessor {
             }
         }
 
-        // Step 2: Duplicate detection per exhibit (5-40%)
-        if (!skipDuplicateDetection) {
-            const duplicateReport = {};
-            let hasDuplicates = false;
+        // Duplicate detection per exhibit (0-70%)
+        const duplicateReport = {};
+        let hasDuplicates = false;
 
-            await Sentry.startSpan({ op: 'exhibit.duplicate_detection', name: 'Duplicate detection' }, async () => {
-                const results = await processWithConcurrency(activeLetters, async (letter, i) => {
-                    const exhibitWeight = 35 / activeLetters.length;
-                    const exhibitBase = 5 + (i * exhibitWeight);
+        await Sentry.startSpan({ op: 'exhibit.duplicate_detection', name: 'Duplicate detection' }, async () => {
+            const results = await processWithConcurrency(activeLetters, async (letter, i) => {
+                const exhibitWeight = 70 / activeLetters.length;
+                const exhibitBase = i * exhibitWeight;
 
-                    logger.info(`[exhibit-processor] Starting dup detect Exhibit ${letter} files: ${exhibits[letter].map(f=>f.name+'/'+f.type).join(', ')}`);
+                logger.info(`[exhibit-processor] Starting dup detect Exhibit ${letter} files: ${exhibits[letter].map(f=>f.name+'/'+f.type).join(', ')}`);
 
-                    const result = await DuplicateDetector.detectDuplicates(
-                        exhibits[letter],
-                        (subPct, subMsg) => {
-                            const pct = Math.round(exhibitBase + (subPct / 100) * exhibitWeight);
-                            progress(pct, `Exhibit ${letter}: ${subMsg}`, 'duplicate_detection');
-                        },
-                        letter
-                    );
+                const result = await DuplicateDetector.detectDuplicates(
+                    exhibits[letter],
+                    (subPct, subMsg) => {
+                        const pct = Math.round(exhibitBase + (subPct / 100) * exhibitWeight);
+                        progress(pct, `Exhibit ${letter}: ${subMsg}`, 'duplicate_detection');
+                    },
+                    letter
+                );
 
-                    logger.info(`[exhibit-processor] Finished dup detect Exhibit ${letter}, groups: ${result.groups.length}`);
-                    return { letter, result };
-                }, 4);
+                logger.info(`[exhibit-processor] Finished dup detect Exhibit ${letter}, groups: ${result.groups.length}`);
+                return { letter, result };
+            }, 4);
 
-                for (const { letter, result } of results) {
-                    if (result.groups.length > 0) {
-                        duplicateReport[letter] = result.groups;
-                        hasDuplicates = true;
+            for (const { letter, result } of results) {
+                if (result.groups.length > 0) {
+                    duplicateReport[letter] = result.groups;
+                    hasDuplicates = true;
 
-                        Sentry.addBreadcrumb({
-                            category: 'exhibit.duplicates',
-                            message: `Duplicates found in Exhibit ${letter}`,
-                            level: 'warning',
-                            data: { exhibit: letter, count: result.groups.length },
-                        });
-                    }
+                    Sentry.addBreadcrumb({
+                        category: 'exhibit.duplicates',
+                        message: `Duplicates found in Exhibit ${letter}`,
+                        level: 'warning',
+                        data: { exhibit: letter, count: result.groups.length },
+                    });
                 }
-            });
+            }
+        });
 
-            if (hasDuplicates) {
-                // Generate thumbnails for duplicate preview (server-side for Dropbox imports)
+        if (!hasDuplicates) {
+            return null;
+        }
+
+        // Generate thumbnails and collect file metadata (70-100%)
+        progress(70, 'Collecting file metadata...', 'metadata');
+        let totalFiles = 0;
+        const groupCounts = {};
+
+        for (const letter of Object.keys(duplicateReport)) {
+            groupCounts[letter] = duplicateReport[letter].length;
+
+            for (const group of duplicateReport[letter]) {
+                // Generate thumbnails for duplicate preview
                 if (generateThumbnails) {
-                    for (const letter of Object.keys(duplicateReport)) {
-                        for (const group of duplicateReport[letter]) {
-                            group.thumbnails = {};
-                            for (const fileName of group.files) {
-                                const file = exhibits[letter].find(f => f.name === fileName);
-                                if (!file) continue;
-                                try {
-                                    const thumb = await generateThumbnail(file);
-                                    group.thumbnails[fileName] = thumb;
-                                } catch (err) {
-                                    logger.warn(`Thumbnail generation failed for ${fileName}: ${err.message}`);
-                                }
-                            }
+                    group.thumbnails = {};
+                }
+
+                // Collect file metadata for each file in the group
+                group.fileMetadata = {};
+
+                for (const fileName of group.files) {
+                    totalFiles++;
+                    const file = exhibits[letter].find(f => f.name === fileName);
+                    if (!file) continue;
+
+                    const buffer = await getFileBuffer(file);
+                    const ext = path.extname(fileName).toLowerCase();
+                    const metadata = { size: buffer.length };
+
+                    // PDF page count via pdf-lib
+                    if (ext === '.pdf') {
+                        try {
+                            const pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+                            metadata.pageCount = pdfDoc.getPageCount();
+                        } catch (err) {
+                            logger.warn(`Failed to get page count for ${fileName}: ${err.message}`);
+                        }
+                    }
+
+                    // Image dimensions via Sharp
+                    if (['.png', '.jpg', '.jpeg', '.tiff', '.tif', '.heic'].includes(ext)) {
+                        try {
+                            const sharp = require('sharp');
+                            const imgMeta = await sharp(buffer).metadata();
+                            metadata.width = imgMeta.width;
+                            metadata.height = imgMeta.height;
+                        } catch (err) {
+                            logger.warn(`Failed to get dimensions for ${fileName}: ${err.message}`);
+                        }
+                    }
+
+                    group.fileMetadata[fileName] = metadata;
+
+                    // Generate thumbnail
+                    if (generateThumbnails) {
+                        try {
+                            const thumb = await generateThumbnail(file);
+                            group.thumbnails[fileName] = thumb;
+                        } catch (err) {
+                            logger.warn(`Thumbnail generation failed for ${fileName}: ${err.message}`);
                         }
                     }
                 }
-                return { duplicates: duplicateReport, paused: true };
+            }
+        }
+
+        const totalGroups = Object.values(groupCounts).reduce((sum, c) => sum + c, 0);
+        progress(100, `Found ${totalGroups} duplicate group(s) across ${Object.keys(groupCounts).length} exhibit(s)`, 'duplicate_detection');
+
+        return { groups: duplicateReport, groupCounts, totalGroups, totalFiles };
+    }
+
+    /**
+     * Run the full exhibit processing pipeline.
+     * Validates exhibits, pre-loads file buffers, and builds the PDF.
+     * Duplicate detection should be performed separately via scanForDuplicates().
+     *
+     * @param {Object} params
+     * @param {string} params.caseName - Case name for the output filename
+     * @param {Object<string, Array<{name: string, type: string, buffer: Buffer}>>} params.exhibits
+     * @param {string} params.outputDir - Directory to write the final PDF
+     * @param {Function} [params.onProgress] - Progress callback: (percent, message, phase) => void
+     * @returns {Promise<{outputPath: string, filename: string, pdfBuffer: Buffer}>}
+     */
+    static async process({ caseName, exhibits, outputDir, onProgress }) {
+        const progress = onProgress || (() => {});
+
+        // Step 1: Validate (0-5%)
+        progress(2, 'Validating exhibits...', 'validation');
+        ExhibitProcessor.validateExhibits(exhibits);
+        const activeLetters = ExhibitProcessor.getActiveExhibits(exhibits);
+        progress(5, `Validated ${activeLetters.length} exhibit(s)`, 'validation');
+
+        // Pre-load buffers for disk-based files
+        for (const letter of activeLetters) {
+            for (const file of exhibits[letter]) {
+                if (!file.buffer && file.filePath) {
+                    file.buffer = await fsPromises.readFile(file.filePath);
+                }
             }
         }
 

@@ -61,7 +61,34 @@ describe('Exhibit Processor Integration', () => {
         expect(progressMessages[progressMessages.length - 1].pct).toBe(100);
     }, 30000);
 
-    it('should detect exact duplicates and pause', async () => {
+    it('should detect exact duplicates via scanForDuplicates', async () => {
+        const pdfDoc = await PDFDocument.create();
+        pdfDoc.addPage([612, 792]);
+        const pdfBuffer = Buffer.from(await pdfDoc.save());
+
+        const exhibits = {
+            A: [
+                { name: 'original.pdf', type: 'pdf', buffer: pdfBuffer },
+                { name: 'copy.pdf', type: 'pdf', buffer: Buffer.from(pdfBuffer) },
+            ],
+        };
+
+        const result = await ExhibitProcessor.scanForDuplicates({
+            exhibits,
+            generateThumbnails: false,
+        });
+
+        expect(result).not.toBeNull();
+        expect(result.groups.A).toHaveLength(1);
+        expect(result.groups.A[0].files).toHaveLength(2);
+        expect(result.groups.A[0].edges[0].matchType).toBe('EXACT_DUPLICATE');
+        // Check file metadata for PDFs
+        expect(result.groups.A[0].fileMetadata['original.pdf'].pageCount).toBe(1);
+        expect(result.groups.A[0].fileMetadata['original.pdf'].size).toBeGreaterThan(0);
+        expect(result.totalGroups).toBe(1);
+    }, 15000);
+
+    it('should build PDF directly without pausing when process() is called with duplicates', async () => {
         const pdfDoc = await PDFDocument.create();
         pdfDoc.addPage([612, 792]);
         const pdfBuffer = Buffer.from(await pdfDoc.save());
@@ -74,16 +101,14 @@ describe('Exhibit Processor Integration', () => {
         };
 
         const result = await ExhibitProcessor.process({
-            caseName: 'Dupe Test',
+            caseName: 'Direct Build Test',
             exhibits,
             outputDir: tempDir,
         });
 
-        expect(result.paused).toBe(true);
-        expect(result.duplicates).toBeDefined();
-        expect(result.duplicates.A).toHaveLength(1);
-        expect(result.duplicates.A[0].files).toHaveLength(2);
-        expect(result.duplicates.A[0].edges[0].matchType).toBe('EXACT_DUPLICATE');
+        // process() no longer does dup detection — builds PDF directly
+        expect(result.filename).toBeDefined();
+        expect(result.outputPath).toBeDefined();
     }, 15000);
 
     it('should resume after duplicate resolution and produce output', async () => {
@@ -140,7 +165,7 @@ describe('Exhibit Processor Integration', () => {
     }, 15000);
 
     describe('Group duplicate detection integration', () => {
-        it('should detect a group of 3 exact duplicates and resolve correctly', async () => {
+        it('should detect a group of 3 exact duplicates via scanForDuplicates', async () => {
             const buf = await sharp({
                 create: { width: 100, height: 100, channels: 3, background: { r: 128, g: 64, b: 32 } }
             }).png().toBuffer();
@@ -153,19 +178,22 @@ describe('Exhibit Processor Integration', () => {
                 ],
             };
 
-            const result = await ExhibitProcessor.process({
-                caseName: 'GroupTest',
+            const result = await ExhibitProcessor.scanForDuplicates({
                 exhibits,
-                outputDir: tempDir,
+                generateThumbnails: false,
             });
 
-            expect(result.paused).toBe(true);
-            const groups = result.duplicates.A;
+            expect(result).not.toBeNull();
+            const groups = result.groups.A;
             expect(groups).toHaveLength(1);
             expect(groups[0].files).toHaveLength(3);
             expect(groups[0].files).toContain('original.png');
             expect(groups[0].files).toContain('copy1.png');
             expect(groups[0].files).toContain('copy2.png');
+            // Check file metadata
+            expect(groups[0].fileMetadata['original.png'].size).toBeGreaterThan(0);
+            expect(groups[0].fileMetadata['original.png'].width).toBe(100);
+            expect(groups[0].fileMetadata['original.png'].height).toBe(100);
 
             // Simulate resolution: keep original, remove copies
             const filesToRemove = new Set(['copy1.png', 'copy2.png']);
@@ -195,15 +223,16 @@ describe('Exhibit Processor Integration', () => {
                 ],
             };
 
-            const result = await ExhibitProcessor.process({
-                caseName: 'MultiGroupTest',
+            const result = await ExhibitProcessor.scanForDuplicates({
                 exhibits,
-                outputDir: tempDir,
+                generateThumbnails: false,
             });
 
-            expect(result.paused).toBe(true);
-            const groups = result.duplicates.A;
+            expect(result).not.toBeNull();
+            const groups = result.groups.A;
             expect(groups).toHaveLength(2);
+            expect(result.totalGroups).toBe(2);
+            expect(result.groupCounts.A).toBe(2);
         }, 30000);
     });
 });

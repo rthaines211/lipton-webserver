@@ -132,29 +132,50 @@ describe('ExhibitProcessor', () => {
         });
     });
 
-    describe('duplicate groups format', () => {
-        it('should return duplicate groups with thumbnails map when duplicates found', async () => {
+    describe('scanForDuplicates', () => {
+        it('should return duplicate groups with thumbnails and file metadata when duplicates found', async () => {
             const buf = fs.readFileSync(path.join(__dirname, '../../test-exhibit-files/Affidavit_photo_0016.png'));
-            const result = await ExhibitProcessor.process({
-                caseName: 'Test',
+            const result = await ExhibitProcessor.scanForDuplicates({
                 exhibits: { A: [
                     { name: 'a.png', buffer: buf, type: 'png' },
                     { name: 'b.png', buffer: buf, type: 'png' },
                 ]},
-                outputDir: tempDir,
                 generateThumbnails: true,
             });
-            expect(result.paused).toBe(true);
-            expect(result.duplicates.A).toBeDefined();
-            expect(result.duplicates.A[0]).toHaveProperty('groupId');
-            expect(result.duplicates.A[0]).toHaveProperty('files');
-            expect(result.duplicates.A[0]).toHaveProperty('edges');
-            expect(result.duplicates.A[0]).toHaveProperty('thumbnails');
+            expect(result).not.toBeNull();
+            expect(result.groups.A).toBeDefined();
+            expect(result.groups.A[0]).toHaveProperty('groupId');
+            expect(result.groups.A[0]).toHaveProperty('files');
+            expect(result.groups.A[0]).toHaveProperty('edges');
+            expect(result.groups.A[0]).toHaveProperty('thumbnails');
+            expect(result.groups.A[0]).toHaveProperty('fileMetadata');
+            // Check file metadata has size and dimensions for images
+            const metadata = result.groups.A[0].fileMetadata['a.png'];
+            expect(metadata.size).toBeGreaterThan(0);
+            expect(metadata.width).toBeGreaterThan(0);
+            expect(metadata.height).toBeGreaterThan(0);
+            expect(result.totalGroups).toBe(1);
+            expect(result.totalFiles).toBeGreaterThanOrEqual(2);
+        });
+
+        it('should return null when no duplicates found', async () => {
+            const pdfDoc1 = await PDFDocument.create();
+            pdfDoc1.addPage([612, 792]);
+            const pdfDoc2 = await PDFDocument.create();
+            pdfDoc2.addPage([400, 600]);
+
+            const result = await ExhibitProcessor.scanForDuplicates({
+                exhibits: { A: [
+                    { name: 'doc1.pdf', type: 'pdf', buffer: Buffer.from(await pdfDoc1.save()) },
+                    { name: 'doc2.pdf', type: 'pdf', buffer: Buffer.from(await pdfDoc2.save()) },
+                ]},
+            });
+            expect(result).toBeNull();
         });
     });
 
-    describe('skipDuplicateDetection option', () => {
-        it('should skip duplicate detection when flag is true', async () => {
+    describe('process without duplicate detection', () => {
+        it('should build PDF directly without pausing for duplicates', async () => {
             const pdfDoc = await PDFDocument.create();
             pdfDoc.addPage([612, 792]);
             const pdfBytes = await pdfDoc.save();
@@ -162,19 +183,18 @@ describe('ExhibitProcessor', () => {
             const exhibits = {
                 A: [
                     { name: 'doc1.pdf', type: 'pdf', buffer: Buffer.from(pdfBytes) },
-                    { name: 'doc2.pdf', type: 'pdf', buffer: Buffer.from(pdfBytes) }, // same content = duplicate
+                    { name: 'doc2.pdf', type: 'pdf', buffer: Buffer.from(pdfBytes) }, // same content = would be duplicate
                 ],
             };
 
             const result = await ExhibitProcessor.process({
-                caseName: 'Skip Dup Test',
+                caseName: 'No Dup Check Test',
                 exhibits,
                 outputDir: tempDir,
-                skipDuplicateDetection: true,
                 onProgress: () => {},
             });
 
-            // Should NOT pause for duplicates — should produce output
+            // process() no longer does duplicate detection — should produce output directly
             expect(result.paused).toBeFalsy();
             expect(result.filename).toBeDefined();
         });
