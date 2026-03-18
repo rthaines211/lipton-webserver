@@ -486,11 +486,34 @@ class DuplicateDetector {
         allDuplicates.push(...exactDupes);
         progressFn(10, `Hash check complete: ${exactDupes.length} exact match(es)`);
 
+        // Build representative set for Layer 2: one file per exact-hash group.
+        // findExactDuplicates uses star topology (each dup pairs with the first
+        // occurrence), so file1 in each pair is the representative. Ungrouped
+        // files (no exact match) are also representatives of themselves.
+        const representativeNames = new Set();
+        for (const pair of exactDupes) {
+            representativeNames.add(pair.file1); // first occurrence = representative
+        }
+        // Add files that had no exact match at all (they represent themselves)
+        const filesWithExactMatch = new Set();
+        for (const pair of exactDupes) {
+            filesWithExactMatch.add(pair.file1);
+            filesWithExactMatch.add(pair.file2);
+        }
+        for (const file of files) {
+            if (!filesWithExactMatch.has(file.name)) {
+                representativeNames.add(file.name);
+            }
+        }
+
+        const representativeFiles = files.filter(f => representativeNames.has(f.name));
+        logger.info(`Layer 2: comparing ${representativeFiles.length} representatives (from ${files.length} total files)`);
+
         const matchedPairs = new Set(exactDupes.map(d => `${d.file1}|${d.file2}`));
 
-        // Layer 2: Visual similarity with PDF pages (10-90%)
+        // Layer 2: Visual similarity on representatives only (10-90%)
         const { matches: visualMatches, likelyMatches } = await DuplicateDetector.findVisualMatches(
-            files,
+            representativeFiles,
             matchedPairs,
             (pairNum, totalPairs) => {
                 const subPct = 30 + Math.round((pairNum / totalPairs) * 60);

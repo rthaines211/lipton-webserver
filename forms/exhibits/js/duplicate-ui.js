@@ -112,24 +112,6 @@ const DuplicateUI = (() => {
 
                 card.appendChild(filesContainer);
 
-                // Relationships section
-                if (group.edges.length > 0) {
-                    const relSection = document.createElement('div');
-                    relSection.className = 'duplicate-relationships';
-                    relSection.innerHTML = '<strong>Relationships:</strong>';
-                    for (const edge of group.edges) {
-                        const line = document.createElement('div');
-                        line.className = 'duplicate-relationship-line';
-                        const badgeClass = edge.matchType === 'EXACT_DUPLICATE' ? 'exact' : 'similar';
-                        const label = edge.matchType === 'EXACT_DUPLICATE'
-                            ? 'Exact Duplicate'
-                            : `Visual Match (${edge.confidence}%)`;
-                        line.innerHTML = `${escapeHtml(edge.file1)} &harr; ${escapeHtml(edge.file2)} &mdash; <span class="duplicate-badge ${badgeClass}">${label}</span>`;
-                        relSection.appendChild(line);
-                    }
-                    card.appendChild(relSection);
-                }
-
                 // Keep All button
                 const actionsEl = document.createElement('div');
                 actionsEl.className = 'duplicate-actions';
