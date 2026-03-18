@@ -28,6 +28,11 @@ router.get('/list', async (req, res) => {
         res.json({ success: true, path: folderPath, entries });
     } catch (error) {
         console.error('Dropbox list error:', error.message);
+        if (error.status === 429) {
+            const retryAfter = error.headers?.['retry-after'] || '5';
+            res.set('Retry-After', retryAfter);
+            return res.status(429).json({ success: false, error: 'Dropbox rate limit exceeded. Please wait a moment and try again.', retryAfter: Number(retryAfter) || 5 });
+        }
         res.status(500).json({
             success: false,
             error: 'Failed to list Dropbox folder',
@@ -77,6 +82,12 @@ router.post('/thumbnails', async (req, res) => {
         res.json({ thumbnails });
     } catch (error) {
         console.error('Dropbox thumbnails error:', error.message);
+        // Forward Dropbox rate limit as 429 with Retry-After
+        if (error.status === 429) {
+            const retryAfter = error.headers?.['retry-after'] || '5';
+            res.set('Retry-After', retryAfter);
+            return res.status(429).json({ success: false, error: 'Dropbox rate limit exceeded', retryAfter: Number(retryAfter) || 5 });
+        }
         res.status(500).json({ success: false, error: 'Failed to fetch thumbnails' });
     }
 });

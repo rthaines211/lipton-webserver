@@ -44,6 +44,13 @@ const DropboxBrowserUI = (() => {
             const res = await fetch(`/api/dropbox/list?${params}`);
             const data = await res.json();
 
+            if (res.status === 429) {
+                const retryAfter = data.retryAfter || 5;
+                fileList.innerHTML = `<div class="loading-placeholder">Dropbox rate limit reached. Retrying in ${retryAfter}s...</div>`;
+                await new Promise(r => setTimeout(r, retryAfter * 1000));
+                return loadFolder(folderPath, refresh);
+            }
+
             if (!data.success) {
                 fileList.innerHTML = `<div class="error">${escapeHtml(data.error)}</div>`;
                 return;
@@ -493,7 +500,11 @@ const DropboxBrowserUI = (() => {
             chunks.push(imageEntries.slice(i, i + 25));
         }
 
-        for (const chunk of chunks) {
+        let rateLimitRetries = 0;
+        const MAX_RATE_RETRIES = 3;
+
+        for (let ci = 0; ci < chunks.length; ci++) {
+            const chunk = chunks[ci];
             if (signal.aborted) return;
 
             try {
@@ -504,7 +515,21 @@ const DropboxBrowserUI = (() => {
                     signal,
                 });
 
+                if (res.status === 429) {
+                    rateLimitRetries++;
+                    if (rateLimitRetries > MAX_RATE_RETRIES) {
+                        console.warn('Dropbox rate limit: giving up on thumbnails after retries');
+                        return; // Stop loading thumbnails, placeholders stay
+                    }
+                    const retryAfter = parseInt(res.headers.get('Retry-After') || '5', 10);
+                    console.warn(`Dropbox rate limit: waiting ${retryAfter}s before retry`);
+                    await new Promise(r => setTimeout(r, retryAfter * 1000));
+                    ci--; // Retry this chunk
+                    continue;
+                }
+
                 if (!res.ok) continue;
+                rateLimitRetries = 0; // Reset on success
                 const data = await res.json();
 
                 for (const thumb of data.thumbnails) {
@@ -521,6 +546,11 @@ const DropboxBrowserUI = (() => {
                             placeholder.replaceWith(img);
                         }
                     }
+                }
+
+                // Small delay between chunks to avoid hitting rate limits
+                if (ci < chunks.length - 1) {
+                    await new Promise(r => setTimeout(r, 200));
                 }
             } catch (err) {
                 if (err.name === 'AbortError') return;
