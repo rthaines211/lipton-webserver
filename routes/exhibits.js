@@ -322,6 +322,15 @@ router.get('/jobs/:jobId/download', asyncHandler(async (req, res) => {
 }));
 
 
+// GET /jobs/:jobId/ping — keepalive to prevent Cloud Run idle scale-down
+router.get('/jobs/:jobId/ping', (req, res) => {
+    const job = jobs.get(req.params.jobId);
+    if (!job) {
+        return res.status(404).json({ alive: false });
+    }
+    res.json({ alive: true, status: job.status });
+});
+
 /**
  * POST /generate-from-dropbox
  * Generate exhibit package from Dropbox files.

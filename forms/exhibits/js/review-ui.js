@@ -72,6 +72,34 @@ const ReviewUI = (() => {
         dom.btnConfirmProcess.addEventListener('click', () => confirmAndProcess());
 
         fetchDuplicateData();
+        startKeepalive();
+    }
+
+    // ── Keepalive ──
+
+    let keepaliveInterval = null;
+
+    function startKeepalive() {
+        keepaliveInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/exhibits/jobs/${jobId}/ping`);
+                if (!res.ok || !(await res.json()).alive) {
+                    onSessionLost();
+                }
+            } catch {
+                onSessionLost();
+            }
+        }, 45000);
+    }
+
+    function onSessionLost() {
+        if (keepaliveInterval) clearInterval(keepaliveInterval);
+        keepaliveInterval = null;
+        alert(
+            'Your session has expired — the server no longer has your files in memory.\n\n' +
+            'You will need to go back and regenerate the exhibits.'
+        );
+        window.location.href = './';
     }
 
     // ── Data fetching ──
