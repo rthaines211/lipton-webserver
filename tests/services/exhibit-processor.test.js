@@ -132,6 +132,27 @@ describe('ExhibitProcessor', () => {
         });
     });
 
+    describe('duplicate groups format', () => {
+        it('should return duplicate groups with thumbnails map when duplicates found', async () => {
+            const buf = fs.readFileSync(path.join(__dirname, '../../test-exhibit-files/Affidavit_photo_0016.png'));
+            const result = await ExhibitProcessor.process({
+                caseName: 'Test',
+                exhibits: { A: [
+                    { name: 'a.png', buffer: buf, type: 'png' },
+                    { name: 'b.png', buffer: buf, type: 'png' },
+                ]},
+                outputDir: tempDir,
+                generateThumbnails: true,
+            });
+            expect(result.paused).toBe(true);
+            expect(result.duplicates.A).toBeDefined();
+            expect(result.duplicates.A[0]).toHaveProperty('groupId');
+            expect(result.duplicates.A[0]).toHaveProperty('files');
+            expect(result.duplicates.A[0]).toHaveProperty('edges');
+            expect(result.duplicates.A[0]).toHaveProperty('thumbnails');
+        });
+    });
+
     describe('skipDuplicateDetection option', () => {
         it('should skip duplicate detection when flag is true', async () => {
             const pdfDoc = await PDFDocument.create();

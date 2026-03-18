@@ -178,23 +178,24 @@ class ExhibitProcessor {
                         (subPct, subMsg) => {
                             const pct = Math.round(exhibitBase + (subPct / 100) * exhibitWeight);
                             progress(pct, `Exhibit ${letter}: ${subMsg}`, 'duplicate_detection');
-                        }
+                        },
+                        letter
                     );
 
-                    logger.info(`[exhibit-processor] Finished dup detect Exhibit ${letter}, dupes: ${result.duplicates.length}`);
+                    logger.info(`[exhibit-processor] Finished dup detect Exhibit ${letter}, groups: ${result.groups.length}`);
                     return { letter, result };
                 }, 4);
 
                 for (const { letter, result } of results) {
-                    if (result.duplicates.length > 0) {
-                        duplicateReport[letter] = result.duplicates;
+                    if (result.groups.length > 0) {
+                        duplicateReport[letter] = result.groups;
                         hasDuplicates = true;
 
                         Sentry.addBreadcrumb({
                             category: 'exhibit.duplicates',
                             message: `Duplicates found in Exhibit ${letter}`,
                             level: 'warning',
-                            data: { exhibit: letter, count: result.duplicates.length },
+                            data: { exhibit: letter, count: result.groups.length },
                         });
                     }
                 }
@@ -204,11 +205,18 @@ class ExhibitProcessor {
                 // Generate thumbnails for duplicate preview (server-side for Dropbox imports)
                 if (generateThumbnails) {
                     for (const letter of Object.keys(duplicateReport)) {
-                        for (const pair of duplicateReport[letter]) {
-                            const file1 = exhibits[letter].find(f => f.name === pair.file1);
-                            const file2 = exhibits[letter].find(f => f.name === pair.file2);
-                            pair.thumbnail1 = file1 ? await generateThumbnail(file1) : null;
-                            pair.thumbnail2 = file2 ? await generateThumbnail(file2) : null;
+                        for (const group of duplicateReport[letter]) {
+                            group.thumbnails = {};
+                            for (const fileName of group.files) {
+                                const file = exhibits[letter].find(f => f.name === fileName);
+                                if (!file) continue;
+                                try {
+                                    const thumb = await generateThumbnail(file);
+                                    group.thumbnails[fileName] = thumb;
+                                } catch (err) {
+                                    logger.warn(`Thumbnail generation failed for ${fileName}: ${err.message}`);
+                                }
+                            }
                         }
                     }
                 }
