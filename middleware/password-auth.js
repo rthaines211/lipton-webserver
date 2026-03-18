@@ -34,7 +34,7 @@ function createPasswordAuth(formType) {
     return (req, res, next) => {
         // Skip auth for static assets (JS, CSS, images)
         const staticFileExtensions = [
-            '.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico',
+            '.html', '.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico',
             '.woff', '.woff2', '.ttf', '.eot', '.otf', '.webp', '.map'
         ];
         const isStaticFile = staticFileExtensions.some(ext =>
