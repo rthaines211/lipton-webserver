@@ -70,17 +70,40 @@ router.post('/jobs/:jobId/resolve', asyncHandler(async (req, res) => {
     }
 
     if (resolutions) {
-        for (const [letter, pairs] of Object.entries(resolutions)) {
-            const filesToRemove = new Set();
-            for (const pair of pairs) {
-                if (pair.action === 'remove_file1') filesToRemove.add(pair.file1);
-                if (pair.action === 'remove_file2') filesToRemove.add(pair.file2);
+        const filesToRemove = new Set();
+
+        for (const [letter, groupResolutions] of Object.entries(resolutions)) {
+            if (!exhibits[letter]) {
+                return res.status(400).json({ success: false, error: `Exhibit letter ${letter} not found in job` });
             }
-            if (filesToRemove.size > 0 && exhibits[letter]) {
-                exhibits[letter] = exhibits[letter].filter(
-                    f => !filesToRemove.has(f.name)
-                );
+
+            const groups = job.duplicates && job.duplicates[letter];
+            if (!groups) {
+                return res.status(400).json({ success: false, error: `No duplicate groups for exhibit ${letter}` });
             }
+
+            for (const resolution of groupResolutions) {
+                const group = groups.find(g => g.groupId === resolution.groupId);
+                if (!group) {
+                    return res.status(400).json({ success: false, error: `Unknown groupId: ${resolution.groupId}` });
+                }
+                if (!resolution.keep || resolution.keep.length === 0) {
+                    return res.status(400).json({ success: false, error: `Must keep at least one file in group ${resolution.groupId}` });
+                }
+                const allFiles = [...resolution.keep, ...(resolution.remove || [])].sort();
+                const groupFiles = [...group.files].sort();
+                if (JSON.stringify(allFiles) !== JSON.stringify(groupFiles)) {
+                    return res.status(400).json({ success: false, error: `keep+remove does not match files in group ${resolution.groupId}` });
+                }
+                for (const file of (resolution.remove || [])) {
+                    filesToRemove.add(`${letter}:${file}`);
+                }
+            }
+        }
+
+        // Filter exhibits — remove files marked for removal
+        for (const [letter, files] of Object.entries(exhibits)) {
+            exhibits[letter] = files.filter(f => !filesToRemove.has(`${letter}:${f.name}`));
         }
     }
 
@@ -428,3 +451,5 @@ router.post('/generate-from-dropbox', async (req, res) => {
 });
 
 module.exports = router;
+// Exported for testing only
+module.exports._getJobsMap = () => jobs;
