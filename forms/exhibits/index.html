@@ -123,6 +123,12 @@
         </div>
     </div>
 
+<!-- PDF.js for rendering PDF previews in Dropbox browser -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
+
 <!-- Scripts -->
 <script src="js/exhibit-manager.js?v=10"></script>
 <script src="js/form-submission.js?v=10"></script>

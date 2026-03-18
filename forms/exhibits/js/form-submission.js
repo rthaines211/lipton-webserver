@@ -157,6 +157,8 @@ const FormSubmission = (() => {
                 if (data.duplicates) {
                     // Redirect to review page for duplicate resolution
                     evtSource.close();
+                    hideProgress();
+                    document.getElementById('btn-generate').disabled = false;
                     window.location.href = `review.html?jobId=${jobId}`;
                 } else {
                     // No duplicates — show message and continue
