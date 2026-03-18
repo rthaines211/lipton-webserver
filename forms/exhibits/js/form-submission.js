@@ -151,36 +151,17 @@ const FormSubmission = (() => {
                 updateProgress(displayPct, data.message, data.phase, data.timestamp);
             });
 
-            evtSource.addEventListener('duplicates', async (e) => {
+            evtSource.addEventListener('scan-complete', (e) => {
                 const data = JSON.parse(e.data);
-                evtSource.close();
 
-                hideProgress();
-                console.log('[duplicates] showing modal, report:', JSON.stringify(data.duplicates));
-                let resolutions;
-                try {
-                    resolutions = await DuplicateUI.showModal(data.duplicates);
-                } catch (modalErr) {
-                    console.error('[duplicates] modal error:', modalErr);
-                    alert('Error showing duplicate modal: ' + modalErr.message);
-                    document.getElementById('btn-generate').disabled = false;
-                    return;
+                if (data.duplicates) {
+                    // Redirect to review page for duplicate resolution
+                    evtSource.close();
+                    window.location.href = `/exhibits/review.html?jobId=${jobId}`;
+                } else {
+                    // No duplicates — show message and continue
+                    updateProgress(40, 'No duplicates detected — proceeding to processing...', 'processing');
                 }
-                console.log('[duplicates] modal resolved, resolutions:', JSON.stringify(resolutions));
-
-                showProgress('Processing Exhibits', 30, 'Resuming after duplicate resolution...');
-
-                const resolveResponse = await fetch(`/api/exhibits/jobs/${jobId}/resolve`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ resolutions }),
-                });
-
-                if (!resolveResponse.ok) {
-                    throw new Error('Failed to resolve duplicates');
-                }
-
-                connectSSE(jobId).then(resolve).catch(reject);
             });
 
             evtSource.addEventListener('complete', (e) => {
@@ -360,11 +341,32 @@ const FormSubmission = (() => {
         progressState = { startTime: null, lastEventTime: null, staleTimer: null, staleActive: false, tickInterval: null, currentPercent: 0 };
     }
 
+    /**
+     * Check for resume params (returning from review page after duplicate resolution).
+     */
+    function checkResumeParams() {
+        const params = new URLSearchParams(window.location.search);
+        const resumeJobId = params.get('jobId');
+        const isResume = params.get('resume') === 'true';
+
+        if (isResume && resumeJobId) {
+            showProgress('Processing Exhibits', 30, 'Resuming after duplicate resolution...');
+            connectSSE(resumeJobId);
+
+            // Clean up URL
+            window.history.replaceState({}, '', '/exhibits/');
+        }
+    }
+
     // Initialize on DOM ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', () => {
+            init();
+            checkResumeParams();
+        });
     } else {
         init();
+        checkResumeParams();
     }
 
     return {
