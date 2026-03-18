@@ -106,8 +106,6 @@ const FormSubmission = (() => {
 
                 if (data.success) {
                     alert(data.message);
-                    document.getElementById('btn-show-jobs').style.display = 'inline';
-                    if (typeof JobsDashboard !== 'undefined') JobsDashboard.show();
                 } else {
                     alert('Error: ' + data.error);
                 }

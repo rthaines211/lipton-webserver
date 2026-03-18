@@ -822,56 +822,6 @@ textarea.input-error:focus {
     font-style: italic;
 }
 
-/* === JOBS DASHBOARD === */
-
-#jobs-dashboard {
-    padding: 20px 40px;
-    border-top: 1px solid var(--border-color);
-}
-
-.jobs-list {
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.job-card {
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    padding: 12px;
-    margin-bottom: 8px;
-}
-
-.job-card .job-status {
-    font-weight: bold;
-    text-transform: uppercase;
-    font-size: 0.8em;
-}
-
-.job-card .job-status.complete { color: #2e7d32; }
-.job-card .job-status.processing,
-.job-card .job-status.downloading { color: #1565c0; }
-.job-card .job-status.failed { color: #c62828; }
-.job-card .job-status.pending { color: #888; }
-
-.progress-bar-mini {
-    height: 6px;
-    background: #eee;
-    border-radius: 3px;
-    margin: 6px 0 4px;
-    overflow: hidden;
-}
-
-.progress-fill-mini {
-    height: 100%;
-    background: #1565c0;
-    border-radius: 3px;
-    transition: width 0.3s;
-}
-
-.progress-text {
-    font-size: 0.8em;
-    color: #555;
-}
 
 .error-text {
     color: #c62828;
