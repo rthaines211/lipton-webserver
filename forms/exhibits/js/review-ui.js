@@ -397,7 +397,7 @@ const ReviewUI = (() => {
             }
 
             // Redirect back to main page to resume processing
-            window.location.href = `/exhibits/?jobId=${encodeURIComponent(jobId)}&resume=true`;
+            window.location.href = `./?jobId=${encodeURIComponent(jobId)}&resume=true`;
         } catch (err) {
             alert('Failed to process resolutions: ' + err.message);
             dom.btnConfirmProcess.disabled = false;

@@ -157,7 +157,7 @@ const FormSubmission = (() => {
                 if (data.duplicates) {
                     // Redirect to review page for duplicate resolution
                     evtSource.close();
-                    window.location.href = `/exhibits/review.html?jobId=${jobId}`;
+                    window.location.href = `review.html?jobId=${jobId}`;
                 } else {
                     // No duplicates — show message and continue
                     updateProgress(40, 'No duplicates detected — proceeding to processing...', 'processing');
@@ -354,7 +354,7 @@ const FormSubmission = (() => {
             connectSSE(resumeJobId);
 
             // Clean up URL
-            window.history.replaceState({}, '', '/exhibits/');
+            window.history.replaceState({}, '', './');
         }
     }
 
