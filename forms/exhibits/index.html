@@ -19,19 +19,6 @@
         </div>
     </div>
 
-    <!-- Tab Navigation -->
-    <div class="nav-tabs">
-        <button class="nav-tab active" onclick="showTab('form', this)">
-            <i class="fas fa-file-alt"></i> Exhibit Form
-        </button>
-        <button class="nav-tab" onclick="showTab('jobs', this)">
-            <i class="fas fa-list"></i> Recent Jobs
-        </button>
-    </div>
-
-    <!-- Form Tab -->
-    <div id="form-tab" class="tab-content active">
-
     <!-- Case Info Section -->
     <div class="form-section" id="case-info-section">
         <h2><i class="fas fa-briefcase"></i> Case Information</h2>
@@ -86,16 +73,6 @@
             <i class="fas fa-file-pdf"></i> Generate Exhibit Package
         </button>
         <p class="submit-note">A single PDF will be generated with separator pages and Bates stamping.</p>
-    </div>
-
-    </div><!-- /form-tab -->
-
-    <!-- Jobs Tab -->
-    <div id="jobs-tab" class="tab-content">
-        <div id="jobs-list" class="jobs-list">
-            <p class="hint">No recent jobs</p>
-        </div>
-        <p class="hint" style="text-align: center; margin-top: 16px;">Showing async jobs (2000+ files).</p>
     </div>
 
 </div><!-- /form-container -->
@@ -176,24 +153,6 @@
 <script src="js/duplicate-ui.js?v=10"></script>
 <script src="js/form-submission.js?v=10"></script>
 <script src="js/dropbox-browser.js?v=2"></script>
-<script src="js/jobs-dashboard.js?v=2"></script>
-
-<script>
-function showTab(tabName, btn) {
-    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.getElementById(tabName + '-tab').classList.add('active');
-
-    if (tabName === 'jobs') {
-        JobsDashboard.loadJobs();
-        JobsDashboard.startPolling();
-    } else {
-        JobsDashboard.stopPolling();
-    }
-}
-</script>
 
 </body>
 </html>

@@ -106,7 +106,6 @@ const FormSubmission = (() => {
 
                 if (data.success) {
                     alert(data.message);
-                    showTab('jobs', document.querySelector('.nav-tab:last-child'));
                 } else {
                     alert('Error: ' + data.error);
                 }

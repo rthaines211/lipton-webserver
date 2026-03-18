@@ -286,7 +286,7 @@ router.post('/generate-from-dropbox', async (req, res) => {
                 success: true,
                 mode: 'async',
                 jobId: job.id,
-                message: `Processing ${totalFiles} files. ${email ? 'You\'ll receive an email' : 'Check the jobs dashboard'} when it's ready.`,
+                message: `Processing ${totalFiles} files. ${email ? 'You\'ll receive an email when it\'s ready.' : 'Processing will continue in the background.'}`,
             });
         }
 
