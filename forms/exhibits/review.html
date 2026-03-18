@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duplicate Review — Exhibit Collector</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="review-styles.css">
+</head>
+<body>
+  <div class="review-page">
+    <!-- Header -->
+    <div class="review-header">
+      <div class="review-header-info">
+        <h1 class="review-title">Duplicate Review</h1>
+        <p class="review-subtitle" id="review-subtitle">Loading...</p>
+      </div>
+      <div class="review-header-actions">
+        <button class="btn-remove-all" id="btn-remove-all">Remove All Duplicates</button>
+        <button class="btn-continue" id="btn-continue-top">Continue to Processing &rarr;</button>
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="review-tabs" id="review-tabs"></div>
+
+    <!-- Tab Content -->
+    <div class="review-content" id="review-content"></div>
+
+    <!-- Sticky Footer -->
+    <div class="review-footer">
+      <div class="review-footer-stats" id="review-footer-stats"></div>
+      <button class="btn-continue" id="btn-continue-bottom">Continue to Processing &rarr;</button>
+    </div>
+
+    <!-- Confirmation Dialog -->
+    <div class="confirm-overlay" id="confirm-overlay" style="display: none;">
+      <div class="confirm-dialog">
+        <h2 class="confirm-title">Confirm & Process</h2>
+        <div class="confirm-stats" id="confirm-stats"></div>
+        <div class="confirm-warning">
+          <p class="confirm-warning-title">&#9888; Removed files will not be included in the generated exhibits.</p>
+          <p class="confirm-warning-detail">This cannot be undone — you would need to re-upload to include them again.</p>
+        </div>
+        <div class="confirm-actions">
+          <button class="btn-secondary" id="btn-go-back">Go Back</button>
+          <button class="btn-continue" id="btn-confirm-process">Process Files &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="review-loading" id="review-loading">
+      <p>Loading duplicate data...</p>
+    </div>
+  </div>
+
+  <script src="js/review-ui.js"></script>
+</body>
+</html>
