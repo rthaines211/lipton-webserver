@@ -436,7 +436,8 @@ input::placeholder {
     background: none;
 }
 
-.cause-info-btn:hover {
+.cause-info-btn:hover,
+.cause-info-btn:focus-visible {
     color: var(--secondary-teal);
     background: rgba(0, 174, 239, 0.1);
 }

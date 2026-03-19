@@ -119,6 +119,7 @@
     let activeCauseBtn = null;
 
     function createSidebar() {
+        if (sidebarEl) return;
         sidebarEl = document.createElement('div');
         sidebarEl.id = 'cause-preview-sidebar';
         sidebarEl.innerHTML = `
@@ -159,12 +160,10 @@
         document.getElementById('sidebar-cause-title').textContent = cause.checkboxText;
         document.getElementById('sidebar-cause-heading').textContent = cause.heading;
 
-        // Format insertText as paragraphs (split before collapsing whitespace)
-        const stripped = cause.insertText
-            .replace(/\{n\}/g, '\n')
-            .replace(/\t/g, ' ');
-        const paragraphs = stripped.split(/\n\s*\n/)
-            .map(p => p.replace(/\s+/g, ' ').trim())
+        // Format insertText as paragraphs ({n} is the paragraph delimiter)
+        const paragraphs = cause.insertText
+            .split(/\{n\}/)
+            .map(p => p.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim())
             .filter(p => p);
         document.getElementById('sidebar-cause-text').innerHTML =
             paragraphs.map(p => '<p>' + escapeHtml(p) + '</p>').join('');
