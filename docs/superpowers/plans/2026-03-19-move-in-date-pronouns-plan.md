@@ -70,15 +70,9 @@ Add after the `.guardian-select-container` rule:
     padding-top: 15px;
     border-top: 1px solid var(--border-color);
 }
-
-.form-row.two-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-}
 ```
 
-Check if `.form-row.two-col` already exists in the stylesheet. If `.form-row.three-col` exists and `.two-col` does not, add only `.two-col`. If a general `.form-row` grid rule exists that already handles column variants, skip the `.two-col` rule.
+Note: `.form-row.two-col` already exists at line ~278 in the stylesheet. Do NOT add a duplicate rule.
 
 - [ ] **Step 2: Verify styling**
 
@@ -130,6 +124,8 @@ In the `reindexPlaintiffs()` function, add after the existing `updateGuardianSel
 ```javascript
 updateSinglePlaintiffFields();
 ```
+
+Note: `removePlaintiff()` does not need a direct call — it calls `reindexPlaintiffs()` which covers it transitively.
 
 - [ ] **Step 4: Verify toggle behavior**
 
@@ -291,24 +287,23 @@ function applyYellowHighlight(zip, placeholders) {
         // Escape special regex characters in the placeholder text
         const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-        // Match <w:r> elements containing the placeholder text in their <w:t> node
-        // The placeholder may appear as: <w:r><w:rPr>...</w:rPr><w:t>placeholder</w:t></w:r>
-        // or without rPr: <w:r><w:t>placeholder</w:t></w:r>
+        // Match <w:r> elements containing the placeholder text in their <w:t> node.
+        // Uses <w:r[^>]*> to match runs with or without attributes (e.g. w:rsidR="...").
+        // Captures: (1) run open tag, (2) optional rPr content, (3) the <w:t> element
         const pattern = new RegExp(
-            `(<w:r>)(\\s*(?:<w:rPr>([\\s\\S]*?)</w:rPr>)?\\s*<w:t[^>]*>${escaped}</w:t>)`,
+            `(<w:r[^>]*>)\\s*(?:<w:rPr>([\\s\\S]*?)</w:rPr>)?\\s*(<w:t[^>]*>${escaped}</w:t>)`,
             'g'
         );
 
-        modified = modified.replace(pattern, (match, rOpen, rest, existingRPr) => {
+        modified = modified.replace(pattern, (match, rOpen, existingRPr, tElement) => {
+            const highlightTag = '<w:highlight w:val="yellow"/>';
             if (existingRPr !== undefined) {
                 // Has existing rPr — inject highlight inside it
-                const highlightTag = '<w:highlight w:val="yellow"/>';
                 if (existingRPr.includes('w:highlight')) return match; // already highlighted
-                const updatedRPr = existingRPr + highlightTag;
-                return `${rOpen}<w:rPr>${updatedRPr}</w:rPr>${rest.replace(`<w:rPr>${existingRPr}</w:rPr>`, '')}`;
+                return `${rOpen}<w:rPr>${existingRPr}${highlightTag}</w:rPr>${tElement}`;
             } else {
                 // No rPr — add one with highlight
-                return `${rOpen}<w:rPr><w:highlight w:val="yellow"/></w:rPr>${rest}`;
+                return `${rOpen}<w:rPr>${highlightTag}</w:rPr>${tElement}`;
             }
         });
     }
@@ -319,21 +314,15 @@ function applyYellowHighlight(zip, placeholders) {
 
 - [ ] **Step 2: Call applyYellowHighlight after doc.render()**
 
-In the `generate()` method, after `doc.render(templateData)` and after building `highlightPlaceholders` (from Task 6 Step 3), add:
+In the `generate()` method, after `doc.render(templateData)` and after the existing `splitCausesListIntoParagraphs(doc.getZip())` call (line ~131), but before `doc.getZip().generate()` (line ~136), add:
 
 ```javascript
 if (highlightPlaceholders.length > 0) {
-    applyYellowHighlight(zip, highlightPlaceholders);
+    applyYellowHighlight(doc.getZip(), highlightPlaceholders);
 }
 ```
 
-Make sure this runs on the same `zip` instance used by docxtemplater. The existing code pattern is:
-```javascript
-const zip = new PizZip(templateContent);
-const doc = new Docxtemplater(zip, { delimiters: { start: '<', end: '>' } });
-doc.render(templateData);
-// ... post-processing happens here on `zip`
-```
+Use `doc.getZip()` for consistency with the existing `splitCausesListIntoParagraphs` call pattern.
 
 - [ ] **Step 3: Commit**
 
