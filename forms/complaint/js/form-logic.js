@@ -299,6 +299,7 @@
         container.appendChild(block);
         updatePlaintiffCount();
         updateGuardianSelects();
+        updateSinglePlaintiffFields();
     }
 
     function removePlaintiff(index) {
@@ -355,10 +356,18 @@
 
         updatePlaintiffCount();
         updateGuardianSelects();
+        updateSinglePlaintiffFields();
     }
 
     function updatePlaintiffCount() {
         document.getElementById('plaintiff-count').value = document.querySelectorAll('#plaintiffs-container .party-block').length;
+    }
+
+    function updateSinglePlaintiffFields() {
+        const container = document.getElementById('single-plaintiff-fields');
+        if (!container) return;
+        const plaintiffBlocks = document.querySelectorAll('#plaintiffs-container .party-block');
+        container.style.display = plaintiffBlocks.length === 1 ? '' : 'none';
     }
 
     // ======================== Defendants ========================
