@@ -157,6 +157,10 @@ class ComplaintDocumentGenerator {
         // Split causes list items into separate paragraphs for proper hanging indent
         this.splitCausesListIntoParagraphs(doc.getZip());
 
+        if (highlightPlaceholders.length > 0) {
+            this.applyYellowHighlight(doc.getZip(), highlightPlaceholders);
+        }
+
         onProgress(70, 'Generating document...');
 
         const buf = doc.getZip().generate({
@@ -336,6 +340,45 @@ class ComplaintDocumentGenerator {
             if (i === titles.length - 2) return `  ${num}\t${t}; AND`;
             return `  ${num}\t${t}`;
         }).join('|||CAUSES_SPLIT|||');
+    }
+
+    /**
+     * Post-processes DOCX XML to apply yellow highlight to placeholder text.
+     * @param {PizZip} zip - The PizZip instance of the rendered DOCX
+     * @param {string[]} placeholders - Array of placeholder strings to highlight
+     */
+    applyYellowHighlight(zip, placeholders) {
+        if (!placeholders.length) return;
+
+        const docXml = zip.file('word/document.xml').asText();
+        let modified = docXml;
+
+        for (const placeholder of placeholders) {
+            // Escape special regex characters in the placeholder text
+            const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            // Match <w:r> elements containing the placeholder text in their <w:t> node.
+            // Uses <w:r[^>]*> to match runs with or without attributes (e.g. w:rsidR="...").
+            // Captures: (1) run open tag, (2) optional rPr content, (3) the <w:t> element
+            const pattern = new RegExp(
+                `(<w:r[^>]*>)\\s*(?:<w:rPr>([\\s\\S]*?)</w:rPr>)?\\s*(<w:t[^>]*>${escaped}</w:t>)`,
+                'g'
+            );
+
+            modified = modified.replace(pattern, (match, rOpen, existingRPr, tElement) => {
+                const highlightTag = '<w:highlight w:val="yellow"/>';
+                if (existingRPr !== undefined) {
+                    // Has existing rPr — inject highlight inside it
+                    if (existingRPr.includes('w:highlight')) return match; // already highlighted
+                    return `${rOpen}<w:rPr>${existingRPr}${highlightTag}</w:rPr>${tElement}`;
+                } else {
+                    // No rPr — add one with highlight
+                    return `${rOpen}<w:rPr>${highlightTag}</w:rPr>${tElement}`;
+                }
+            });
+        }
+
+        zip.file('word/document.xml', modified);
     }
 
     /**
