@@ -106,6 +106,12 @@
         'santa-monica': 'causes-santa-monica',
     };
 
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
     async function loadCauses() {
         try {
             const res = await fetch('/api/complaint-entries/causes');
@@ -124,22 +130,22 @@
                 categoryCounts[cause.category] = (categoryCounts[cause.category] || 0) + 1;
 
                 // Preview: first ~200 chars of insertText (strip {n} and tabs)
-                const preview = cause.insertText
+                const cleaned = cause.insertText
                     .replace(/\{n\}/g, '')
                     .replace(/\t/g, ' ')
                     .replace(/\s+/g, ' ')
-                    .trim()
-                    .substring(0, 200) + '...';
+                    .trim();
+                const preview = cleaned.length > 200 ? cleaned.substring(0, 200) + '...' : cleaned;
 
                 const row = document.createElement('div');
                 row.className = 'cause-row';
                 row.dataset.category = cause.category;
 
                 row.innerHTML = `
-                <input type="checkbox" name="cause-${cause.id}" value="${cause.id}">
-                <span class="cause-name">${cause.checkboxText}</span>
-                <i class="fas fa-info-circle cause-info-icon"></i>
-                <div class="cause-tooltip">${preview}</div>
+                <input type="checkbox" name="cause-${escapeHtml(cause.id)}" value="${escapeHtml(cause.id)}">
+                <span class="cause-name">${escapeHtml(cause.checkboxText)}</span>
+                <i class="fas fa-info-circle cause-info-icon" tabindex="0" aria-label="More info"></i>
+                <div class="cause-tooltip">${escapeHtml(preview)}</div>
             `;
 
                 // Click row to toggle checkbox
@@ -165,13 +171,7 @@
             });
 
             // Add count badges to category headers
-            const headerMap = {
-                'general': 'causes-general',
-                'special': 'causes-special',
-                'los-angeles': 'causes-los-angeles',
-                'santa-monica': 'causes-santa-monica',
-            };
-            for (const [category, containerId] of Object.entries(headerMap)) {
+            for (const [category, containerId] of Object.entries(categoryContainerMap)) {
                 const count = categoryCounts[category];
                 if (!count) continue;
                 const container = document.getElementById(containerId);

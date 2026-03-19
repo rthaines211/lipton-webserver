@@ -448,7 +448,8 @@ input::placeholder {
     pointer-events: none;
 }
 
-.cause-info-icon:hover + .cause-tooltip {
+.cause-info-icon:hover + .cause-tooltip,
+.cause-info-icon:focus + .cause-tooltip {
     display: block;
 }
 
