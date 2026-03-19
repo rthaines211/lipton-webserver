@@ -334,6 +334,11 @@ input::placeholder {
     margin: 0;
 }
 
+.guardian-select-container {
+    margin-top: 15px;
+    padding-left: 30px;
+}
+
 .btn-remove {
     background: none;
     border: 1px solid var(--error-color);
@@ -374,53 +379,94 @@ input::placeholder {
     margin-right: 6px;
 }
 
-/* Causes of Action */
-.cause-option {
-    background: #FAFAFA;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 16px 20px;
-    margin-bottom: 12px;
-    transition: border-color 0.2s, background 0.2s;
-}
-
-.cause-option:hover {
-    border-color: var(--secondary-teal);
-}
-
-.cause-option.selected {
-    border-color: var(--secondary-teal);
-    background: rgba(0, 174, 239, 0.03);
-}
-
-.cause-label {
+/* Causes of Action — Compact Rows */
+.cause-row {
     display: flex;
     align-items: center;
     gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
     cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+    position: relative;
+}
+
+.cause-row:hover {
+    background: #F0F9FF;
+    border-color: var(--secondary-teal);
+}
+
+.cause-row.selected {
+    background: rgba(0, 174, 239, 0.04);
+    border-color: var(--secondary-teal);
+}
+
+.cause-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--secondary-teal);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.cause-row .cause-name {
+    flex: 1;
     font-weight: 600;
     color: var(--primary-navy);
     font-size: 0.95rem;
 }
 
-.cause-label input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--secondary-teal);
-    cursor: pointer;
-}
-
-.cause-name {
-    flex: 1;
-}
-
-.cause-preview {
-    margin-top: 8px;
-    padding-left: 28px;
-    color: #888;
+.cause-info-icon {
+    color: #B0B0B0;
     font-size: 0.85rem;
-    font-style: italic;
+    flex-shrink: 0;
+    cursor: help;
+    transition: color 0.15s;
+}
+
+.cause-info-icon:hover {
+    color: var(--secondary-teal);
+}
+
+.cause-tooltip {
+    display: none;
+    position: absolute;
+    left: 40px;
+    top: 100%;
+    z-index: 100;
+    background: var(--primary-navy);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 400;
     line-height: 1.5;
+    width: 340px;
+    max-width: calc(100vw - 120px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+}
+
+.cause-info-icon:hover + .cause-tooltip {
+    display: block;
+}
+
+.cause-divider {
+    height: 1px;
+    background: #F0F0F0;
+    margin: 2px 12px;
+}
+
+.cause-divider:last-child {
+    display: none;
+}
+
+.category-count {
+    color: #888;
+    font-weight: 400;
+    font-size: 0.85rem;
+    margin-left: 4px;
 }
 
 /* Submit Button */
