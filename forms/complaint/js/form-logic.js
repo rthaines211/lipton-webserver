@@ -24,7 +24,8 @@
             citySelect.addEventListener('change', handleCityChange);
         }
 
-        // Load causes of action from API
+        // Create sidebar and load causes of action
+        createSidebar();
         loadCauses();
     }
 
@@ -112,6 +113,75 @@
         return div.innerHTML;
     }
 
+    // ======================== Sidebar Preview ========================
+
+    let sidebarEl = null;
+    let activeCauseBtn = null;
+
+    function createSidebar() {
+        sidebarEl = document.createElement('div');
+        sidebarEl.id = 'cause-preview-sidebar';
+        sidebarEl.innerHTML = `
+            <div class="sidebar-header">
+                <h3 id="sidebar-cause-title"></h3>
+                <button type="button" class="sidebar-close" aria-label="Close preview">&times;</button>
+            </div>
+            <div class="sidebar-body">
+                <div class="legal-heading" id="sidebar-cause-heading"></div>
+                <div class="legal-text" id="sidebar-cause-text"></div>
+            </div>
+        `;
+        document.body.appendChild(sidebarEl);
+
+        sidebarEl.querySelector('.sidebar-close').addEventListener('click', closeSidebar);
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && sidebarEl.classList.contains('open')) {
+                closeSidebar();
+            }
+        });
+    }
+
+    function openSidebar(btn, cause) {
+        // Toggle off if same button clicked
+        if (activeCauseBtn === btn) {
+            closeSidebar();
+            return;
+        }
+
+        // Deactivate previous
+        if (activeCauseBtn) activeCauseBtn.classList.remove('active');
+
+        activeCauseBtn = btn;
+        btn.classList.add('active');
+
+        document.getElementById('sidebar-cause-title').textContent = cause.checkboxText;
+        document.getElementById('sidebar-cause-heading').textContent = cause.heading;
+
+        // Format insertText as paragraphs (split before collapsing whitespace)
+        const stripped = cause.insertText
+            .replace(/\{n\}/g, '\n')
+            .replace(/\t/g, ' ');
+        const paragraphs = stripped.split(/\n\s*\n/)
+            .map(p => p.replace(/\s+/g, ' ').trim())
+            .filter(p => p);
+        document.getElementById('sidebar-cause-text').innerHTML =
+            paragraphs.map(p => '<p>' + escapeHtml(p) + '</p>').join('');
+
+        sidebarEl.classList.add('open');
+    }
+
+    function closeSidebar() {
+        if (sidebarEl) sidebarEl.classList.remove('open');
+        if (activeCauseBtn) {
+            activeCauseBtn.classList.remove('active');
+            activeCauseBtn = null;
+        }
+    }
+
+    // ======================== Load Causes ========================
+
     async function loadCauses() {
         try {
             const res = await fetch('/api/complaint-entries/causes');
@@ -129,28 +199,19 @@
                 // Count per category
                 categoryCounts[cause.category] = (categoryCounts[cause.category] || 0) + 1;
 
-                // Preview: first ~200 chars of insertText (strip {n} and tabs)
-                const cleaned = cause.insertText
-                    .replace(/\{n\}/g, '')
-                    .replace(/\t/g, ' ')
-                    .replace(/\s+/g, ' ')
-                    .trim();
-                const preview = cleaned.length > 200 ? cleaned.substring(0, 200) + '...' : cleaned;
-
                 const row = document.createElement('div');
                 row.className = 'cause-row';
                 row.dataset.category = cause.category;
 
                 row.innerHTML = `
-                <input type="checkbox" name="cause-${escapeHtml(cause.id)}" value="${escapeHtml(cause.id)}">
-                <span class="cause-name">${escapeHtml(cause.checkboxText)}</span>
-                <i class="fas fa-info-circle cause-info-icon" tabindex="0" aria-label="More info"></i>
-                <div class="cause-tooltip">${escapeHtml(preview)}</div>
-            `;
+                    <input type="checkbox" name="cause-${escapeHtml(cause.id)}" value="${escapeHtml(cause.id)}">
+                    <span class="cause-name">${escapeHtml(cause.checkboxText)}</span>
+                    <button type="button" class="cause-info-btn" aria-label="Preview ${escapeHtml(cause.checkboxText)}">&#9432;</button>
+                `;
 
-                // Click row to toggle checkbox
+                // Click row to toggle checkbox (but not when clicking info button)
                 row.addEventListener('click', function(e) {
-                    if (e.target.tagName === 'INPUT') return; // checkbox handles itself
+                    if (e.target.tagName === 'INPUT' || e.target.classList.contains('cause-info-btn')) return;
                     const cb = row.querySelector('input[type="checkbox"]');
                     cb.checked = !cb.checked;
                     cb.dispatchEvent(new Event('change'));
@@ -162,12 +223,14 @@
                     row.classList.toggle('selected', this.checked);
                 });
 
-                container.appendChild(row);
+                // Info button opens sidebar
+                const infoBtn = row.querySelector('.cause-info-btn');
+                infoBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    openSidebar(this, cause);
+                });
 
-                // Add divider after each row
-                const divider = document.createElement('div');
-                divider.className = 'cause-divider';
-                container.appendChild(divider);
+                container.appendChild(row);
             });
 
             // Add count badges to category headers
