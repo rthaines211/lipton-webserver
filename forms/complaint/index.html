@@ -50,6 +50,13 @@
                             </div>
                         </div>
 
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="property-address">Property Address <span class="required">*</span></label>
+                                <input type="text" id="property-address" name="property-address" required placeholder="e.g., 1234 Main St, Los Angeles, CA 90001">
+                            </div>
+                        </div>
+
                         <div class="form-row two-col">
                             <div class="form-group">
                                 <label for="case-number">Case Number</label>
@@ -105,9 +112,17 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Type</label>
-                                        <select name="plaintiff-1-type">
+                                        <select name="plaintiff-1-type" onchange="window.complaintForm.toggleGuardian(1)">
                                             <option value="individual">Individual</option>
                                             <option value="minor">Minor</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div id="plaintiff-1-guardian-container" class="guardian-select-container" style="display: none;">
+                                    <div class="form-group">
+                                        <label for="plaintiff-1-guardian">Guardian (select plaintiff) <span class="required">*</span></label>
+                                        <select id="plaintiff-1-guardian" name="plaintiff-1-guardian">
+                                            <option value="">Select Guardian...</option>
                                         </select>
                                     </div>
                                 </div>
@@ -168,72 +183,30 @@
                 <!-- ==================== PAGE 2: Causes of Action ==================== -->
                 <div id="page-2" class="form-page">
 
+                    <div class="form-section" style="border-bottom: none; padding-bottom: 0;">
+                        <p style="margin: 0; padding: 10px 14px; background: rgba(0, 174, 239, 0.08); border-left: 3px solid #00AEEF; border-radius: 4px; color: #1F2A44; font-size: 0.9rem;"><i class="fas fa-info-circle" style="color: #00AEEF; margin-right: 6px;"></i> Click the <strong>ⓘ</strong> button next to any cause to preview the full legal text in a sidebar panel.</p>
+                    </div>
+
                     <!-- General Causes of Action -->
                     <div class="form-section">
                         <h2><i class="fas fa-scale-balanced"></i> General Causes of Action</h2>
                         <p class="section-description">Select the general causes of action applicable to this case.</p>
-
-                        <div id="causes-general" class="causes-group">
-                            <div class="cause-option" data-category="general">
-                                <label class="cause-label">
-                                    <input type="checkbox" name="cause-general-1" value="breach-of-habitability">
-                                    <span class="cause-name">Breach of Implied Warranty of Habitability</span>
-                                </label>
-                                <p class="cause-preview">Defendants failed to maintain the premises in a habitable condition as required by California Civil Code...</p>
-                            </div>
-
-                            <div class="cause-option" data-category="general">
-                                <label class="cause-label">
-                                    <input type="checkbox" name="cause-general-2" value="negligence">
-                                    <span class="cause-name">Negligence</span>
-                                </label>
-                                <p class="cause-preview">Defendants owed a duty of care to Plaintiffs and breached that duty by failing to maintain...</p>
-                            </div>
-
-                            <div class="cause-option" data-category="general">
-                                <label class="cause-label">
-                                    <input type="checkbox" name="cause-general-3" value="breach-of-quiet-enjoyment">
-                                    <span class="cause-name">Breach of Covenant of Quiet Enjoyment</span>
-                                </label>
-                                <p class="cause-preview">Defendants breached the covenant of quiet enjoyment by allowing conditions that substantially impaired...</p>
-                            </div>
-
-                            <div class="cause-option" data-category="general">
-                                <label class="cause-label">
-                                    <input type="checkbox" name="cause-general-4" value="nuisance">
-                                    <span class="cause-name">Nuisance</span>
-                                </label>
-                                <p class="cause-preview">Defendants maintained a nuisance on the premises that interfered with Plaintiffs' comfortable enjoyment...</p>
-                            </div>
-                        </div>
-
-                        <p class="section-note"><i class="fas fa-info-circle"></i> Additional general causes will be added in a future update.</p>
+                        <div id="causes-general" class="causes-group"></div>
                     </div>
 
                     <!-- Special Causes of Action -->
                     <div class="form-section">
                         <h2><i class="fas fa-star"></i> Special Causes of Action</h2>
                         <p class="section-description">Select any special causes of action applicable to this case.</p>
-
-                        <div id="causes-special" class="causes-group">
-                            <p class="section-note placeholder-note"><i class="fas fa-info-circle"></i> Special causes of action will be added in a future update.</p>
-                        </div>
+                        <div id="causes-special" class="causes-group"></div>
                     </div>
 
                     <!-- City-Specific Causes of Action (shown only for LA / Santa Monica) -->
                     <div class="form-section" id="causes-city-section" style="display: none;">
                         <h2><i class="fas fa-city"></i> <span id="causes-city-title">City</span> Causes of Action</h2>
                         <p class="section-description">Additional causes of action specific to <strong id="causes-city-name"></strong>.</p>
-
-                        <!-- Los Angeles causes -->
-                        <div id="causes-los-angeles" class="causes-group city-causes" style="display: none;">
-                            <p class="section-note placeholder-note"><i class="fas fa-info-circle"></i> Los Angeles-specific causes of action will be added in a future update.</p>
-                        </div>
-
-                        <!-- Santa Monica causes -->
-                        <div id="causes-santa-monica" class="causes-group city-causes" style="display: none;">
-                            <p class="section-note placeholder-note"><i class="fas fa-info-circle"></i> Santa Monica-specific causes of action will be added in a future update.</p>
-                        </div>
+                        <div id="causes-los-angeles" class="causes-group city-causes" style="display: none;"></div>
+                        <div id="causes-santa-monica" class="causes-group city-causes" style="display: none;"></div>
                     </div>
 
                     <!-- Back / Submit buttons -->
@@ -265,7 +238,7 @@
         </div>
     </div>
 
-    <script src="js/form-logic.js?v=2"></script>
-    <script src="js/form-submission.js?v=2"></script>
+    <script src="js/form-logic.js?v=3"></script>
+    <script src="js/form-submission.js?v=3"></script>
 </body>
 </html>
