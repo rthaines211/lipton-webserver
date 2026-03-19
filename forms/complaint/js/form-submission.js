@@ -57,6 +57,7 @@
 
         // Case info
         data['case-name'] = document.getElementById('case-name').value;
+        data['property-address'] = document.getElementById('property-address').value;
         data['case-number'] = document.getElementById('case-number').value;
         data['filing-date'] = document.getElementById('filing-date').value;
         data['city'] = document.getElementById('city').value;
@@ -72,9 +73,11 @@
             const firstName = block.querySelector(`[name="plaintiff-${num}-first-name"]`);
             const lastName = block.querySelector(`[name="plaintiff-${num}-last-name"]`);
             const type = block.querySelector(`[name="plaintiff-${num}-type"]`);
+            const guardian = block.querySelector(`[name="plaintiff-${num}-guardian"]`);
             if (firstName) data[`plaintiff-${num}-first-name`] = firstName.value;
             if (lastName) data[`plaintiff-${num}-last-name`] = lastName.value;
             if (type) data[`plaintiff-${num}-type`] = type.value;
+            if (guardian && guardian.value) data[`plaintiff-${num}-guardian`] = guardian.value;
         });
 
         // Defendant count
@@ -94,7 +97,7 @@
 
         // Causes of action from all sections (general + special + city)
         const causes = [];
-        document.querySelectorAll('#page-2 .cause-option input[type="checkbox"]:checked').forEach(cb => {
+        document.querySelectorAll('#page-2 .cause-row input[type="checkbox"]:checked').forEach(cb => {
             causes.push(cb.value);
         });
         data.causesOfAction = causes;
