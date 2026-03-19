@@ -24,8 +24,8 @@
             citySelect.addEventListener('change', handleCityChange);
         }
 
-        // Toggle cause-option selected class on all checkboxes
-        bindCauseCheckboxes();
+        // Load causes of action from API
+        loadCauses();
     }
 
     // ======================== Page Navigation ========================
@@ -77,7 +77,7 @@
             // Uncheck hidden city causes
             el.querySelectorAll('input[type="checkbox"]').forEach(cb => {
                 cb.checked = false;
-                const option = cb.closest('.cause-option');
+                const option = cb.closest('.cause-row');
                 if (option) option.classList.remove('selected');
             });
         });
@@ -97,14 +97,98 @@
         }
     }
 
-    // ======================== Cause Checkboxes ========================
+    // ======================== Causes of Action ========================
 
-    function bindCauseCheckboxes() {
-        document.querySelectorAll('.cause-option input[type="checkbox"]').forEach(cb => {
-            cb.addEventListener('change', function() {
-                this.closest('.cause-option').classList.toggle('selected', this.checked);
+    const categoryContainerMap = {
+        'general': 'causes-general',
+        'special': 'causes-special',
+        'los-angeles': 'causes-los-angeles',
+        'santa-monica': 'causes-santa-monica',
+    };
+
+    async function loadCauses() {
+        try {
+            const res = await fetch('/api/complaint-entries/causes');
+            const result = await res.json();
+            if (!result.success || !result.data) return;
+
+            // Track counts per category for badges
+            const categoryCounts = {};
+
+            result.data.forEach(cause => {
+                const containerId = categoryContainerMap[cause.category];
+                const container = containerId && document.getElementById(containerId);
+                if (!container) return;
+
+                // Count per category
+                categoryCounts[cause.category] = (categoryCounts[cause.category] || 0) + 1;
+
+                // Preview: first ~200 chars of insertText (strip {n} and tabs)
+                const preview = cause.insertText
+                    .replace(/\{n\}/g, '')
+                    .replace(/\t/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .substring(0, 200) + '...';
+
+                const row = document.createElement('div');
+                row.className = 'cause-row';
+                row.dataset.category = cause.category;
+
+                row.innerHTML = `
+                <input type="checkbox" name="cause-${cause.id}" value="${cause.id}">
+                <span class="cause-name">${cause.checkboxText}</span>
+                <i class="fas fa-info-circle cause-info-icon"></i>
+                <div class="cause-tooltip">${preview}</div>
+            `;
+
+                // Click row to toggle checkbox
+                row.addEventListener('click', function(e) {
+                    if (e.target.tagName === 'INPUT') return; // checkbox handles itself
+                    const cb = row.querySelector('input[type="checkbox"]');
+                    cb.checked = !cb.checked;
+                    cb.dispatchEvent(new Event('change'));
+                });
+
+                // Toggle selected class on change
+                const cb = row.querySelector('input[type="checkbox"]');
+                cb.addEventListener('change', function() {
+                    row.classList.toggle('selected', this.checked);
+                });
+
+                container.appendChild(row);
+
+                // Add divider after each row
+                const divider = document.createElement('div');
+                divider.className = 'cause-divider';
+                container.appendChild(divider);
             });
-        });
+
+            // Add count badges to category headers
+            const headerMap = {
+                'general': 'causes-general',
+                'special': 'causes-special',
+                'los-angeles': 'causes-los-angeles',
+                'santa-monica': 'causes-santa-monica',
+            };
+            for (const [category, containerId] of Object.entries(headerMap)) {
+                const count = categoryCounts[category];
+                if (!count) continue;
+                const container = document.getElementById(containerId);
+                if (!container) continue;
+                const section = container.closest('.form-section');
+                if (!section) continue;
+                const h2 = section.querySelector('h2');
+                if (h2 && !h2.querySelector('.category-count')) {
+                    const badge = document.createElement('span');
+                    badge.className = 'category-count';
+                    badge.textContent = `(${count})`;
+                    h2.appendChild(badge);
+                }
+            }
+        } catch (err) {
+            console.error('Failed to load causes of action:', err);
+        }
     }
 
     // ======================== Plaintiffs ========================
@@ -134,9 +218,17 @@
                 </div>
                 <div class="form-group">
                     <label>Type</label>
-                    <select name="plaintiff-${plaintiffCount}-type">
+                    <select name="plaintiff-${plaintiffCount}-type" onchange="window.complaintForm.toggleGuardian(${plaintiffCount})">
                         <option value="individual">Individual</option>
                         <option value="minor">Minor</option>
+                    </select>
+                </div>
+            </div>
+            <div id="plaintiff-${plaintiffCount}-guardian-container" class="guardian-select-container" style="display: none;">
+                <div class="form-group">
+                    <label for="plaintiff-${plaintiffCount}-guardian">Guardian (select plaintiff) <span class="required">*</span></label>
+                    <select id="plaintiff-${plaintiffCount}-guardian" name="plaintiff-${plaintiffCount}-guardian">
+                        <option value="">Select Guardian...</option>
                     </select>
                 </div>
             </div>
@@ -144,6 +236,7 @@
 
         container.appendChild(block);
         updatePlaintiffCount();
+        updateGuardianSelects();
     }
 
     function removePlaintiff(index) {
@@ -168,7 +261,29 @@
                 if (name) {
                     input.setAttribute('name', name.replace(/plaintiff-\d+-/, `plaintiff-${num}-`));
                 }
+                const id = input.getAttribute('id');
+                if (id && id.startsWith('plaintiff-')) {
+                    input.setAttribute('id', id.replace(/plaintiff-\d+-/, `plaintiff-${num}-`));
+                }
             });
+
+            // Update type select onchange
+            const typeSelect = block.querySelector('select[name$="-type"]');
+            if (typeSelect) {
+                typeSelect.setAttribute('onchange', `window.complaintForm.toggleGuardian(${num})`);
+            }
+
+            // Update guardian container id
+            const guardianContainer = block.querySelector('.guardian-select-container');
+            if (guardianContainer) {
+                guardianContainer.id = `plaintiff-${num}-guardian-container`;
+            }
+
+            // Update guardian select label for attribute
+            const guardianLabel = block.querySelector('.guardian-select-container label');
+            if (guardianLabel) {
+                guardianLabel.setAttribute('for', `plaintiff-${num}-guardian`);
+            }
 
             const removeBtn = block.querySelector('.btn-remove');
             if (removeBtn) {
@@ -177,6 +292,7 @@
         });
 
         updatePlaintiffCount();
+        updateGuardianSelects();
     }
 
     function updatePlaintiffCount() {
@@ -259,11 +375,76 @@
         document.getElementById('defendant-count').value = document.querySelectorAll('#defendants-container .party-block').length;
     }
 
-    // Expose for onclick handlers
+    // ======================== Guardian Logic ========================
+
+    function toggleGuardian(plaintiffNumber) {
+        const typeSelect = document.querySelector(`select[name="plaintiff-${plaintiffNumber}-type"]`);
+        const container = document.getElementById(`plaintiff-${plaintiffNumber}-guardian-container`);
+        const select = document.getElementById(`plaintiff-${plaintiffNumber}-guardian`);
+
+        if (!typeSelect || !container) return;
+
+        if (typeSelect.value === 'minor') {
+            container.style.display = 'block';
+            if (select) select.required = true;
+            updateGuardianSelects();
+        } else {
+            container.style.display = 'none';
+            if (select) {
+                select.required = false;
+                select.value = '';
+            }
+        }
+    }
+
+    function updateGuardianSelects() {
+        const blocks = document.querySelectorAll('#plaintiffs-container .party-block');
+
+        blocks.forEach(block => {
+            const num = parseInt(block.dataset.index);
+            const select = document.getElementById(`plaintiff-${num}-guardian`);
+            if (!select) return;
+
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Select Guardian...</option>';
+
+            // Add all other plaintiffs as options
+            blocks.forEach(otherBlock => {
+                const otherNum = parseInt(otherBlock.dataset.index);
+                if (otherNum === num) return; // Can't be guardian of self
+
+                const firstName = otherBlock.querySelector(`[name="plaintiff-${otherNum}-first-name"]`)?.value || '';
+                const lastName = otherBlock.querySelector(`[name="plaintiff-${otherNum}-last-name"]`)?.value || '';
+                const label = firstName || lastName ? `${firstName} ${lastName}`.trim() : `Plaintiff ${otherNum}`;
+
+                const option = document.createElement('option');
+                option.value = otherNum;
+                option.textContent = label;
+                select.appendChild(option);
+            });
+
+            // Restore previous selection if still valid
+            if (currentValue) {
+                select.value = currentValue;
+            }
+        });
+    }
+
+    // Expose for onclick/onchange handlers
     window.complaintForm = {
         removePlaintiff,
-        removeDefendant
+        removeDefendant,
+        toggleGuardian
     };
 
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', function() {
+        init();
+
+        // Update guardian selects when plaintiff names change
+        document.getElementById('complaint-form').addEventListener('input', function(e) {
+            if (e.target.matches('input[name*="plaintiff"][name$="-first-name"], input[name*="plaintiff"][name$="-last-name"]')) {
+                updateGuardianSelects();
+            }
+        });
+    });
 })();
