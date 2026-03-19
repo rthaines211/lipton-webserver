@@ -109,6 +109,23 @@ class ComplaintDocumentGenerator {
         const causesData = this.buildCausesOfActionData(causes);
         const causesList = this.buildCausesOfActionList(causes);
 
+        const pronounMap = {
+            male: { subject: 'he', possessive: 'his' },
+            female: { subject: 'she', possessive: 'her' },
+        };
+
+        const plaintiffCount = plaintiffs.length;
+        const pronounSelection = pronounMap[caseInfo.pronouns];
+        const hasMoveInDate = plaintiffCount === 1 && caseInfo.moveInDate;
+        const hasPronouns = plaintiffCount === 1 && pronounSelection;
+
+        const moveInDateValue = hasMoveInDate
+            ? new Date(caseInfo.moveInDate + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+            : '<Move In Date>';
+
+        const pronounSubjectValue = hasPronouns ? pronounSelection.subject : '<Pronoun Subject>';
+        const pronounPossessiveValue = hasPronouns ? pronounSelection.possessive : '<Pronoun Possessive>';
+
         const templateData = {
             'Date': this.formatDateOrdinal(new Date()),
             'Case Name': caseInfo.caseName || '',
@@ -121,11 +138,21 @@ class ComplaintDocumentGenerator {
             'Plaintiff Names With Types': plaintiffNamesWithTypes,
             'Defendant Names': defendantNames,
             'Defendant Names With Types': defendantNamesWithTypes,
+            'Move In Date': moveInDateValue,
+            'Pronoun Subject': pronounSubjectValue,
+            'Pronoun Possessive': pronounPossessiveValue,
             'Causes of Action List': causesList,
             'causes': causesData,
         };
 
         doc.render(templateData);
+
+        const highlightPlaceholders = [];
+        if (!hasMoveInDate) highlightPlaceholders.push('<Move In Date>');
+        if (!hasPronouns) {
+            highlightPlaceholders.push('<Pronoun Subject>');
+            highlightPlaceholders.push('<Pronoun Possessive>');
+        }
 
         // Split causes list items into separate paragraphs for proper hanging indent
         this.splitCausesListIntoParagraphs(doc.getZip());
