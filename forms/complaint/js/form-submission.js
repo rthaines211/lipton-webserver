@@ -62,6 +62,8 @@
         data['filing-date'] = document.getElementById('filing-date').value;
         data['city'] = document.getElementById('city').value;
         data['county'] = document.getElementById('county').value;
+        data['move-in-date'] = document.getElementById('move-in-date').value;
+        data['pronouns'] = document.getElementById('pronouns').value;
 
         // Plaintiff count
         data.plaintiffCount = document.getElementById('plaintiff-count').value;
