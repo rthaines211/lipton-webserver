@@ -212,7 +212,26 @@ Replace with:
 
 - [ ] **Step 3: Export updateDefendantPlaceholder**
 
-Find the `window.complaintForm` assignment object (where other functions are exported). Add `updateDefendantPlaceholder` to it. Search for `window.complaintForm =` and add the function to the object.
+In `forms/complaint/js/form-logic.js`, find the export object at line 556:
+
+```javascript
+    window.complaintForm = {
+        removePlaintiff,
+        removeDefendant,
+        toggleGuardian
+    };
+```
+
+Replace with:
+
+```javascript
+    window.complaintForm = {
+        removePlaintiff,
+        removeDefendant,
+        toggleGuardian,
+        updateDefendantPlaceholder
+    };
+```
 
 - [ ] **Step 4: Verify in browser**
 
