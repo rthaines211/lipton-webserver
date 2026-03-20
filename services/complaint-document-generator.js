@@ -68,14 +68,19 @@ class ComplaintDocumentGenerator {
         const plaintiffByIndex = {};
         validPlaintiffs.forEach(p => { plaintiffByIndex[p.index] = p; });
 
-        // Build plaintiff names (ALL CAPS, semicolon-separated)
-        const plaintiffNames = validPlaintiffs
-            .map(p => `${p.firstName} ${p.lastName}`.trim().toUpperCase())
-            .join('; ');
+        // Order plaintiffs by unit (grouped: adults first per unit)
+        const orderedPlaintiffs = this.orderPlaintiffsByUnit(validPlaintiffs, plaintiffByIndex);
+        const hasUnits = validPlaintiffs.some(p => p.unitNumber);
 
-        // Build plaintiff names with types (ALL CAPS name + type descriptor)
-        const plaintiffNamesWithTypes = validPlaintiffs
-            .map(p => {
+        // Build plaintiff names (ALL CAPS, grouped order)
+        const plaintiffNames = this.joinPlaintiffList(
+            orderedPlaintiffs.map(p => `${p.firstName} ${p.lastName}`.trim().toUpperCase()),
+            hasUnits
+        );
+
+        // Build plaintiff names with types (ALL CAPS name + type descriptor, grouped order)
+        const plaintiffNamesWithTypes = this.joinPlaintiffList(
+            orderedPlaintiffs.map(p => {
                 const name = `${p.firstName} ${p.lastName}`.trim().toUpperCase();
                 if (p.type === 'minor') {
                     const guardian = p.guardianIndex ? plaintiffByIndex[p.guardianIndex] : null;
@@ -86,8 +91,9 @@ class ComplaintDocumentGenerator {
                     return `${name}, a minor`;
                 }
                 return `${name}, an individual`;
-            })
-            .join('; ');
+            }),
+            hasUnits
+        );
 
         // Build defendant names (ALL CAPS, semicolon-separated)
         const defendantNames = validDefendants
@@ -243,6 +249,64 @@ class ComplaintDocumentGenerator {
         const causes = formData.causesOfAction || formData['causes-of-action'] || [];
 
         return { caseInfo, plaintiffs, defendants, causes };
+    }
+
+    /**
+     * Order plaintiffs by unit number: group by unit, adults first within each group.
+     * Returns a new array in grouped order. If no unit numbers present, returns original order.
+     */
+    orderPlaintiffsByUnit(plaintiffs, plaintiffByIndex) {
+        const hasUnits = plaintiffs.some(p => p.unitNumber);
+        if (!hasUnits) return plaintiffs;
+
+        // Resolve minor unit numbers from their guardian
+        const resolved = plaintiffs.map(p => {
+            if (p.type === 'minor' && p.guardianIndex) {
+                const guardian = plaintiffByIndex[p.guardianIndex];
+                return { ...p, resolvedUnit: guardian ? guardian.unitNumber : '' };
+            }
+            return { ...p, resolvedUnit: p.unitNumber };
+        });
+
+        // Group by resolved unit number (preserve insertion order of first occurrence)
+        const groups = new Map();
+        const ungrouped = [];
+
+        resolved.forEach(p => {
+            const unit = p.resolvedUnit;
+            if (unit) {
+                if (!groups.has(unit)) groups.set(unit, []);
+                groups.get(unit).push(p);
+            } else {
+                ungrouped.push(p);
+            }
+        });
+
+        // Within each group: adults first, then minors
+        const sortWithinGroup = (arr) => {
+            const adults = arr.filter(p => p.type !== 'minor');
+            const minors = arr.filter(p => p.type === 'minor');
+            return [...adults, ...minors];
+        };
+
+        const ordered = [];
+        for (const [, group] of groups) {
+            ordered.push(...sortWithinGroup(group));
+        }
+        // Ungrouped bucket: adults first, appended at end
+        ordered.push(...sortWithinGroup(ungrouped));
+
+        return ordered;
+    }
+
+    /**
+     * Join an array of strings with "; " and "; and " before the last item.
+     * Only uses "; and" when unit grouping is active (hasUnits=true).
+     */
+    joinPlaintiffList(items, hasUnits) {
+        if (!hasUnits) return items.join('; ');
+        if (items.length <= 1) return items.join('');
+        return items.slice(0, -1).join('; ') + '; and ' + items[items.length - 1];
     }
 
     /**
