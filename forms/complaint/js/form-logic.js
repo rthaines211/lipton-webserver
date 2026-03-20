@@ -286,6 +286,12 @@
                     </select>
                 </div>
             </div>
+            <div class="unit-number-container" style="display: none;">
+                <div class="form-group">
+                    <label>Unit #</label>
+                    <input type="text" name="plaintiff-${plaintiffCount}-unit" placeholder="e.g. 101, 2B">
+                </div>
+            </div>
             <div id="plaintiff-${plaintiffCount}-guardian-container" class="guardian-select-container" style="display: none;">
                 <div class="form-group">
                     <label for="plaintiff-${plaintiffCount}-guardian">Guardian (select plaintiff) <span class="required">*</span></label>
@@ -300,6 +306,7 @@
         updatePlaintiffCount();
         updateGuardianSelects();
         updateSinglePlaintiffFields();
+        updateUnitFields();
     }
 
     function removePlaintiff(index) {
@@ -357,6 +364,7 @@
         updatePlaintiffCount();
         updateGuardianSelects();
         updateSinglePlaintiffFields();
+        updateUnitFields();
     }
 
     function updatePlaintiffCount() {
@@ -369,6 +377,27 @@
         const typeSelects = document.querySelectorAll('#plaintiffs-container .party-block select[name$="-type"]');
         const individualCount = Array.from(typeSelects).filter(s => s.value === 'individual').length;
         container.style.display = individualCount === 1 ? '' : 'none';
+    }
+
+    function updateUnitFields() {
+        const blocks = document.querySelectorAll('#plaintiffs-container .party-block');
+        const typeSelects = document.querySelectorAll('#plaintiffs-container .party-block select[name$="-type"]');
+        const individualCount = Array.from(typeSelects).filter(s => s.value === 'individual').length;
+        const showUnits = individualCount >= 2;
+
+        blocks.forEach(block => {
+            const num = parseInt(block.dataset.index);
+            const typeSelect = block.querySelector(`[name="plaintiff-${num}-type"]`);
+            const container = block.querySelector('.unit-number-container');
+            if (!container) return;
+
+            // Only show unit field on individual plaintiffs when 2+ individuals exist
+            if (showUnits && typeSelect && typeSelect.value === 'individual') {
+                container.style.display = '';
+            } else {
+                container.style.display = 'none';
+            }
+        });
     }
 
     // ======================== Defendants ========================
@@ -468,6 +497,7 @@
             }
         }
         updateSinglePlaintiffFields();
+        updateUnitFields();
 
         // Invalidate any guardian selections pointing to this plaintiff if they became a minor
         if (typeSelect.value === 'minor') {
