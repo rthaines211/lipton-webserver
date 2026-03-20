@@ -396,6 +396,8 @@
                 container.style.display = '';
             } else {
                 container.style.display = 'none';
+                const input = container.querySelector('input');
+                if (input) input.value = '';
             }
         });
     }
