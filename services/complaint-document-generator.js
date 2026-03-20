@@ -297,9 +297,9 @@ class ComplaintDocumentGenerator {
             // Replace pronoun placeholders in cause text
             if (pronounReplacements) {
                 body = body
-                    .replace(/\{pronoun_subject\}/g, pronounReplacements.subject)
-                    .replace(/\{pronoun_possessive\}/g, pronounReplacements.possessive)
-                    .replace(/\{pronoun_object\}/g, pronounReplacements.object);
+                    .replace(/<Pronoun Subject>/g, pronounReplacements.subject)
+                    .replace(/<Pronoun Possessive>/g, pronounReplacements.possessive)
+                    .replace(/<Pronoun Object>/g, pronounReplacements.object);
             }
 
             // Split body into separate paragraphs for nested loop
