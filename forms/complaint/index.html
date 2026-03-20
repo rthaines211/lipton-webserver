@@ -247,6 +247,23 @@
         </form>
     </div>
 
+    <!-- Highlight Warning Modal -->
+    <div id="highlight-warning-overlay" class="highlight-warning-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="highlight-warning-title">
+        <div class="highlight-warning-modal">
+            <div class="highlight-warning-header">
+                <h3 id="highlight-warning-title">Some fields need attention</h3>
+                <p>No worries! These fields will appear <span class="highlight-preview">highlighted in yellow</span> in your document. Just look for the highlights and fill them in.</p>
+            </div>
+            <div id="highlight-warning-fields" class="highlight-warning-fields">
+                <!-- Populated dynamically by JS -->
+            </div>
+            <div class="highlight-warning-buttons">
+                <button type="button" id="highlight-go-back" class="btn-secondary">Go Back</button>
+                <button type="button" id="highlight-continue" class="btn-primary">Continue Generating</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Progress Overlay -->
     <div id="progress-overlay" class="progress-overlay" style="display: none;">
         <div class="progress-content">
