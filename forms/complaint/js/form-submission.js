@@ -80,6 +80,8 @@
             if (lastName) data[`plaintiff-${num}-last-name`] = lastName.value;
             if (type) data[`plaintiff-${num}-type`] = type.value;
             if (guardian && guardian.value) data[`plaintiff-${num}-guardian`] = guardian.value;
+            const unit = block.querySelector(`[name="plaintiff-${num}-unit"]`);
+            if (unit && unit.value) data[`plaintiff-${num}-unit`] = unit.value;
         });
 
         // Defendant count
