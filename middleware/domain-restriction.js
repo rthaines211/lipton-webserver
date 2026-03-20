@@ -55,7 +55,7 @@ function restrictFormAccess(req, res, next) {
     }
 
     // Check if complaints domain is trying to access other forms
-    if (hostname.includes('complaints.liptonlegal.com') && !path.startsWith('/forms/complaint')) {
+    if (hostname.includes('complaints.liptonlegal.com') && !path.startsWith('/forms/complaint') && !path.startsWith('/forms/shared')) {
         logger.warn('Domain restriction: complaints domain attempted to access other form', {
             forwardedHost,
             hostname,
