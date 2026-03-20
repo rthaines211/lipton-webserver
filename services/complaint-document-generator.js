@@ -62,7 +62,7 @@ class ComplaintDocumentGenerator {
         onProgress(40, 'Filling template with form data...');
 
         const validPlaintiffs = plaintiffs.filter(p => p.firstName || p.lastName);
-        const validDefendants = defendants.filter(d => d.firstName || d.lastName);
+        const validDefendants = defendants.filter(d => d.name);
 
         // Build a lookup of plaintiffs by index for guardian resolution
         const plaintiffByIndex = {};
@@ -97,17 +97,26 @@ class ComplaintDocumentGenerator {
 
         // Build defendant names (ALL CAPS, semicolon-separated)
         const defendantNames = validDefendants
-            .map(d => `${d.firstName} ${d.lastName}`.trim().toUpperCase())
+            .map(d => d.name.trim().toUpperCase())
             .join('; ');
+
+        // Type descriptor map
+        const defendantTypeDescriptors = {
+            individual: 'an individual',
+            corporate: 'a corporate entity',
+            government_entity: 'a government entity',
+            trust: 'a trust',
+            estate: 'an estate',
+            partnership: 'a partnership',
+            association: 'an association',
+        };
 
         // Build defendant names with types
         const defendantNamesWithTypes = validDefendants
             .map(d => {
-                const name = `${d.firstName} ${d.lastName}`.trim().toUpperCase();
-                if (d.type === 'corporate') {
-                    return `${name}, a corporate entity`;
-                }
-                return `${name}, an individual`;
+                const name = d.name.trim().toUpperCase();
+                const descriptor = defendantTypeDescriptors[d.type] || 'an individual';
+                return `${name}, ${descriptor}`;
             })
             .join('; ');
 
@@ -240,8 +249,7 @@ class ComplaintDocumentGenerator {
         for (let i = 1; i <= defendantCount; i++) {
             defendants.push({
                 index: i,
-                firstName: formData[`defendant-${i}-first-name`] || '',
-                lastName: formData[`defendant-${i}-last-name`] || '',
+                name: formData[`defendant-${i}-name`] || '',
                 type: formData[`defendant-${i}-type`] || 'individual',
             });
         }
