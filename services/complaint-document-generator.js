@@ -105,13 +105,9 @@ class ComplaintDocumentGenerator {
             })
             .join('; ');
 
-        // Build causes of action data
-        const causesData = this.buildCausesOfActionData(causes);
-        const causesList = this.buildCausesOfActionList(causes);
-
         const pronounMap = {
-            male: { subject: 'he', possessive: 'his' },
-            female: { subject: 'she', possessive: 'her' },
+            male: { subject: 'he', possessive: 'his', object: 'him' },
+            female: { subject: 'she', possessive: 'her', object: 'her' },
         };
 
         const individualPlaintiffs = plaintiffs.filter(p => p.type === 'individual');
@@ -120,12 +116,18 @@ class ComplaintDocumentGenerator {
         const hasMoveInDate = singleIndividual && caseInfo.moveInDate;
         const hasPronouns = singleIndividual && pronounSelection;
 
+        // Build causes of action data (with pronoun replacement if resolved)
+        const pronounReplacements = hasPronouns ? pronounSelection : null;
+        const causesData = this.buildCausesOfActionData(causes, pronounReplacements);
+        const causesList = this.buildCausesOfActionList(causes);
+
         const moveInDateValue = hasMoveInDate
             ? new Date(caseInfo.moveInDate + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
             : '<Move In Date>';
 
         const pronounSubjectValue = hasPronouns ? pronounSelection.subject : '<Pronoun Subject>';
         const pronounPossessiveValue = hasPronouns ? pronounSelection.possessive : '<Pronoun Possessive>';
+        const pronounObjectValue = hasPronouns ? pronounSelection.object : '<Pronoun Object>';
 
         const templateData = {
             'Date': this.formatDateOrdinal(new Date()),
@@ -142,6 +144,7 @@ class ComplaintDocumentGenerator {
             'Move In Date': moveInDateValue,
             'Pronoun Subject': pronounSubjectValue,
             'Pronoun Possessive': pronounPossessiveValue,
+            'Pronoun Object': pronounObjectValue,
             'Causes of Action List': causesList,
             'causes': causesData,
         };
@@ -153,6 +156,7 @@ class ComplaintDocumentGenerator {
         if (!hasPronouns) {
             highlightPlaceholders.push('<Pronoun Subject>');
             highlightPlaceholders.push('<Pronoun Possessive>');
+            highlightPlaceholders.push('<Pronoun Object>');
         }
 
         // Split causes list items into separate paragraphs for proper hanging indent
@@ -241,7 +245,7 @@ class ComplaintDocumentGenerator {
      * Each object has: causeHeading, causeTitle, causePlaintiffLine, causeBody
      * The {n} placeholders get a running counter continuous across all causes.
      */
-    buildCausesOfActionData(causeIds) {
+    buildCausesOfActionData(causeIds, pronounReplacements) {
         if (!Array.isArray(causeIds) || causeIds.length === 0) return [];
 
         const ordinals = [
@@ -286,9 +290,17 @@ class ComplaintDocumentGenerator {
             }
 
             // Replace {n} + any trailing whitespace with number.tab for consistent spacing
-            const body = cause.insertText.replace(/\{n\}\s*/g, () => {
+            let body = cause.insertText.replace(/\{n\}\s*/g, () => {
                 return `${paragraphCounter++}.\t`;
             });
+
+            // Replace pronoun placeholders in cause text
+            if (pronounReplacements) {
+                body = body
+                    .replace(/\{pronoun_subject\}/g, pronounReplacements.subject)
+                    .replace(/\{pronoun_possessive\}/g, pronounReplacements.possessive)
+                    .replace(/\{pronoun_object\}/g, pronounReplacements.object);
+            }
 
             // Split body into separate paragraphs for nested loop
             const bodyParagraphs = body.split('\n')
