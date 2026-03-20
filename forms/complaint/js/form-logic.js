@@ -404,6 +404,23 @@
 
     // ======================== Defendants ========================
 
+    const defendantPlaceholders = {
+        individual: 'First and last name',
+        corporate: 'Corporation or LLC name',
+        government_entity: 'Agency or department name',
+        trust: 'Trust name',
+        estate: 'Estate name',
+        partnership: 'Partnership name',
+        association: 'Association or HOA name',
+    };
+
+    function updateDefendantPlaceholder(selectEl) {
+        const nameInput = selectEl.closest('.party-block').querySelector('input[name$="-name"]');
+        if (nameInput) {
+            nameInput.placeholder = defendantPlaceholders[selectEl.value] || 'Name';
+        }
+    }
+
     function addDefendant() {
         defendantCount++;
         const container = document.getElementById('defendants-container');
@@ -418,20 +435,21 @@
                     <i class="fas fa-times"></i> Remove
                 </button>
             </div>
-            <div class="form-row three-col">
+            <div class="form-row two-col">
                 <div class="form-group">
-                    <label>First Name <span class="required">*</span></label>
-                    <input type="text" name="defendant-${defendantCount}-first-name" required placeholder="First name">
-                </div>
-                <div class="form-group">
-                    <label>Last Name <span class="required">*</span></label>
-                    <input type="text" name="defendant-${defendantCount}-last-name" required placeholder="Last name">
+                    <label>Name <span class="required">*</span></label>
+                    <input type="text" name="defendant-${defendantCount}-name" required placeholder="First and last name">
                 </div>
                 <div class="form-group">
                     <label>Type</label>
-                    <select name="defendant-${defendantCount}-type">
+                    <select name="defendant-${defendantCount}-type" onchange="window.complaintForm.updateDefendantPlaceholder(this)">
                         <option value="individual">Individual</option>
                         <option value="corporate">Corporate</option>
+                        <option value="government_entity">Government Entity</option>
+                        <option value="trust">Trust</option>
+                        <option value="estate">Estate</option>
+                        <option value="partnership">Partnership</option>
+                        <option value="association">Association</option>
                     </select>
                 </div>
             </div>
@@ -556,7 +574,8 @@
     window.complaintForm = {
         removePlaintiff,
         removeDefendant,
-        toggleGuardian
+        toggleGuardian,
+        updateDefendantPlaceholder
     };
 
     document.addEventListener('DOMContentLoaded', function() {
