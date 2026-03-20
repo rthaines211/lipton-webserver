@@ -17,6 +17,11 @@ const Sentry = require('@sentry/node');
 const logger = require('../monitoring/logger');
 const ComplaintDocumentGenerator = require('../services/complaint-document-generator');
 
+// Load causes of action registry
+const causesOfAction = JSON.parse(
+    fs.readFileSync(path.join(__dirname, '../data/causes-of-action.json'), 'utf8')
+);
+
 // Database connection
 const pool = new Pool({
     user: process.env.DB_USER,
@@ -83,6 +88,14 @@ function extractDefendants(formData) {
 
     return defendants;
 }
+
+/**
+ * GET /api/complaint-entries/causes
+ * Return the causes of action registry for the frontend form
+ */
+router.get('/complaint-entries/causes', (req, res) => {
+    res.json({ success: true, data: causesOfAction });
+});
 
 /**
  * POST /api/complaint-entries
