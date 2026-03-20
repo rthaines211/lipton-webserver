@@ -424,43 +424,96 @@ class ComplaintDocumentGenerator {
 
     /**
      * Post-processes DOCX XML to apply yellow highlight to placeholder text.
+     * Handles placeholders that may be split across multiple <w:r> runs by
+     * stripping intervening XML tags to find matches, then rebuilding as a
+     * single highlighted run.
      * @param {PizZip} zip - The PizZip instance of the rendered DOCX
      * @param {string[]} placeholders - Array of placeholder strings to highlight
      */
     applyYellowHighlight(zip, placeholders) {
         if (!placeholders.length) return;
 
-        const docXml = zip.file('word/document.xml').asText();
-        let modified = docXml;
+        let docXml = zip.file('word/document.xml').asText();
 
         for (const placeholder of placeholders) {
-            // Convert to XML entities since DOCX XML encodes < and > as &lt; &gt;
             const xmlEncoded = placeholder.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            // Escape special regex characters in the placeholder text
             const escaped = xmlEncoded.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-            // Match <w:r> elements containing the placeholder text in their <w:t> node.
-            // Uses <w:r[^>]*> to match runs with or without attributes (e.g. w:rsidR="...").
-            // Captures: (1) run open tag, (2) optional rPr content, (3) the <w:t> element
-            const pattern = new RegExp(
+            // First try: placeholder is in a single <w:r> run (common case)
+            const singleRunPattern = new RegExp(
                 `(<w:r[^>]*>)\\s*(?:<w:rPr>([\\s\\S]*?)</w:rPr>)?\\s*(<w:t[^>]*>${escaped}</w:t>)`,
                 'g'
             );
 
-            modified = modified.replace(pattern, (match, rOpen, existingRPr, tElement) => {
+            let matched = false;
+            docXml = docXml.replace(singleRunPattern, (match, rOpen, existingRPr, tElement) => {
+                matched = true;
                 const highlightTag = '<w:highlight w:val="yellow"/>';
                 if (existingRPr !== undefined) {
-                    // Has existing rPr — inject highlight inside it
-                    if (existingRPr.includes('w:highlight')) return match; // already highlighted
+                    if (existingRPr.includes('w:highlight')) return match;
                     return `${rOpen}<w:rPr>${existingRPr}${highlightTag}</w:rPr>${tElement}`;
                 } else {
-                    // No rPr — add one with highlight
                     return `${rOpen}<w:rPr>${highlightTag}</w:rPr>${tElement}`;
                 }
             });
+
+            // Fallback: placeholder is split across multiple <w:r> runs.
+            // Find spans of consecutive runs whose combined text contains the placeholder,
+            // then collapse them into a single highlighted run.
+            if (!matched && docXml.includes(xmlEncoded)) {
+                // Extract all <w:r>...</w:r> sequences within each <w:p> paragraph
+                docXml = docXml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (paragraph) => {
+                    // Extract text content from all runs to check if this paragraph contains our placeholder
+                    const textOnly = paragraph.replace(/<[^>]+>/g, '');
+                    if (!textOnly.includes(xmlEncoded)) return paragraph;
+
+                    // Find runs and their text content
+                    const runRegex = /<w:r[ >][\s\S]*?<\/w:r>/g;
+                    const runs = [];
+                    let m;
+                    while ((m = runRegex.exec(paragraph)) !== null) {
+                        const runXml = m[0];
+                        const textMatch = runXml.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/);
+                        const text = textMatch ? textMatch[1] : '';
+                        runs.push({ xml: runXml, text, index: m.index });
+                    }
+
+                    // Sliding window: find consecutive runs whose text concatenates to include the placeholder
+                    for (let i = 0; i < runs.length; i++) {
+                        let combined = '';
+                        for (let j = i; j < runs.length; j++) {
+                            combined += runs[j].text;
+                            if (combined.includes(xmlEncoded)) {
+                                // Found it spanning runs[i..j]
+                                // Get rPr from first run (if any)
+                                const rPrMatch = runs[i].xml.match(/<w:rPr>([\s\S]*?)<\/w:rPr>/);
+                                const rPr = rPrMatch ? rPrMatch[1] : '';
+                                const highlightTag = '<w:highlight w:val="yellow"/>';
+                                const newRPr = rPr
+                                    ? (rPr.includes('w:highlight') ? rPr : rPr + highlightTag)
+                                    : highlightTag;
+
+                                // Build a single replacement run with the combined text
+                                const newRun = `<w:r><w:rPr>${newRPr}</w:rPr><w:t xml:space="preserve">${combined}</w:t></w:r>`;
+
+                                // Replace the span of original runs with the new single run
+                                const startIdx = runs[i].index;
+                                const endIdx = runs[j].index + runs[j].xml.length;
+                                paragraph = paragraph.substring(0, startIdx) + newRun + paragraph.substring(endIdx);
+
+                                // Only fix first occurrence per paragraph, then break
+                                break;
+                            }
+                        }
+                        if (combined.includes(xmlEncoded)) break;
+                    }
+
+                    return paragraph;
+                });
+            }
         }
 
-        zip.file('word/document.xml', modified);
+        zip.file('word/document.xml', docXml);
     }
 
     /**
