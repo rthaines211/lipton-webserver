@@ -125,11 +125,9 @@
         const defendantBlocks = document.querySelectorAll('#defendants-container .party-block');
         defendantBlocks.forEach((block, i) => {
             const num = i + 1;
-            const firstName = block.querySelector(`[name="defendant-${num}-first-name"]`);
-            const lastName = block.querySelector(`[name="defendant-${num}-last-name"]`);
+            const name = block.querySelector(`[name="defendant-${num}-name"]`);
             const type = block.querySelector(`[name="defendant-${num}-type"]`);
-            if (firstName) data[`defendant-${num}-first-name`] = firstName.value;
-            if (lastName) data[`defendant-${num}-last-name`] = lastName.value;
+            if (name) data[`defendant-${num}-name`] = name.value;
             if (type) data[`defendant-${num}-type`] = type.value;
         });
 
