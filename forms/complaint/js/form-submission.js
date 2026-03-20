@@ -10,7 +10,26 @@
         if (form) {
             form.addEventListener('submit', handleSubmit);
         }
+
+        // Highlight warning modal buttons
+        const goBackBtn = document.getElementById('highlight-go-back');
+        if (goBackBtn) {
+            goBackBtn.addEventListener('click', function() {
+                hideHighlightWarning(false);
+            });
+        }
+
+        const continueBtn = document.getElementById('highlight-continue');
+        if (continueBtn) {
+            continueBtn.addEventListener('click', function() {
+                this.disabled = true;
+                hideHighlightWarning(true);
+                proceedWithSubmit();
+            });
+        }
     }
+
+    let _pendingFormData = null;
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -24,7 +43,22 @@
         const submitBtn = document.getElementById('submit-btn');
         submitBtn.disabled = true;
 
-        const formData = collectFormData();
+        // Check for fields that will be yellow-highlighted
+        const missingFields = getMissingHighlightFields();
+        if (missingFields.length > 0) {
+            _pendingFormData = collectFormData();
+            showHighlightWarning(missingFields);
+            return;
+        }
+
+        // No missing fields — proceed directly
+        _pendingFormData = collectFormData();
+        proceedWithSubmit();
+    }
+
+    async function proceedWithSubmit() {
+        const formData = _pendingFormData;
+        _pendingFormData = null;
 
         showProgress();
         updateProgress(5, 'Submitting form data...');
@@ -47,7 +81,7 @@
 
         } catch (err) {
             hideProgress();
-            submitBtn.disabled = false;
+            document.getElementById('submit-btn').disabled = false;
             alert('Error submitting form: ' + err.message);
         }
     }
@@ -107,6 +141,83 @@
         data.causesOfAction = causes;
 
         return data;
+    }
+
+    function getMissingHighlightFields() {
+        const missing = [];
+        const singleFields = document.getElementById('single-plaintiff-fields');
+
+        // Only check when single-plaintiff fields are visible
+        if (singleFields && singleFields.style.display !== 'none') {
+            const moveInDate = document.getElementById('move-in-date');
+            if (moveInDate && moveInDate.value === '') {
+                missing.push('Move In Date');
+            }
+
+            const pronouns = document.getElementById('pronouns');
+            if (pronouns && pronouns.value === '') {
+                missing.push('Pronoun references (he/she, his/her, him/her)');
+            }
+        }
+
+        return missing;
+    }
+
+    function showHighlightWarning(missingFields) {
+        const overlay = document.getElementById('highlight-warning-overlay');
+        const fieldsContainer = document.getElementById('highlight-warning-fields');
+
+        // Populate field rows (field names are hardcoded strings, not user input — no XSS risk)
+        fieldsContainer.innerHTML = missingFields.map(field =>
+            `<div class="highlight-warning-field-row">
+                <span class="highlight-warning-swatch"></span>
+                ${field}
+            </div>`
+        ).join('');
+
+        overlay.style.display = 'flex';
+
+        // Re-enable Continue button (may have been disabled from previous attempt)
+        document.getElementById('highlight-continue').disabled = false;
+
+        // Focus the Continue button for keyboard users
+        document.getElementById('highlight-continue').focus();
+
+        // Escape key handler
+        overlay._escHandler = function(e) {
+            if (e.key === 'Escape') hideHighlightWarning(false);
+        };
+        document.addEventListener('keydown', overlay._escHandler);
+
+        // Backdrop click handler
+        overlay._backdropHandler = function(e) {
+            if (e.target === overlay) hideHighlightWarning(false);
+        };
+        overlay.addEventListener('click', overlay._backdropHandler);
+    }
+
+    function hideHighlightWarning(proceed) {
+        const overlay = document.getElementById('highlight-warning-overlay');
+        overlay.style.display = 'none';
+
+        // Remove escape handler
+        if (overlay._escHandler) {
+            document.removeEventListener('keydown', overlay._escHandler);
+            overlay._escHandler = null;
+        }
+
+        // Remove backdrop handler
+        if (overlay._backdropHandler) {
+            overlay.removeEventListener('click', overlay._backdropHandler);
+            overlay._backdropHandler = null;
+        }
+
+        if (!proceed) {
+            // Go Back — navigate to page 1 where the fields are
+            const page1Btn = document.querySelector('[data-page="1"]');
+            if (page1Btn) page1Btn.click();
+            document.getElementById('submit-btn').disabled = false;
+        }
     }
 
     function connectSSE(jobId) {
