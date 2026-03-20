@@ -366,8 +366,9 @@
     function updateSinglePlaintiffFields() {
         const container = document.getElementById('single-plaintiff-fields');
         if (!container) return;
-        const plaintiffBlocks = document.querySelectorAll('#plaintiffs-container .party-block');
-        container.style.display = plaintiffBlocks.length === 1 ? '' : 'none';
+        const typeSelects = document.querySelectorAll('#plaintiffs-container .party-block select[name$="-type"]');
+        const individualCount = Array.from(typeSelects).filter(s => s.value === 'individual').length;
+        container.style.display = individualCount === 1 ? '' : 'none';
     }
 
     // ======================== Defendants ========================
@@ -466,6 +467,7 @@
                 select.value = '';
             }
         }
+        updateSinglePlaintiffFields();
     }
 
     function updateGuardianSelects() {

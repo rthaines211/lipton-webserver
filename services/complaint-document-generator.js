@@ -114,10 +114,11 @@ class ComplaintDocumentGenerator {
             female: { subject: 'she', possessive: 'her' },
         };
 
-        const plaintiffCount = plaintiffs.length;
+        const individualPlaintiffs = plaintiffs.filter(p => p.type === 'individual');
+        const singleIndividual = individualPlaintiffs.length === 1;
         const pronounSelection = pronounMap[caseInfo.pronouns];
-        const hasMoveInDate = plaintiffCount === 1 && caseInfo.moveInDate;
-        const hasPronouns = plaintiffCount === 1 && pronounSelection;
+        const hasMoveInDate = singleIndividual && caseInfo.moveInDate;
+        const hasPronouns = singleIndividual && pronounSelection;
 
         const moveInDateValue = hasMoveInDate
             ? new Date(caseInfo.moveInDate + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
