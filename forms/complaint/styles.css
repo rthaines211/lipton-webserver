@@ -334,6 +334,14 @@ input::placeholder {
     margin: 0;
 }
 
+.unit-number-container {
+    margin-top: 8px;
+}
+
+.unit-number-container .form-group {
+    max-width: 200px;
+}
+
 .guardian-select-container {
     margin-top: 15px;
     padding-left: 30px;
