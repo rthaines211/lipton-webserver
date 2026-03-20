@@ -468,6 +468,19 @@
             }
         }
         updateSinglePlaintiffFields();
+
+        // Invalidate any guardian selections pointing to this plaintiff if they became a minor
+        if (typeSelect.value === 'minor') {
+            const blocks = document.querySelectorAll('#plaintiffs-container .party-block');
+            blocks.forEach(block => {
+                const blockNum = parseInt(block.dataset.index);
+                if (blockNum === plaintiffNumber) return;
+                const guardianSelect = document.getElementById(`plaintiff-${blockNum}-guardian`);
+                if (guardianSelect && guardianSelect.value === String(plaintiffNumber)) {
+                    guardianSelect.value = '';
+                }
+            });
+        }
     }
 
     function updateGuardianSelects() {
@@ -485,6 +498,10 @@
             blocks.forEach(otherBlock => {
                 const otherNum = parseInt(otherBlock.dataset.index);
                 if (otherNum === num) return; // Can't be guardian of self
+
+                // Only show individual (adult) plaintiffs as guardian options
+                const otherType = otherBlock.querySelector(`[name="plaintiff-${otherNum}-type"]`);
+                if (otherType && otherType.value === 'minor') return;
 
                 const firstName = otherBlock.querySelector(`[name="plaintiff-${otherNum}-first-name"]`)?.value || '';
                 const lastName = otherBlock.querySelector(`[name="plaintiff-${otherNum}-last-name"]`)?.value || '';
