@@ -7,6 +7,7 @@ This application provides comprehensive legal forms for document generation and 
 - **Document Generation Form**: `https://docs.liptonlegal.com` - Discovery document generation (SROGs, PODs, Admissions)
 - **Contingency Agreement Form**: `https://agreement.liptonlegal.com` - Client contingency fee agreements with multi-party support
 - **Exhibit Collector**: `https://exhibits.liptonlegal.com` - Exhibit package assembly with Bates stamping, duplicate detection with image/PDF previews, parallel processing, Dropbox import, async processing for large jobs, and PDF generation
+- **Complaint Creator**: `https://complaint.liptonlegal.com` - Legal complaint document generation with dynamic plaintiff/defendant parties, 49 causes of action across 4 categories, move-in date and preferred pronoun support, and DOCX template generation
 
 ## Features
 
@@ -193,6 +194,10 @@ The application uses GitHub Actions for CI/CD with a **linear promotion model**:
 - `GET /api/exhibits/jobs` - List async processing jobs
 - `GET /api/exhibits/jobs/:jobId/status` - Get async job status
 - `DELETE /api/exhibits/sessions/:sessionId` - Clean up session/temp files
+
+### Complaint Creator (complaint.liptonlegal.com)
+- `POST /api/complaint/generate` - Generate complaint DOCX with SSE progress streaming
+- `GET /api/complaint-entries/causes` - List available causes of action (49 across 4 categories)
 
 ### PDF Generation
 - `POST /api/pdf/generate` - Generate CM-110 PDF from form data

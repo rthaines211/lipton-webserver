@@ -142,7 +142,7 @@ A separate Cloud Run service (`exhibit-collector`) for assembling exhibit packag
 
 **Duplicate Preview Modal** (2026-03-09):
 - Inline image thumbnails via `URL.createObjectURL()` (revoked after load)
-- PDF first-page previews rendered via PDF.js `<canvas>`
+- PDF first-page previews rendered server-side via MuPDF (WASM)
 - Loading spinners while previews render asynchronously
 - Visual feedback: cards start green (`.marked-keep`), dim red on removal (`.marked-remove`)
 - XSS protection: `escapeHtml()` helper sanitizes filenames in innerHTML
@@ -159,7 +159,7 @@ A separate Cloud Run service (`exhibit-collector`) for assembling exhibit packag
 - Drag-and-drop files/folders onto exhibit slots (A-Z)
 - Server-side file download via `services/dropbox-browser.js` (batch download with concurrency limit of 15)
 - Reuses existing `dropbox-service.js` firm-wide token (no per-user OAuth)
-- Server-side duplicate thumbnails via Sharp (images) and pdfjs-dist+canvas (PDFs)
+- Server-side duplicate thumbnails via Sharp (images) and MuPDF (PDFs)
 - Duplicate resolution works for both regular upload and Dropbox flows (resolve endpoint handles both)
 - Real-time mode: < 50 files, downloads from Dropbox → processes → SSE stream → signed GCS URL
 - Frontend: `form-submission.js` detects Dropbox panel visibility to choose generate path
@@ -190,7 +190,33 @@ A separate Cloud Run service (`exhibit-collector`) for assembling exhibit packag
 - Auth: `/api/exhibits` bypasses token auth in `middleware/auth.js`; form pages use session-based password auth
 - Request timeout bumped to 15 min for large real-time jobs
 
-**Dependencies**: `sharp`, `multer`, `tesseract.js`, `pdf-lib`, `@google-cloud/storage`, `@google-cloud/run`, `@sendgrid/mail`, `canvas`, `pdfjs-dist`
+**Dependencies**: `sharp`, `multer`, `tesseract.js`, `pdf-lib`, `@google-cloud/storage`, `@google-cloud/run`, `@sendgrid/mail`, `mupdf`
+
+### Complaint Creator (complaint.liptonlegal.com)
+**Status**: ✅ Implemented (2026-03-19)
+
+A DOCX complaint generator with dynamic parties, causes of action, and pronoun support:
+
+**Frontend** (`forms/complaint/`):
+- `index.html` - Two-page form (case info + causes of action)
+- `js/form-logic.js` - Dynamic parties, guardian logic, city filtering, sidebar preview, single-plaintiff field toggle
+- `js/form-submission.js` - Data collection + SSE streaming
+- `styles.css` - Two-column grid, sidebar styles
+
+**Backend**:
+- `routes/complaint.js` - API routes + SSE streaming
+- `services/complaint-document-generator.js` - DOCX generation via docxtemplater + PizZip
+- `data/causes-of-action.json` - 49 causes of action across 4 categories
+
+**Key Features**:
+- Dynamic plaintiff/defendant parties with guardian assignment for minors
+- 49 causes of action (General, Special, Los Angeles, Santa Monica) with sidebar preview
+- Move-in date and preferred pronouns (he/him, she/her) — visible only when exactly 1 Individual plaintiff
+- Pronoun placeholders in causes of action text (62 instances) resolved dynamically
+- Yellow-highlighted placeholder fallback in DOCX when fields unresolved (XML post-processing via PizZip)
+- Template variables: `<Date>`, `<Case Name>`, `<Property Address>`, `<Move In Date>`, `<Pronoun Subject>`, `<Pronoun Possessive>`, `<Pronoun Object>`, and more
+
+**Dependencies**: `docxtemplater`, `pizzip`
 
 ### 4. REST API Endpoints
 - `GET /` - Serve main form page
