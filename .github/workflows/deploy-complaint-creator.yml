@@ -19,6 +19,8 @@ on:
       - 'forms/complaint/**'
       - 'routes/complaint.js'
       - 'services/complaint-document-generator.js'
+      - 'templates/**'
+      - 'data/causes-of-action.json'
       - 'middleware/**'
       - 'monitoring/instrument.js'
       - 'server.js'
