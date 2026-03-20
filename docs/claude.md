@@ -192,21 +192,22 @@ A separate Cloud Run service (`exhibit-collector`) for assembling exhibit packag
 
 **Dependencies**: `sharp`, `multer`, `tesseract.js`, `pdf-lib`, `@google-cloud/storage`, `@google-cloud/run`, `@sendgrid/mail`, `mupdf`
 
-### Complaint Creator (complaint.liptonlegal.com)
-**Status**: ✅ Implemented (2026-03-19)
+### Complaint Creator (complaints.liptonlegal.com)
+**Status**: ✅ Implemented and deployed (2026-03-19)
 
 A DOCX complaint generator with dynamic parties, causes of action, and pronoun support:
 
 **Frontend** (`forms/complaint/`):
-- `index.html` - Two-page form (case info + causes of action)
+- `index.html` - Two-page form (case info + causes of action) with highlight warning modal
 - `js/form-logic.js` - Dynamic parties, guardian logic, city filtering, sidebar preview, single-plaintiff field toggle
-- `js/form-submission.js` - Data collection + SSE streaming
-- `styles.css` - Two-column grid, sidebar styles
+- `js/form-submission.js` - Data collection, SSE streaming, highlight warning modal logic
+- `styles.css` - Two-column grid, sidebar styles, highlight warning modal styles
 
 **Backend**:
-- `routes/complaint.js` - API routes + SSE streaming
+- `routes/complaint.js` - API routes + SSE streaming + causes of action endpoint
 - `services/complaint-document-generator.js` - DOCX generation via docxtemplater + PizZip
 - `data/causes-of-action.json` - 49 causes of action across 4 categories
+- `templates/Legal Complaint - Template.docx` - DOCX template with placeholder variables
 
 **Key Features**:
 - Dynamic plaintiff/defendant parties with guardian assignment for minors
@@ -214,7 +215,16 @@ A DOCX complaint generator with dynamic parties, causes of action, and pronoun s
 - Move-in date and preferred pronouns (he/him, she/her) — visible only when exactly 1 Individual plaintiff
 - Pronoun placeholders in causes of action text (62 instances) resolved dynamically
 - Yellow-highlighted placeholder fallback in DOCX when fields unresolved (XML post-processing via PizZip)
+- **Highlight warning modal**: intercepts Generate button when Move In Date or Pronouns fields are empty, explains yellow highlights before proceeding. Only appears when fields are visible and empty (not for multi-plaintiff or Minor-type scenarios).
 - Template variables: `<Date>`, `<Case Name>`, `<Property Address>`, `<Move In Date>`, `<Pronoun Subject>`, `<Pronoun Possessive>`, `<Pronoun Object>`, and more
+
+**Deployment**:
+- Separate Cloud Run service (`complaint-creator`, 1 vCPU / 1 GiB)
+- GitHub Actions workflow: `.github/workflows/deploy-complaint-creator.yml`
+- Auto-deploys on push to `main` when complaint-relevant paths change (forms/complaint/**, routes/complaint.js, services/complaint-document-generator.js, templates/**, data/causes-of-action.json)
+- Cloud Run domain mapping: `complaints.liptonlegal.com` via Cloudflare CNAME → `ghs.googlehosted.com`
+- Database: `complaint_entries`, `complaint_plaintiffs`, `complaint_defendants` tables (migration 004)
+- Password-protected form access via `COMPLAINT_FORM_PASSWORD` env var
 
 **Dependencies**: `docxtemplater`, `pizzip`
 
