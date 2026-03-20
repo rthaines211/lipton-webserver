@@ -225,6 +225,7 @@ class ComplaintDocumentGenerator {
                 lastName: formData[`plaintiff-${i}-last-name`] || '',
                 type: formData[`plaintiff-${i}-type`] || 'individual',
                 guardianIndex: formData[`plaintiff-${i}-guardian`] ? parseInt(formData[`plaintiff-${i}-guardian`]) : null,
+                unitNumber: formData[`plaintiff-${i}-unit`] || '',
             });
         }
 
