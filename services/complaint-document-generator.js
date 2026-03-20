@@ -355,8 +355,10 @@ class ComplaintDocumentGenerator {
         let modified = docXml;
 
         for (const placeholder of placeholders) {
+            // Convert to XML entities since DOCX XML encodes < and > as &lt; &gt;
+            const xmlEncoded = placeholder.replace(/</g, '&lt;').replace(/>/g, '&gt;');
             // Escape special regex characters in the placeholder text
-            const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const escaped = xmlEncoded.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
             // Match <w:r> elements containing the placeholder text in their <w:t> node.
             // Uses <w:r[^>]*> to match runs with or without attributes (e.g. w:rsidR="...").
