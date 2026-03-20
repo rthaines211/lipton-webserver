@@ -116,8 +116,12 @@ class ComplaintDocumentGenerator {
         const hasMoveInDate = singleIndividual && caseInfo.moveInDate;
         const hasPronouns = singleIndividual && pronounSelection;
 
-        // Build causes of action data (with pronoun replacement if resolved)
-        const pronounReplacements = hasPronouns ? pronounSelection : null;
+        // Build causes of action data — always replace pronoun tokens so docxtemplater
+        // never sees < > delimiters in cause text. When unresolved, use literal placeholder
+        // strings which applyYellowHighlight will find and highlight in the DOCX XML.
+        const pronounReplacements = hasPronouns
+            ? pronounSelection
+            : { subject: '<Pronoun Subject>', possessive: '<Pronoun Possessive>', object: '<Pronoun Object>' };
         const causesData = this.buildCausesOfActionData(causes, pronounReplacements);
         const causesList = this.buildCausesOfActionList(causes);
 
@@ -295,12 +299,10 @@ class ComplaintDocumentGenerator {
             });
 
             // Replace pronoun placeholders in cause text
-            if (pronounReplacements) {
-                body = body
-                    .replace(/<Pronoun Subject>/g, pronounReplacements.subject)
-                    .replace(/<Pronoun Possessive>/g, pronounReplacements.possessive)
-                    .replace(/<Pronoun Object>/g, pronounReplacements.object);
-            }
+            body = body
+                .replace(/<Pronoun Subject>/g, pronounReplacements.subject)
+                .replace(/<Pronoun Possessive>/g, pronounReplacements.possessive)
+                .replace(/<Pronoun Object>/g, pronounReplacements.object);
 
             // Split body into separate paragraphs for nested loop
             const bodyParagraphs = body.split('\n')
