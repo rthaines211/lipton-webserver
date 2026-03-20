@@ -13,7 +13,9 @@ Two changes to the complaint creator plaintiff handling:
 
 **File:** `forms/complaint/js/form-logic.js`
 
-In `updateGuardianSelects()`, when iterating other plaintiff blocks to build dropdown options, check the other plaintiff's type select value. Skip if type is `minor`. Only `individual` plaintiffs appear as guardian options.
+In `updateGuardianSelects()`, when iterating other plaintiff blocks to build dropdown options, read the other plaintiff's type select value via `otherBlock.querySelector([name="plaintiff-${otherNum}-type"]).value`. Skip if type is `minor`. Only `individual` plaintiffs appear as guardian options.
+
+**Guardian invalidation on type change:** When a plaintiff's type changes to `minor` (in `toggleGuardian()`), after updating the guardian selects, check all other minor plaintiffs' guardian dropdowns. If any currently selected guardian value points to the plaintiff that just became a minor, clear that selection (reset to `""`) so the user must re-select a valid adult guardian.
 
 ## 2. Unit Number Field — Form UI
 
@@ -29,7 +31,7 @@ In `updateGuardianSelects()`, when iterating other plaintiff blocks to build dro
   - Counts plaintiffs with type = `individual`
   - If 2+ individuals: show unit number input on each individual's block
   - If <2 individuals: hide/remove unit fields from all blocks
-- Called from: `addPlaintiff()`, `removePlaintiff()`, type change handler, `reindexPlaintiffs()`
+- Called from: `addPlaintiff()`, `removePlaintiff()`, inside `toggleGuardian()` (the existing type change handler), and `reindexPlaintiffs()`
 - Type change to `minor` → hide unit field on that block
 - Type change to `individual` → show unit field if threshold met
 
@@ -38,12 +40,13 @@ In `updateGuardianSelects()`, when iterating other plaintiff blocks to build dro
 - Contains a form-group with text input: `<input type="text" name="plaintiff-N-unit" placeholder="Unit #">`
 - Dynamic plaintiff blocks (added via JS) include the same container
 - Positioned after the three-col row (first name / last name / type), before the guardian container
+- **Reindexing:** `reindexPlaintiffs()` must update `plaintiff-N-unit` input name attributes in addition to existing fields
 
 ## 3. Data Collection
 
 **File:** `forms/complaint/js/form-submission.js`
 
-- `collectFormData()` picks up `plaintiff-N-unit` from each plaintiff block (value will be empty string for minors since they don't have the field)
+- `collectFormData()` queries `plaintiff-N-unit` via `block.querySelector([name="plaintiff-${num}-unit"])` for each plaintiff block, following the existing per-block querySelector pattern. If the element is absent (minors don't have it), the field is simply omitted from the data object.
 
 **File:** `services/complaint-document-generator.js`
 
@@ -85,7 +88,7 @@ ALICE SMITH, minor by and through Guardian Ad Litem, BOB SMITH
 ```
 
 ### Edge Cases
-- Minor with no guardian or guardian has no unit: placed in an "ungrouped" bucket, appended at the end
+- Minor with no guardian or guardian has no unit: placed in an "ungrouped" bucket, appended at the end in insertion order (adults first within the bucket). The "; and" rule still applies to the final entry across the entire list.
 - Single unit (all plaintiffs same unit number): grouped format still applies (adults first, "; and" before last)
 - No unit numbers present (1 individual or fields not shown): fall back to current flat format
 
