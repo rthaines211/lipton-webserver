@@ -104,6 +104,7 @@ class ComplaintDocumentGenerator {
         const defendantTypeDescriptors = {
             individual: 'an individual',
             corporate: 'a corporate entity',
+            llc: 'a limited liability company',
             government_entity: 'a government entity',
             trust: 'a trust',
             estate: 'an estate',
