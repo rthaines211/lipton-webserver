@@ -406,7 +406,8 @@
 
     const defendantPlaceholders = {
         individual: 'First and last name',
-        corporate: 'Corporation or LLC name',
+        corporate: 'Corporation name',
+        llc: 'LLC name',
         government_entity: 'Agency or department name',
         trust: 'Trust name',
         estate: 'Estate name',
@@ -445,6 +446,7 @@
                     <select name="defendant-${defendantCount}-type" onchange="window.complaintForm.updateDefendantPlaceholder(this)">
                         <option value="individual">Individual</option>
                         <option value="corporate">Corporate</option>
+                        <option value="llc">Limited Liability Company</option>
                         <option value="government_entity">Government Entity</option>
                         <option value="trust">Trust</option>
                         <option value="estate">Estate</option>
