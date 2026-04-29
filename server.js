@@ -463,6 +463,12 @@ app.use('/forms', express.static(path.join(__dirname, 'forms')));
 const pdfRoutes = require('./server/routes/pdf-routes');
 app.use('/api/pdf', pdfRoutes);
 
+// Mount Docmosis render proxy. Forwards authenticated requests to the
+// Tornado VM via its internal VPC address (DOCMOSIS_API_URL). Used by
+// the Railway-hosted Python pipeline for Phase 5 webhook delivery.
+const renderRoutes = require('./routes/render');
+app.use('/api/render', renderRoutes);
+
 // Initialize and mount form routes with helper function injection
 formRoutes.initializeRouter({
     saveFormData,
