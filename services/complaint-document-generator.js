@@ -709,8 +709,10 @@ class ComplaintDocumentGenerator {
             [/\bshe\b/g, 'they'],
             [/\bShe\b/g, 'They'],
             // Negative lookbehind for "[t]" or "[T]" preserves statutory quotes
-            [/(?<!\[t\])\bhe\b/g, 'they'],
-            [/(?<!\[T\])\bHe\b/g, 'They'],
+            // (the bracket letter case is independent of the pronoun case —
+            // "[T]he" and "[t]he" both occur in legal citations)
+            [/(?<!\[[tT]\])\bhe\b/g, 'they'],
+            [/(?<!\[[tT]\])\bHe\b/g, 'They'],
             [/\bhim\b/g, 'them'],
             [/\bHim\b/g, 'Them'],
         ];
