@@ -26,7 +26,7 @@ function makeFormData(plaintiffCount, opts = {}) {
         defendantCount: '1',
         'defendant-1-name': 'Bad Landlord LLC',
         'defendant-1-type': 'corporate',
-        causesOfAction: ['constructive-eviction'],
+        causesOfAction: ['constructive-eviction', 'statutory-breach-of-warranty-of-habitability', 'retaliatory-eviction'],
         ...opts.caseInfo,
     };
     const firstNames = ['Jane', 'John', 'Mary', 'Pat'];

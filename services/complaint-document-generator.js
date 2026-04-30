@@ -189,6 +189,9 @@ class ComplaintDocumentGenerator {
         // Pluralize "Plaintiff" → "Plaintiffs" throughout when multiple plaintiffs
         this.applyPluralization(doc.getZip(), validPlaintiffs.length);
 
+        // Pluralize singular pronouns (he/she/his/her/him → they/their/them) when multiple plaintiffs
+        this.applyPronounPluralization(doc.getZip(), validPlaintiffs.length);
+
         onProgress(70, 'Generating document...');
 
         const buf = doc.getZip().generate({
@@ -647,6 +650,91 @@ class ComplaintDocumentGenerator {
             /(PLAINTIFFS[’']<\/w:t><\/w:r>)<w:r\b[^>]*>(?:<w:rPr>[\s\S]*?<\/w:rPr>)?<w:t[^>]*>S<\/w:t><\/w:r>(\s*<w:r\b[^>]*>(?:<w:rPr>[\s\S]*?<\/w:rPr>)?<w:t[^>]*>\s*COMPLAINT)/g,
             '$1$2'
         );
+
+        zip.file('word/document.xml', xml);
+    }
+
+    /**
+     * Pluralize singular pronouns (he/she/his/her/him) to plural (they/their/them)
+     * throughout the rendered document when there are multiple plaintiffs.
+     * No-op for 1 plaintiff. Runs after applyPluralization().
+     *
+     * Operates on word/document.xml. Replacement order:
+     *   1. Phrase-level swaps ("his or her" → "their", etc.)
+     *   2. Object-pronoun allowlist (specific phrases where "her" is object)
+     *   3. Generic word-level swaps with [t]he exception
+     *   4. Verb-agreement follow-up ("they is" → "they are", etc.)
+     */
+    applyPronounPluralization(zip, plaintiffCount) {
+        if (plaintiffCount <= 1) return;
+
+        let xml = zip.file('word/document.xml').asText();
+
+        // GAP: zero-or-more whitespace, XML tags, or punctuation that may
+        // separate pronoun and verb across <w:r> runs. Same as applyPluralization.
+        const GAP = '(?:[\\s\\xA0]|<[^>]+>|&[a-zA-Z]+;|&#\\d+;|[.,;:()"\\u2018\\u2019\\u201C\\u201D])*?';
+
+        // 1. Phrase-level swaps — run first so word-level rules don't mangle them
+        const phraseRules = [
+            [/\bhis or her\b/g, 'their'],
+            [/\bHis or her\b/g, 'Their'],
+            [/\bhe or she\b/g, 'they'],
+            [/\bHe or she\b/g, 'They'],
+            [/\bhim or her\b/g, 'them'],
+            [/\bHim or her\b/g, 'Them'],
+        ];
+        for (const [pattern, replacement] of phraseRules) {
+            xml = xml.replace(pattern, replacement);
+        }
+
+        // 2. Object-pronoun allowlist — specific phrases where "her" is object,
+        //    not possessive. Default rule below sends "her" → "their", which
+        //    is wrong for these cases.
+        const objectRules = [
+            [/\bintimidating her\b/gi, (m) => m.replace(/her$/i, 'them')],
+            [/\bdenying her\b/gi, (m) => m.replace(/her$/i, 'them')],
+        ];
+        for (const [pattern, replacement] of objectRules) {
+            xml = xml.replace(pattern, replacement);
+        }
+
+        // 3. Generic word-level swaps. Possessive is dominant for "her" (40/42
+        //    in audit), so default to "their". `[t]he` is California legal
+        //    citation convention (§1942.5(h)) — exclude it from "he" matches.
+        const wordRules = [
+            [/\bher\b/g, 'their'],
+            [/\bHer\b/g, 'Their'],
+            [/\bhis\b/g, 'their'],
+            [/\bHis\b/g, 'Their'],
+            [/\bshe\b/g, 'they'],
+            [/\bShe\b/g, 'They'],
+            // Negative lookbehind for "[t]" or "[T]" preserves statutory quotes
+            [/(?<!\[t\])\bhe\b/g, 'they'],
+            [/(?<!\[T\])\bHe\b/g, 'They'],
+            [/\bhim\b/g, 'them'],
+            [/\bHim\b/g, 'Them'],
+        ];
+        for (const [pattern, replacement] of wordRules) {
+            xml = xml.replace(pattern, replacement);
+        }
+
+        // 4. Verb-agreement follow-up — fix "they is/has/was" produced by the
+        //    swaps. GAP-tolerant for split runs.
+        const verbRules = [
+            [new RegExp(`\\bthey(${GAP})has(${GAP})been\\b`, 'g'),
+                (m, g1, g2) => `they${g1}have${g2}been`],
+            [new RegExp(`\\bThey(${GAP})has(${GAP})been\\b`, 'g'),
+                (m, g1, g2) => `They${g1}have${g2}been`],
+            [new RegExp(`\\bthey(${GAP})is\\b`, 'g'), (m, g) => `they${g}are`],
+            [new RegExp(`\\bThey(${GAP})is\\b`, 'g'), (m, g) => `They${g}are`],
+            [new RegExp(`\\bthey(${GAP})was\\b`, 'g'), (m, g) => `they${g}were`],
+            [new RegExp(`\\bThey(${GAP})was\\b`, 'g'), (m, g) => `They${g}were`],
+            [new RegExp(`\\bthey(${GAP})has\\b`, 'g'), (m, g) => `they${g}have`],
+            [new RegExp(`\\bThey(${GAP})has\\b`, 'g'), (m, g) => `They${g}have`],
+        ];
+        for (const [pattern, replacement] of verbRules) {
+            xml = xml.replace(pattern, replacement);
+        }
 
         zip.file('word/document.xml', xml);
     }
