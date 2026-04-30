@@ -374,9 +374,8 @@
     function updateSinglePlaintiffFields() {
         const container = document.getElementById('single-plaintiff-fields');
         if (!container) return;
-        const typeSelects = document.querySelectorAll('#plaintiffs-container .party-block select[name$="-type"]');
-        const individualCount = Array.from(typeSelects).filter(s => s.value === 'individual').length;
-        container.style.display = individualCount === 1 ? '' : 'none';
+        const totalPlaintiffs = document.querySelectorAll('#plaintiffs-container .party-block').length;
+        container.style.display = totalPlaintiffs === 1 ? '' : 'none';
     }
 
     function updateUnitFields() {
