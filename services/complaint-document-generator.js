@@ -461,25 +461,56 @@ class ComplaintDocumentGenerator {
 
         for (const placeholder of placeholders) {
             const xmlEncoded = placeholder.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            const escaped = xmlEncoded.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-            // First try: placeholder is in a single <w:r> run (common case)
-            const singleRunPattern = new RegExp(
-                `(<w:r[^>]*>)\\s*(?:<w:rPr>([\\s\\S]*?)</w:rPr>)?\\s*(<w:t[^>]*>${escaped}</w:t>)`,
-                'g'
-            );
-
+            // First try: placeholder is in a single <w:r> run (common case).
+            // Use index-based location instead of a regex anchored at <w:r>:
+            // a non-greedy regex over <w:rPr>...</w:rPr> can span across
+            // unrelated runs and inject the highlight into the wrong <w:rPr>.
+            const HIGHLIGHT_TAG = '<w:highlight w:val="yellow"/>';
             let matched = false;
-            docXml = docXml.replace(singleRunPattern, (match, rOpen, existingRPr, tElement) => {
-                matched = true;
-                const highlightTag = '<w:highlight w:val="yellow"/>';
-                if (existingRPr !== undefined) {
-                    if (existingRPr.includes('w:highlight')) return match;
-                    return `${rOpen}<w:rPr>${existingRPr}${highlightTag}</w:rPr>${tElement}`;
-                } else {
-                    return `${rOpen}<w:rPr>${highlightTag}</w:rPr>${tElement}`;
+            let pos = 0;
+            while (true) {
+                const idx = docXml.indexOf(xmlEncoded, pos);
+                if (idx === -1) break;
+
+                // Walk backwards to the nearest <w:r ...> opening tag, but
+                // not across a </w:r> (would mean this <w:r> isn't ours).
+                const openSpace = docXml.lastIndexOf('<w:r ', idx);
+                const openClose = docXml.lastIndexOf('<w:r>', idx);
+                const runStart = Math.max(openSpace, openClose);
+                if (runStart === -1) { pos = idx + xmlEncoded.length; continue; }
+
+                const gap = docXml.slice(runStart, idx);
+                if (gap.includes('</w:r>')) { pos = idx + xmlEncoded.length; continue; }
+
+                const closeIdx = docXml.indexOf('</w:r>', idx);
+                if (closeIdx === -1) { pos = idx + xmlEncoded.length; continue; }
+                const runEnd = closeIdx + '</w:r>'.length;
+
+                const run = docXml.slice(runStart, runEnd);
+                if (run.includes('w:highlight')) {
+                    matched = true;
+                    pos = runEnd;
+                    continue;
                 }
-            });
+
+                let newRun;
+                if (run.includes('<w:rPr>')) {
+                    // Inject highlight into existing <w:rPr> (first one in run)
+                    newRun = run.replace('</w:rPr>', `${HIGHLIGHT_TAG}</w:rPr>`);
+                } else {
+                    // No <w:rPr> — insert one immediately after <w:r ...> open tag
+                    const openMatch = run.match(/^<w:r[^>]*>/);
+                    if (!openMatch) { pos = runEnd; continue; }
+                    newRun = run.slice(0, openMatch[0].length) +
+                             `<w:rPr>${HIGHLIGHT_TAG}</w:rPr>` +
+                             run.slice(openMatch[0].length);
+                }
+
+                docXml = docXml.slice(0, runStart) + newRun + docXml.slice(runEnd);
+                matched = true;
+                pos = runStart + newRun.length;
+            }
 
             // Fallback: placeholder is split across multiple <w:r> runs.
             // Find spans of consecutive runs whose combined text contains the placeholder,
