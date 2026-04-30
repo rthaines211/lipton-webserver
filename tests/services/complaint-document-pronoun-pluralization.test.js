@@ -60,4 +60,47 @@ describe('Complaint Document Pronoun Pluralization', () => {
             expect(text).not.toContain('their home');
         });
     });
+
+    describe('with 2 plaintiffs (Individuals)', () => {
+        let text;
+        beforeAll(async () => {
+            const result = await generator.generateComplaint(makeFormData(2));
+            text = extractText(result.outputPath);
+        });
+
+        test('possessive: "her home" → "their home"', () => {
+            expect(text).toContain('their home');
+            expect(text).not.toMatch(/\bher\s+home\b/);
+        });
+
+        test('possessive: "her tenancy" → "their tenancy"', () => {
+            expect(text).toContain('their tenancy');
+        });
+
+        test('phrase: "his or her tenancy" → "their tenancy"', () => {
+            expect(text).not.toMatch(/\bhis\s+or\s+her\b/);
+        });
+
+        test('subject: "she lived" → "they lived"', () => {
+            expect(text).toContain('they lived');
+            expect(text).not.toMatch(/\bshe\s+lived\b/);
+        });
+
+        test('object allowlist: "intimidating her" → "intimidating them"', () => {
+            // This phrase appears in some causes; assert no singular form remains
+            expect(text).not.toMatch(/\bintimidating\s+her\b/);
+        });
+
+        test('verb agreement after swap: no "they is" / "they has" / "they was"', () => {
+            expect(text).not.toMatch(/\bthey\s+is\b/);
+            expect(text).not.toMatch(/\bthey\s+has\b/);
+            expect(text).not.toMatch(/\bthey\s+was\b/);
+        });
+
+        test('preserves "[t]he" statutory citation (does not match \\bhe\\b)', () => {
+            // The §1942.5(h) quotation contains "[t]he remedies provided"
+            expect(text).toContain('[t]he remedies provided');
+            expect(text).not.toContain('[t]they remedies');
+        });
+    });
 });
