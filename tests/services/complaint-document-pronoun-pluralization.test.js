@@ -194,4 +194,37 @@ describe('Complaint Document Pronoun Pluralization', () => {
             expect(out).toContain('their tenancy');
         });
     });
+
+    describe('[t]he statutory citation preservation', () => {
+        function applyAndExtract(inputXml, count = 2) {
+            const fakeZip = {
+                file: (_name, content) => {
+                    if (content !== undefined) { fakeZip._content = content; return; }
+                    return { asText: () => fakeZip._content };
+                },
+                _content: inputXml,
+            };
+            const gen = new ComplaintDocumentGenerator();
+            gen.applyPronounPluralization(fakeZip, count);
+            return fakeZip._content;
+        }
+
+        test('"[t]he remedies" preserved verbatim', () => {
+            const xml = '<w:t>[t]he remedies provided by</w:t>';
+            const out = applyAndExtract(xml);
+            expect(out).toContain('[t]he remedies provided by');
+        });
+
+        test('"[T]he" capitalized variant preserved', () => {
+            const xml = '<w:t>[T]he tenant</w:t>';
+            const out = applyAndExtract(xml);
+            expect(out).toContain('[T]he tenant');
+        });
+
+        test('standalone "he" still pluralized', () => {
+            const xml = '<w:t>and he is liable</w:t>';
+            const out = applyAndExtract(xml);
+            expect(out).toContain('they are liable');
+        });
+    });
 });
