@@ -127,16 +127,23 @@ class ComplaintDocumentGenerator {
         };
 
         const singlePlaintiff = validPlaintiffs.length === 1;
+        const multiPlaintiff = validPlaintiffs.length > 1;
         const pronounSelection = pronounMap[caseInfo.pronouns];
         const hasMoveInDate = singlePlaintiff && caseInfo.moveInDate;
         const hasPronouns = singlePlaintiff && pronounSelection;
 
-        // Build causes of action data — always replace pronoun tokens so docxtemplater
-        // never sees < > delimiters in cause text. When unresolved, use literal placeholder
-        // strings which applyYellowHighlight will find and highlight in the DOCX XML.
+        // Resolve pronoun replacements:
+        //   - Single plaintiff with pronouns selected: use he/his/him or she/her/her
+        //   - Multiple plaintiffs: use they/their/them (always grammatically correct for plural)
+        //   - Single plaintiff without pronouns selected: literal placeholder, yellow-highlighted
+        const pluralPronouns = { subject: 'they', possessive: 'their', object: 'them' };
+        const placeholderPronouns = { subject: '<Pronoun Subject>', possessive: '<Pronoun Possessive>', object: '<Pronoun Object>' };
         const pronounReplacements = hasPronouns
             ? pronounSelection
-            : { subject: '<Pronoun Subject>', possessive: '<Pronoun Possessive>', object: '<Pronoun Object>' };
+            : multiPlaintiff
+                ? pluralPronouns
+                : placeholderPronouns;
+
         const causesData = this.buildCausesOfActionData(causes, pronounReplacements);
         const causesList = this.buildCausesOfActionList(causes);
 
@@ -144,9 +151,9 @@ class ComplaintDocumentGenerator {
             ? new Date(caseInfo.moveInDate + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
             : '<Move In Date>';
 
-        const pronounSubjectValue = hasPronouns ? pronounSelection.subject : '<Pronoun Subject>';
-        const pronounPossessiveValue = hasPronouns ? pronounSelection.possessive : '<Pronoun Possessive>';
-        const pronounObjectValue = hasPronouns ? pronounSelection.object : '<Pronoun Object>';
+        const pronounSubjectValue = pronounReplacements.subject;
+        const pronounPossessiveValue = pronounReplacements.possessive;
+        const pronounObjectValue = pronounReplacements.object;
 
         const templateData = {
             'Date': this.formatDateOrdinal(new Date()),
@@ -170,9 +177,12 @@ class ComplaintDocumentGenerator {
 
         doc.render(templateData);
 
+        // Highlight unresolved placeholders. For multi-plaintiff, pronouns are
+        // resolved to plural forms (they/their/them) so no highlight needed.
+        // Only single-plaintiff WITHOUT pronouns selected keeps yellow placeholders.
         const highlightPlaceholders = [];
         if (!hasMoveInDate) highlightPlaceholders.push('<Move In Date>');
-        if (!hasPronouns) {
+        if (singlePlaintiff && !hasPronouns) {
             highlightPlaceholders.push('<Pronoun Subject>');
             highlightPlaceholders.push('<Pronoun Possessive>');
             highlightPlaceholders.push('<Pronoun Object>');
