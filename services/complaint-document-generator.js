@@ -691,8 +691,8 @@ class ComplaintDocumentGenerator {
         //    not possessive. Default rule below sends "her" → "their", which
         //    is wrong for these cases.
         const objectRules = [
-            [/\bintimidating her\b/gi, (m) => m.replace(/her$/i, 'them')],
-            [/\bdenying her\b/gi, (m) => m.replace(/her$/i, 'them')],
+            [/\bintimidating her\b/g, 'intimidating them'],
+            [/\bdenying her\b/g, 'denying them'],
         ];
         for (const [pattern, replacement] of objectRules) {
             xml = xml.replace(pattern, replacement);
@@ -721,16 +721,14 @@ class ComplaintDocumentGenerator {
         // 4. Verb-agreement follow-up — fix "they is/has/was" produced by the
         //    swaps. GAP-tolerant for split runs.
         const verbRules = [
-            [new RegExp(`\\bthey(${GAP})has(${GAP})been\\b`, 'g'),
-                (m, g1, g2) => `they${g1}have${g2}been`],
-            [new RegExp(`\\bThey(${GAP})has(${GAP})been\\b`, 'g'),
-                (m, g1, g2) => `They${g1}have${g2}been`],
-            [new RegExp(`\\bthey(${GAP})is\\b`, 'g'), (m, g) => `they${g}are`],
-            [new RegExp(`\\bThey(${GAP})is\\b`, 'g'), (m, g) => `They${g}are`],
-            [new RegExp(`\\bthey(${GAP})was\\b`, 'g'), (m, g) => `they${g}were`],
-            [new RegExp(`\\bThey(${GAP})was\\b`, 'g'), (m, g) => `They${g}were`],
-            [new RegExp(`\\bthey(${GAP})has\\b`, 'g'), (m, g) => `they${g}have`],
-            [new RegExp(`\\bThey(${GAP})has\\b`, 'g'), (m, g) => `They${g}have`],
+            [new RegExp(`\\bthey(${GAP})has(${GAP})been\\b`, 'g'), 'they$1have$2been'],
+            [new RegExp(`\\bThey(${GAP})has(${GAP})been\\b`, 'g'), 'They$1have$2been'],
+            [new RegExp(`\\bthey(${GAP})is\\b`, 'g'), 'they$1are'],
+            [new RegExp(`\\bThey(${GAP})is\\b`, 'g'), 'They$1are'],
+            [new RegExp(`\\bthey(${GAP})was\\b`, 'g'), 'they$1were'],
+            [new RegExp(`\\bThey(${GAP})was\\b`, 'g'), 'They$1were'],
+            [new RegExp(`\\bthey(${GAP})has\\b`, 'g'), 'they$1have'],
+            [new RegExp(`\\bThey(${GAP})has\\b`, 'g'), 'They$1have'],
         ];
         for (const [pattern, replacement] of verbRules) {
             xml = xml.replace(pattern, replacement);
