@@ -103,7 +103,7 @@ class ComplaintDocumentGenerator {
         // Type descriptor map
         const defendantTypeDescriptors = {
             individual: 'an individual',
-            corporate: 'a corporate entity',
+            corporate: 'a corporation',
             llc: 'a limited liability company',
             government_entity: 'a government entity',
             trust: 'a trust',
