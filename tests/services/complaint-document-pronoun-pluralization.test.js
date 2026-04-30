@@ -124,4 +124,42 @@ describe('Complaint Document Pronoun Pluralization', () => {
             expect(text).toContain('PLAINTIFFS');
         });
     });
+
+    describe('capitalized variants (sentence-start)', () => {
+        // Use applyPronounPluralization directly via a mock zip to test edge
+        // cases the canned causes don't necessarily exercise.
+        function applyAndExtract(inputXml, count = 2) {
+            const fakeZip = {
+                file: (_name, content) => {
+                    if (content !== undefined) { fakeZip._content = content; return; }
+                    return { asText: () => fakeZip._content };
+                },
+                _content: inputXml,
+            };
+            const gen = new ComplaintDocumentGenerator();
+            gen.applyPronounPluralization(fakeZip, count);
+            return fakeZip._content;
+        }
+
+        test('"She has" → "They have"', () => {
+            const out = applyAndExtract('<w:t>She has standing.</w:t>');
+            expect(out).toContain('They have standing.');
+            expect(out).not.toContain('She has');
+        });
+
+        test('"He is" → "They are"', () => {
+            const out = applyAndExtract('<w:t>He is a tenant.</w:t>');
+            expect(out).toContain('They are a tenant.');
+        });
+
+        test('"His or her" → "Their"', () => {
+            const out = applyAndExtract('<w:t>His or her tenancy.</w:t>');
+            expect(out).toContain('Their tenancy.');
+        });
+
+        test('count=1 is no-op (preserves singular)', () => {
+            const out = applyAndExtract('<w:t>She has standing.</w:t>', 1);
+            expect(out).toContain('She has standing.');
+        });
+    });
 });
