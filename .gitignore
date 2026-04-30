@@ -156,3 +156,6 @@ google-cloud-sdk/
 
 # Cloud SQL Proxy
 cloud-sql-proxy
+
+# Locally generated documents (test/dev output)
+generated-documents/

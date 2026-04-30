@@ -186,6 +186,9 @@ class ComplaintDocumentGenerator {
             this.applyYellowHighlight(doc.getZip(), highlightPlaceholders);
         }
 
+        // Pluralize "Plaintiff" → "Plaintiffs" throughout when multiple plaintiffs
+        this.applyPluralization(doc.getZip(), validPlaintiffs.length);
+
         onProgress(70, 'Generating document...');
 
         const buf = doc.getZip().generate({
@@ -523,6 +526,129 @@ class ComplaintDocumentGenerator {
         }
 
         zip.file('word/document.xml', docXml);
+    }
+
+    /**
+     * Pluralize "Plaintiff" → "Plaintiffs" (and matching verbs) throughout the
+     * rendered document when there are multiple plaintiffs. No-op for 1 plaintiff.
+     *
+     * Operates on word/document.xml. Substitutions tolerate XML tags between
+     * words (template runs are often split mid-phrase: "PLAINTIFF" in one
+     * <w:r>, "is" in the next). The "gap" pattern `(?:[\s\S]*?)?` allows any
+     * intervening XML between the noun and its verb, but a leading word
+     * boundary on the noun and a trailing word boundary on the verb keep the
+     * match scoped tightly.
+     *
+     * Skips the pattern "Plaintiff <CapitalizedName>" so named singular
+     * references in cause-of-action text (e.g. "Plaintiff Dakora Robinson")
+     * stay singular.
+     */
+    applyPluralization(zip, plaintiffCount) {
+        if (plaintiffCount <= 1) return;
+
+        let xml = zip.file('word/document.xml').asText();
+
+        // GAP: zero-or-more whitespace, XML tags, or punctuation that may
+        // separate a subject and its verb across <w:r> runs. Excludes letters
+        // and digits so we can't bridge unrelated sentences. Non-greedy.
+        const GAP = '(?:[\\s\\xA0]|<[^>]+>|&[a-zA-Z]+;|&#\\d+;|[.,;:()"\\u2018\\u2019\\u201C\\u201D])*?';
+
+        // 1. Verb-agreement substitutions FIRST so the residual "Plaintiff" in
+        //    these sentences is then converted by the word-form rules.
+        //    Each rule allows XML/whitespace gap between the subject and verb.
+        const verbRules = [
+            // "COMES NOW Plaintiff" can have XML between COMES/NOW/Plaintiff
+            [new RegExp(`\\bCOMES${GAP}NOW${GAP}Plaintiff\\b`, 'g'), 'COME NOW Plaintiffs'],
+            [new RegExp(`\\bComes${GAP}now${GAP}Plaintiff\\b`, 'g'), 'Come now Plaintiffs'],
+            // "Plaintiff has been" / "PLAINTIFF has been"
+            [new RegExp(`\\bPlaintiff(${GAP})has(${GAP})been\\b`, 'g'), 'Plaintiffs$1have$2been'],
+            [new RegExp(`\\bPLAINTIFF(${GAP})has(${GAP})been\\b`, 'g'), 'PLAINTIFFS$1have$2been'],
+            // "Plaintiff is" / "PLAINTIFF is"
+            [new RegExp(`\\bPlaintiff(${GAP})is\\b`, 'g'), 'Plaintiffs$1are'],
+            [new RegExp(`\\bPLAINTIFF(${GAP})is\\b`, 'g'), 'PLAINTIFFS$1are'],
+            // "Plaintiff was"
+            [new RegExp(`\\bPlaintiff(${GAP})was\\b`, 'g'), 'Plaintiffs$1were'],
+            [new RegExp(`\\bPLAINTIFF(${GAP})was\\b`, 'g'), 'PLAINTIFFS$1were'],
+            // "Plaintiff has" (after "has been" rule already matched)
+            [new RegExp(`\\bPlaintiff(${GAP})has\\b`, 'g'), 'Plaintiffs$1have'],
+            [new RegExp(`\\bPLAINTIFF(${GAP})has\\b`, 'g'), 'PLAINTIFFS$1have'],
+        ];
+        for (const [pattern, replacement] of verbRules) {
+            xml = xml.replace(pattern, replacement);
+        }
+
+        // 2. Word-form substitutions. Order matters: possessive forms before
+        //    base. Mixed-case base form excludes "Plaintiff <CapitalizedName>"
+        //    so named singular references stay singular (e.g. "Plaintiff
+        //    Dakora Robinson"). Handles straight ('), curly (’), and XML-
+        //    encoded (&apos;) apostrophes.
+        const wordRules = [
+            [/\bPlaintiff’s\b/g, 'Plaintiffs’'],
+            [/\bPlaintiff's\b/g, "Plaintiffs'"],
+            [/\bPlaintiff&apos;s\b/g, 'Plaintiffs&apos;'],
+            [/\bPLAINTIFF’S\b/g, 'PLAINTIFFS’'],
+            [/\bPLAINTIFF'S\b/g, "PLAINTIFFS'"],
+            [/\bPLAINTIFF&apos;S\b/g, 'PLAINTIFFS&apos;'],
+            // Skip "Plaintiff <CapitalizedName>" — named singular references
+            [/\bPlaintiff\b(?!s)(?!\s+[A-Z][a-z])/g, 'Plaintiffs'],
+            // Uppercase form (no named-plaintiff exclusion needed: cause text
+            // never has all-caps named references like "PLAINTIFF DAKORA").
+            [/\bPLAINTIFF\b(?!S)/g, 'PLAINTIFFS'],
+        ];
+        for (const [pattern, replacement] of wordRules) {
+            xml = xml.replace(pattern, replacement);
+        }
+
+        // 2b. Subject-verb agreement fixes that emerge AFTER pluralization.
+        //     The cause-of-action text and template both contain singular
+        //     verbs that need plural forms when the new subject is plural.
+        const followUpVerbRules = [
+            // "are and has" / "are and has been" — template phrase
+            // "PLAINTIFF is and has been a tenant" gets pluralized to
+            // "PLAINTIFFS are and has been..." which needs "have" not "has".
+            // The "has" is sometimes split across runs from "been" so rewrite
+            // "are and has" directly (ungrammatical regardless).
+            [new RegExp(`\\bare${GAP}and${GAP}has\\b`, 'g'), 'are and have'],
+            // After "Plaintiffs" / "PLAINTIFFS", common singular verbs from
+            // cause-of-action text. Allow XML/whitespace gap between subject
+            // and verb so split runs are still matched.
+            [new RegExp(`\\b(Plaintiffs|PLAINTIFFS)(${GAP})hereby${GAP}incorporates\\b`, 'g'),
+                (m, subj, gap) => `${subj}${gap}hereby incorporate`],
+            [new RegExp(`\\b(Plaintiffs|PLAINTIFFS)(${GAP})incorporates\\b`, 'g'),
+                (m, subj, gap) => `${subj}${gap}incorporate`],
+            [new RegExp(`\\b(Plaintiffs|PLAINTIFFS)(${GAP})demands\\b`, 'g'),
+                (m, subj, gap) => `${subj}${gap}demand`],
+            [new RegExp(`\\b(Plaintiffs|PLAINTIFFS)(${GAP})prays\\b`, 'g'),
+                (m, subj, gap) => `${subj}${gap}pray`],
+            [new RegExp(`\\b(Plaintiffs|PLAINTIFFS)(${GAP})seeks\\b`, 'g'),
+                (m, subj, gap) => `${subj}${gap}seek`],
+            [new RegExp(`\\b(Plaintiffs|PLAINTIFFS)(${GAP})alleges\\b`, 'g'),
+                (m, subj, gap) => `${subj}${gap}allege`],
+            [new RegExp(`\\b(Plaintiffs|PLAINTIFFS)(${GAP})asserts\\b`, 'g'),
+                (m, subj, gap) => `${subj}${gap}assert`],
+            [new RegExp(`\\b(Plaintiffs|PLAINTIFFS)(${GAP})repeats\\b`, 'g'),
+                (m, subj, gap) => `${subj}${gap}repeat`],
+            // "Plaintiffs ... and believes" — the second verb of a compound
+            // is also singular in source text.
+            [/\band\s+believes\b/g, 'and believe'],
+            // "Plaintiffs ... and brings" — template "and brings this action"
+            [/\band\s+brings\b/g, 'and bring'],
+        ];
+        for (const [pattern, replacement] of followUpVerbRules) {
+            xml = xml.replace(pattern, replacement);
+        }
+
+        // 3. Template oddity fix: the original DOCX has "PLAINTIFF'" (run end)
+        //    followed by a separate "S" run, then " COMPLAINT". After the
+        //    above rules, that becomes "PLAINTIFFS'" + "S" + " COMPLAINT" =
+        //    "PLAINTIFFS'S COMPLAINT". Strip the orphan S run that sits
+        //    immediately between "PLAINTIFFS'" and " COMPLAINT".
+        xml = xml.replace(
+            /(PLAINTIFFS[’']<\/w:t><\/w:r>)<w:r\b[^>]*>(?:<w:rPr>[\s\S]*?<\/w:rPr>)?<w:t[^>]*>S<\/w:t><\/w:r>(\s*<w:r\b[^>]*>(?:<w:rPr>[\s\S]*?<\/w:rPr>)?<w:t[^>]*>\s*COMPLAINT)/g,
+            '$1$2'
+        );
+
+        zip.file('word/document.xml', xml);
     }
 
     /**
