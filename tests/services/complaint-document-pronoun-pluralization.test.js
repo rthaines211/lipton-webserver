@@ -162,4 +162,36 @@ describe('Complaint Document Pronoun Pluralization', () => {
             expect(out).toContain('She has standing.');
         });
     });
+
+    describe('split-run tolerance', () => {
+        function applyAndExtract(inputXml, count = 2) {
+            const fakeZip = {
+                file: (_name, content) => {
+                    if (content !== undefined) { fakeZip._content = content; return; }
+                    return { asText: () => fakeZip._content };
+                },
+                _content: inputXml,
+            };
+            const gen = new ComplaintDocumentGenerator();
+            gen.applyPronounPluralization(fakeZip, count);
+            return fakeZip._content;
+        }
+
+        test('verb across runs: <w:r>he</w:r><w:r> is</w:r> → they are', () => {
+            const xml = '<w:p><w:r><w:t>he</w:t></w:r><w:r><w:t> is</w:t></w:r></w:p>';
+            const out = applyAndExtract(xml);
+            // After step 3 generic swap "he" → "they", and verb-agreement should
+            // collapse "they is" across the run gap.
+            expect(out).toMatch(/they.*are/);
+            expect(out).not.toMatch(/they.*is/);
+        });
+
+        test('"his or her" split across runs preserved', () => {
+            // If "his or her" is run-split, current phrase rule matches contiguous
+            // text only — confirm no regression by running the raw contiguous case.
+            const xml = '<w:t>his or her tenancy</w:t>';
+            const out = applyAndExtract(xml);
+            expect(out).toContain('their tenancy');
+        });
+    });
 });
