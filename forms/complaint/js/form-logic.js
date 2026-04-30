@@ -66,6 +66,15 @@
 
     // ======================== City Filtering ========================
 
+    // Cities that are part of LA jurisdiction (use LA-specific causes of action)
+    const LA_CITIES = [
+        'Los Angeles',
+        'Woodland Hills', 'Encino', 'Tarzana', 'Reseda', 'Van Nuys',
+        'North Hollywood', 'Studio City', 'Sherman Oaks', 'Pacoima', 'Chatsworth',
+        'Pacific Palisades', 'Venice', 'Playa del Rey', 'Playa Vista',
+        'San Pedro', 'Wilmington', 'Eagle Rock', 'Highland Park',
+    ];
+
     function handleCityChange() {
         const city = document.getElementById('city').value;
         const citySection = document.getElementById('causes-city-section');
@@ -83,7 +92,7 @@
             });
         });
 
-        if (city === 'Los Angeles') {
+        if (LA_CITIES.includes(city)) {
             citySection.style.display = '';
             cityTitle.textContent = 'Los Angeles';
             cityName.textContent = 'Los Angeles';
