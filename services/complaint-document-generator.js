@@ -126,11 +126,10 @@ class ComplaintDocumentGenerator {
             female: { subject: 'she', possessive: 'her', object: 'her' },
         };
 
-        const individualPlaintiffs = plaintiffs.filter(p => p.type === 'individual');
-        const singleIndividual = individualPlaintiffs.length === 1;
+        const singlePlaintiff = validPlaintiffs.length === 1;
         const pronounSelection = pronounMap[caseInfo.pronouns];
-        const hasMoveInDate = singleIndividual && caseInfo.moveInDate;
-        const hasPronouns = singleIndividual && pronounSelection;
+        const hasMoveInDate = singlePlaintiff && caseInfo.moveInDate;
+        const hasPronouns = singlePlaintiff && pronounSelection;
 
         // Build causes of action data — always replace pronoun tokens so docxtemplater
         // never sees < > delimiters in cause text. When unresolved, use literal placeholder

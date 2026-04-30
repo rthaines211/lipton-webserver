@@ -227,4 +227,25 @@ describe('Complaint Document Pronoun Pluralization', () => {
             expect(out).toContain('they are liable');
         });
     });
+
+    describe('1 plaintiff resolves pronouns + move-in date (regression)', () => {
+        let text;
+        beforeAll(async () => {
+            const data = makeFormData(1);
+            data['pronouns'] = 'female';
+            data['move-in-date'] = '2020-05-01';
+            const result = await generator.generateComplaint(data);
+            text = extractText(result.outputPath);
+        });
+
+        test('move-in date is resolved (not placeholder)', () => {
+            expect(text).toContain('May 1, 2020');
+            expect(text).not.toContain('<Move In Date>');
+        });
+
+        test('pronouns are resolved (not placeholder)', () => {
+            expect(text).not.toContain('<Pronoun Subject>');
+            expect(text).not.toContain('<Pronoun Possessive>');
+        });
+    });
 });
