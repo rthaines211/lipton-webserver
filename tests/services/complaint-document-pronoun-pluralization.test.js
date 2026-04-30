@@ -103,4 +103,25 @@ describe('Complaint Document Pronoun Pluralization', () => {
             expect(text).not.toContain('[t]they remedies');
         });
     });
+
+    describe('with 1 Individual + 1 Minor (2 plaintiffs total)', () => {
+        let text;
+        beforeAll(async () => {
+            const data = makeFormData(2, {
+                types: ['individual', 'minor'],
+                guardians: [null, 1],
+            });
+            const result = await generator.generateComplaint(data);
+            text = extractText(result.outputPath);
+        });
+
+        test('pluralizes pronouns (total > 1)', () => {
+            expect(text).not.toMatch(/\bher\s+home\b/);
+            expect(text).toContain('their home');
+        });
+
+        test('pluralizes "Plaintiff" (existing behavior, regression check)', () => {
+            expect(text).toContain('PLAINTIFFS');
+        });
+    });
 });
