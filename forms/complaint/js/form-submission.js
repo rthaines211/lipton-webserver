@@ -92,6 +92,10 @@
         // Case info
         data['case-name'] = document.getElementById('case-name').value;
         data['property-address'] = document.getElementById('property-address').value;
+        data['property-unit'] = document.getElementById('property-unit').value;
+        data['property-city'] = document.getElementById('property-city').value;
+        data['property-state'] = document.getElementById('property-state').value;
+        data['property-zip'] = document.getElementById('property-zip').value;
         data['case-number'] = document.getElementById('case-number').value;
         data['filing-date'] = document.getElementById('filing-date').value;
         data['city'] = document.getElementById('city').value;
