@@ -235,10 +235,36 @@ class ComplaintDocumentGenerator {
     /**
      * Parse raw form data into structured objects
      */
+    /**
+     * Compose a normalized property address string from structured form fields.
+     * Format: "123 Main St, Apt 4B, Los Angeles, CA 90001"
+     * Falls back to the legacy single-field input when structured fields are absent.
+     */
+    composePropertyAddress(formData) {
+        const street = (formData['property-address'] || formData.propertyAddress || '').trim();
+        const unit = (formData['property-unit'] || '').trim();
+        const city = (formData['property-city'] || '').trim();
+        const state = (formData['property-state'] || '').trim().toUpperCase();
+        const zip = (formData['property-zip'] || '').trim();
+
+        // Legacy fallback: if no structured fields are present, treat the
+        // street value as the entire pre-composed address.
+        if (!city && !state && !zip && !unit) return street;
+
+        const parts = [];
+        if (street) parts.push(street);
+        if (unit) parts.push(unit);
+        const stateZip = [state, zip].filter(Boolean).join(' ');
+        const cityStateZip = [city, stateZip].filter(Boolean).join(', ');
+        if (cityStateZip) parts.push(cityStateZip);
+        return parts.join(', ');
+    }
+
     parseFormData(formData) {
+        const propertyAddress = this.composePropertyAddress(formData);
         const caseInfo = {
             caseName: formData['case-name'] || formData.caseName || '',
-            propertyAddress: formData['property-address'] || formData.propertyAddress || '',
+            propertyAddress,
             caseNumber: formData['case-number'] || formData.caseNumber || '',
             filingDate: formData['filing-date'] || formData.filingDate || '',
             city: formData['city'] || '',
