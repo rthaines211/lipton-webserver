@@ -5072,12 +5072,12 @@
                         <div class="form-group">
                             <label>Head of Household</label>
                             <div class="radio-group inline">
-                                <div class="radio-item" onclick="selectRadio('plaintiff-${plaintiffCounter}-head-yes')">
-                                    <input type="radio" id="plaintiff-${plaintiffCounter}-head-yes" name="plaintiff-${plaintiffCounter}-head" value="yes" onchange="toggleHouseholdUnit(${plaintiffCounter}, this.value)">
+                                <div class="radio-item ${plaintiffCounter === 1 ? 'selected' : ''}" onclick="selectRadio('plaintiff-${plaintiffCounter}-head-yes')">
+                                    <input type="radio" id="plaintiff-${plaintiffCounter}-head-yes" name="plaintiff-${plaintiffCounter}-head" value="yes" ${plaintiffCounter === 1 ? 'checked' : ''} onchange="toggleHouseholdUnit(${plaintiffCounter}, this.value)">
                                     <label for="plaintiff-${plaintiffCounter}-head-yes">Yes</label>
                                 </div>
-                                <div class="radio-item" onclick="selectRadio('plaintiff-${plaintiffCounter}-head-no')">
-                                    <input type="radio" id="plaintiff-${plaintiffCounter}-head-no" name="plaintiff-${plaintiffCounter}-head" value="no" checked onchange="toggleHouseholdUnit(${plaintiffCounter}, this.value)">
+                                <div class="radio-item ${plaintiffCounter === 1 ? '' : 'selected'}" onclick="selectRadio('plaintiff-${plaintiffCounter}-head-no')">
+                                    <input type="radio" id="plaintiff-${plaintiffCounter}-head-no" name="plaintiff-${plaintiffCounter}-head" value="no" ${plaintiffCounter === 1 ? '' : 'checked'} onchange="toggleHouseholdUnit(${plaintiffCounter}, this.value)">
                                     <label for="plaintiff-${plaintiffCounter}-head-no">No</label>
                                 </div>
                             </div>
@@ -5101,6 +5101,11 @@
             container.appendChild(plaintiffDiv);
             initializeRepeatableSection(plaintiffDiv);
             initializeValidation(plaintiffDiv);
+            // First plaintiff defaults to Head of Household — reveal the
+            // household-information section the same way a manual click would.
+            if (plaintiffCounter === 1 && typeof toggleHouseholdUnit === 'function') {
+                toggleHouseholdUnit(plaintiffCounter, 'yes');
+            }
             updateSummaryPanel();
         }
 
@@ -7751,7 +7756,7 @@
     <script src="../shared/js/progress-state.js?v=2"></script>
     <script src="../shared/js/sse-client.js?v=5"></script>
     <script src="../shared/js/sse-manager.js?v=2"></script>
-    <script src="js/document-regeneration.js?v=1"></script>
+    <script src="/js/document-regeneration.js?v=1"></script>
     <script src="js/form-submission.js?v=15"></script>
 </body>
 </html>
