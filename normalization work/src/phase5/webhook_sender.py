@@ -208,11 +208,19 @@ def send_set_to_webhook(
         return output_path
 
     try:
+        # Build request headers. The node-server /api/render proxy is gated
+        # by Bearer-token auth (middleware/auth.js); pass the configured
+        # access_key in the Authorization header so requests aren't rejected
+        # with HTTP 401 before reaching the upstream Tornado renderer.
+        headers = {'Content-Type': 'application/json'}
+        if access_key:
+            headers['Authorization'] = f'Bearer {access_key}'
+
         # Send POST request
         response = requests.post(
             webhook_url,
             json=payload,
-            headers={'Content-Type': 'application/json'},
+            headers=headers,
             timeout=timeout
         )
 
