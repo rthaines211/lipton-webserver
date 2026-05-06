@@ -62,6 +62,19 @@ function hasChildPlaintiffs() {
 }
 
 /**
+ * Check whether at least one plaintiff is designated Head of Household.
+ * The Python pipeline rejects submissions with zero HoH plaintiffs
+ * (DatasetBuildError: HoH validation failed), so we block submit here.
+ * @returns {boolean} True if at least one plaintiff has head=yes selected
+ */
+function hasHeadOfHousehold() {
+    const headYesRadios = document.querySelectorAll(
+        'input[type="radio"][name*="plaintiff-"][name$="-head"][value="yes"]:checked'
+    );
+    return headYesRadios.length > 0;
+}
+
+/**
  * Show/hide CIV-010 checkbox based on whether child plaintiffs exist
  */
 function updateCiv010Visibility() {
@@ -96,6 +109,13 @@ function showReviewScreen() {
             alert('Please fix all validation errors before submitting.');
             return;
         }
+    }
+
+    // Block submission if no plaintiff is marked Head of Household —
+    // the pipeline rejects these with a 500 error otherwise.
+    if (!hasHeadOfHousehold()) {
+        alert('At least one plaintiff must be designated as Head of Household. Please select "Yes" under "Head of Household" for the appropriate plaintiff.');
+        return;
     }
 
     // Get the confirmation modal
