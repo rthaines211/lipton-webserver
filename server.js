@@ -459,6 +459,12 @@ app.use('/forms/complaint', createPasswordAuth('complaint'));
 // Serve static files from forms directory structure (after password auth)
 app.use('/forms', express.static(path.join(__dirname, 'forms')));
 
+// Serve shared JS modules (e.g. document-regeneration.js) referenced by
+// the docs form via root-relative paths like /js/document-regeneration.js.
+// Not password-gated: by the time the browser requests these, the page
+// loading them has already authenticated against /forms/docs.
+app.use('/js', express.static(path.join(__dirname, 'js')));
+
 // Mount PDF generation routes
 const pdfRoutes = require('./server/routes/pdf-routes');
 app.use('/api/pdf', pdfRoutes);
