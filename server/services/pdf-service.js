@@ -232,7 +232,7 @@ async function generatePDF(formData, jobId, options = {}) {
     // Phase 6: Save PDF to buffer (90% progress)
     updateProgress(jobId, 'saving', 90, 'Saving PDF...', options.progressCallback);
 
-    const pdfBytes = await pdfDoc.save();
+    const pdfBytes = await pdfDoc.save({ updateFieldAppearances: false });
     const pdfBuffer = Buffer.from(pdfBytes);
 
     const executionTime = Date.now() - startTime;
