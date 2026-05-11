@@ -23,7 +23,7 @@
  * @module server/services/pdf-service
  */
 
-const { PDFDocument } = require('pdf-lib');
+const { PDFDocument, PDFName, PDFBool } = require('pdf-lib');
 const fs = require('fs').promises;
 const path = require('path');
 const { exec } = require('child_process');
@@ -87,8 +87,8 @@ async function generatePdfWithPdftk(templatePath, fieldValues, jobId) {
 
     logger.info('FDF file created for pdftk', { jobId, fieldCount: Object.keys(fieldValues).length });
 
-    // Run pdftk fill_form
-    const command = `pdftk "${templatePath}" fill_form "${fdfPath}" output "${outputPath}"`;
+    // Run pdftk fill_form (need_appearances keeps fields editable in Adobe/Preview)
+    const command = `pdftk "${templatePath}" fill_form "${fdfPath}" output "${outputPath}" need_appearances`;
     await execAsync(command);
 
     logger.info('pdftk fill_form completed', { jobId });
@@ -225,6 +225,9 @@ async function generatePDF(formData, jobId, options = {}) {
 
     // Phase 5: Finalize (80% progress) — form fields kept editable
     updateProgress(jobId, 'finalizing', 80, 'Finalizing PDF...', options.progressCallback);
+
+    // Tell PDF viewers to regenerate field appearances so populated fields stay editable
+    form.acroForm.dict.set(PDFName.of('NeedAppearances'), PDFBool.True);
 
     // Phase 6: Save PDF to buffer (90% progress)
     updateProgress(jobId, 'saving', 90, 'Saving PDF...', options.progressCallback);
