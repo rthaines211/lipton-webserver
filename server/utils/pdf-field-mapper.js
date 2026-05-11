@@ -184,16 +184,12 @@ function mapSum100Fields(formData) {
       plaintiffText = `${plaintiffNames[0].toUpperCase()}, et al.`;
     }
 
-    // Format defendant string with "et al." if 3+ parties
+    // List all defendants, comma-separated, UPPERCASE
     let defendantText = '';
     if (defendantNames.length === 0) {
       defendantText = 'DEFENDANT';
-    } else if (defendantNames.length === 1) {
-      defendantText = defendantNames[0].toUpperCase();
-    } else if (defendantNames.length === 2) {
-      defendantText = defendantNames.map(n => n.toUpperCase()).join(' AND ');
     } else {
-      defendantText = `${defendantNames[0].toUpperCase()}, et al.`;
+      defendantText = defendantNames.map(n => n.toUpperCase()).join(', ');
     }
 
     // 1. "YOU ARE BEING SUED BY" - Plaintiff(s)
