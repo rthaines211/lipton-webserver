@@ -38,7 +38,7 @@ const PdfGenerationJob = require('../models/pdf-generation-job');
 const dropboxService = require('../../dropbox-service');
 
 // Document types that require pdftk instead of pdf-lib (due to XFA/complex structure)
-const PDFTK_DOCUMENT_TYPES = ['cm010', 'sum100', 'sum200a', 'civ010', 'cm110'];
+const PDFTK_DOCUMENT_TYPES = ['cm010', 'sum100', 'sum200a', 'civ010'];
 
 /**
  * Generate FDF content for pdftk fill_form
@@ -87,8 +87,11 @@ async function generatePdfWithPdftk(templatePath, fieldValues, jobId) {
 
     logger.info('FDF file created for pdftk', { jobId, fieldCount: Object.keys(fieldValues).length });
 
-    // Run pdftk fill_form (need_appearances keeps fields editable in Adobe/Preview)
-    const command = `pdftk "${templatePath}" fill_form "${fdfPath}" output "${outputPath}" need_appearances`;
+    // Run pdftk fill_form:
+    //   need_appearances → tells viewers to regenerate field appearances
+    //   drop_xfa         → removes the static XFA layer so Adobe falls back to
+    //                      the editable AcroForm fields (essential for CM-110)
+    const command = `pdftk "${templatePath}" fill_form "${fdfPath}" output "${outputPath}" need_appearances drop_xfa`;
     await execAsync(command);
 
     logger.info('pdftk fill_form completed', { jobId });
@@ -979,4 +982,3 @@ module.exports = {
   // Legacy class instance (for backward compatibility)
   PdfService: new PdfService()
 };
-// trigger
