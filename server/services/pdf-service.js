@@ -979,3 +979,4 @@ module.exports = {
   // Legacy class instance (for backward compatibility)
   PdfService: new PdfService()
 };
+// trigger
