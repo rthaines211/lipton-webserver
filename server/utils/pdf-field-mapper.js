@@ -526,6 +526,8 @@ function mapAttorneyFields(formData, pdfFields, fieldMapping) {
 
   // Hardcoded attorney information
   const attorneyInfo = {
+    name: 'Kevin Lipton, ESQ',
+    barNumber: '291739',
     firmName: 'Lipton Legal Group, APC',
     street: '9478 W. Olympic Blvd. Suite #308',
     city: 'Beverly Hills',
@@ -535,6 +537,8 @@ function mapAttorneyFields(formData, pdfFields, fieldMapping) {
   };
 
   // Map hardcoded fields
+  pdfFields[config.name.pdfField] = attorneyInfo.name;
+  pdfFields[config.barNumber.pdfField] = attorneyInfo.barNumber;
   pdfFields[config.firmName.pdfField] = attorneyInfo.firmName;
   pdfFields[config.street.pdfField] = attorneyInfo.street;
   pdfFields[config.city.pdfField] = attorneyInfo.city;
@@ -550,7 +554,7 @@ function mapAttorneyFields(formData, pdfFields, fieldMapping) {
 
   logger.debug('Mapped attorney fields', { firmName: attorneyInfo.firmName });
 
-  // Leave blank: barNumber, name, phone, email
+  // Leave blank: phone, email
 }
 
 /**
