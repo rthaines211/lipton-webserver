@@ -223,11 +223,8 @@ async function generatePDF(formData, jobId, options = {}) {
       skippedCount: fillResults.skipped
     });
 
-    // Phase 5: Flatten form to prevent editing (80% progress)
+    // Phase 5: Finalize (80% progress) — form fields kept editable
     updateProgress(jobId, 'finalizing', 80, 'Finalizing PDF...', options.progressCallback);
-
-    // Flatten form to make fields non-editable
-    form.flatten();
 
     // Phase 6: Save PDF to buffer (90% progress)
     updateProgress(jobId, 'saving', 90, 'Saving PDF...', options.progressCallback);
