@@ -88,9 +88,9 @@ class ComplaintDocumentGenerator {
                         const guardianName = `${guardian.firstName} ${guardian.lastName}`.trim().toUpperCase();
                         return `${name}, minor by and through Guardian Ad Litem, ${guardianName}`;
                     }
-                    return `${name}, a minor`;
+                    return `${name}, minor`;
                 }
-                return `${name}, an individual`;
+                return `${name}, individual`;
             }),
             hasUnits
         );
