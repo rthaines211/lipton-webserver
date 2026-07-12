@@ -373,8 +373,11 @@ function startRegenerationTracking(result) {
         currentJobStream.onProgress = (data) => {
             console.log('📊 Regeneration progress:', data);
 
-            const percentage = data.percentage || 0;
-            const message = data.message || data.phase || 'Processing documents...';
+            // Stream emits `progress` (number) and `currentPhase` (human text) — not
+            // `percentage`/`phase`. Reading the wrong keys left the bar stuck at 0% showing
+            // the raw phase "pipeline_started". Fall back to old keys for safety.
+            const percentage = data.progress ?? data.percentage ?? 0;
+            const message = data.currentPhase || data.message || 'Processing documents...';
 
             updateProgressUI(percentage, message);
         };
