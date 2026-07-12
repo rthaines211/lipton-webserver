@@ -601,20 +601,25 @@ router.post('/regenerate-documents/:caseId', async (req, res) => {
         // ============================================================
         console.log(`🚀 Starting document regeneration pipeline...`);
 
-        // Call existing pipeline function (same one used for initial submission)
-        const pipelineResult = await pipelineService.callNormalizationPipeline(
+        // ponytail: fire-and-forget — the pipeline can run >5 min, longer than the Cloud Run
+        // 300s proxy cap and the axios PIPELINE_TIMEOUT. callNormalizationPipeline already writes
+        // every terminal state (processing/success/failed, incl. its own timeout catch) into the
+        // status cache that SSE polls, so the frontend gets the full lifecycle without us awaiting.
+        // Do NOT await: responding immediately is what keeps the request under the proxy timeout.
+        pipelineService.callNormalizationPipeline(
             formData,           // Form data from database
             caseId,             // Use same case ID for tracking
             documentTypes       // New document selection
-        );
+        )
+            .then(() => {
+                // ============================================================
+                // UPDATE REGENERATION TRACKING (OPTIONAL - DATABASE ONLY)
+                // ============================================================
+                if (!databaseCaseExists) {
+                    console.log(`ℹ️ Skipping regeneration tracking (file-based submission - no database record)`);
+                    return;
+                }
 
-        console.log(`Pipeline result:`, pipelineResult);
-
-        // ============================================================
-        // STEP 7: UPDATE REGENERATION TRACKING (OPTIONAL - DATABASE ONLY)
-        // ============================================================
-        if (databaseCaseExists) {
-            try {
                 // Create regeneration history entry
                 const historyEntry = {
                     timestamp: new Date().toISOString(),
@@ -635,28 +640,26 @@ router.post('/regenerate-documents/:caseId', async (req, res) => {
                         regeneration_count
                 `;
 
-                const trackingResult = await serverHelpers.pool.query(trackingQuery, [
+                return serverHelpers.pool.query(trackingQuery, [
                     JSON.stringify(historyEntry),
                     caseId
-                ]);
-
-                if (trackingResult.rows.length > 0) {
-                    const tracking = trackingResult.rows[0];
-                    console.log(`✅ Regeneration tracking updated: count=${tracking.regeneration_count}, last=${tracking.last_regenerated_at}`);
-                }
-
-            } catch (trackingError) {
-                // Don't fail the request if tracking fails
-                console.error('⚠️ Warning: Failed to update regeneration tracking:', trackingError.message);
-            }
-        } else {
-            console.log(`ℹ️ Skipping regeneration tracking (file-based submission - no database record)`);
-        }
+                ]).then((trackingResult) => {
+                    if (trackingResult.rows.length > 0) {
+                        const tracking = trackingResult.rows[0];
+                        console.log(`✅ Regeneration tracking updated: count=${tracking.regeneration_count}, last=${tracking.last_regenerated_at}`);
+                    }
+                });
+            })
+            .catch((pipelineError) => {
+                // Pipeline failure already recorded in the status cache by callNormalizationPipeline;
+                // this catch just prevents an unhandled rejection and covers the tracking query.
+                console.error('❌ Background regeneration failed:', pipelineError.message);
+            });
 
         // ============================================================
-        // STEP 8: RETURN SUCCESS RESPONSE
+        // RETURN SUCCESS RESPONSE (202 — work continues in background)
         // ============================================================
-        return res.status(200).json({
+        return res.status(202).json({
             success: true,
             message: 'Document regeneration started successfully',
             caseId: caseId,
@@ -664,8 +667,8 @@ router.post('/regenerate-documents/:caseId', async (req, res) => {
             documentTypes: documentTypes,
             pipelineEnabled: true,
             pipeline: {
-                status: pipelineResult.status || 'running',
-                message: pipelineResult.message || 'Pipeline execution started'
+                status: 'running',  // async: pipeline runs in background, poll SSE for real status
+                message: 'Pipeline execution started'
             }
         });
 
