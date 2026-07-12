@@ -444,7 +444,7 @@ jobs:
             --cpu=1 \
             --timeout=300 \
             --max-instances=10 \
-            --min-instances=0
+            --min-instances=1
 
           echo "✅ Deployed to production environment"
 
