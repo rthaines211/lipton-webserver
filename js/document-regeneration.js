@@ -271,7 +271,11 @@ async function handleRegenerateDocuments() {
             })
         });
 
-        const result = await response.json();
+        // ponytail: proxy timeouts (Cloud Run 524) return plaintext "upstream request timeout",
+        // not JSON — parse defensively so the user sees the real message, not "Unexpected token 'u'"
+        const result = response.ok
+            ? await response.json()
+            : { success: false, message: await response.text() };
 
         console.log('API response status:', response.status);
         console.log('API response data:', result);
