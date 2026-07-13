@@ -641,3 +641,28 @@ def test_format_filing_date_empty():
 def test_format_filing_date_malformed():
     assert format_filing_date("not-a-date") == ""
     assert format_filing_date("2026/01/15") == ""
+
+
+from src.phase1.normalizer import _build_case_context
+
+def test_case_context_singular_labels_one_party():
+    ctx = _build_case_context(
+        {"case_number": "BC1", "filing_date": "2026-01-15"},
+        [{"full_name": "Clark Kent"}],
+        [{"full_name": "Tony Stark"}],
+    )
+    assert ctx["plaintiff_label"] == "Plaintiff"
+    assert ctx["defendant_label"] == "Defendant"
+    assert ctx["case_number"] == "BC1"
+    assert ctx["filing_date"] == "January 15, 2026"
+
+def test_case_context_plural_labels_multiple_parties():
+    ctx = _build_case_context(
+        {},
+        [{"full_name": "A"}, {"full_name": "B"}],
+        [{"full_name": "C"}, {"full_name": "D"}],
+    )
+    assert ctx["plaintiff_label"] == "Plaintiffs"
+    assert ctx["defendant_label"] == "Defendants"
+    assert ctx["case_number"] == ""
+    assert ctx["filing_date"] == ""

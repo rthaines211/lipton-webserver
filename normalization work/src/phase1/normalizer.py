@@ -164,7 +164,11 @@ def _build_case_context(
         'all_plaintiffs_upper_with_types': _build_plaintiffs_upper_with_types(plaintiffs),
         'all_defendants_upper_with_types': _build_defendants_upper_with_types(defendants),
         'plaintiffs_array': _build_plaintiffs_array(plaintiffs),
-        'filing_county': case_info.get('filing_county', '')
+        'filing_county': case_info.get('filing_county', ''),
+        'plaintiff_label': 'Plaintiff' if len(plaintiffs) <= 1 else 'Plaintiffs',
+        'defendant_label': 'Defendant' if len(defendants) <= 1 else 'Defendants',
+        'case_number': case_info.get('case_number', ''),
+        'filing_date': format_filing_date(case_info.get('filing_date', '')),
     }
 
 
