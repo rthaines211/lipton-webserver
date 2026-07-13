@@ -5,6 +5,7 @@ This module provides the main normalization pipeline that orchestrates
 input parsing, discovery flattening, and validation.
 """
 
+from datetime import datetime
 from typing import Any, Optional, List
 
 from .discovery_flattener import flatten_discovery
@@ -15,6 +16,21 @@ from .input_parser import (
     parse_form_json,
 )
 from .validators import validate_normalized_data
+
+
+def format_filing_date(iso_str: str) -> str:
+    """Format an ISO date (YYYY-MM-DD) as long form 'January 15, 2026'.
+
+    Returns '' for empty, None, or malformed input (never raises).
+    """
+    if not iso_str:
+        return ""
+    try:
+        dt = datetime.strptime(iso_str, "%Y-%m-%d")
+    except (ValueError, TypeError):
+        return ""
+    # %-d is not portable (fails on Windows); strip leading zero manually.
+    return f"{dt.strftime('%B')} {dt.day}, {dt.year}"
 
 
 def _build_plaintiffs_upper_with_types(plaintiffs: list[dict[str, Any]]) -> str:

@@ -12,6 +12,7 @@ from src.phase1.normalizer import (
     normalize_form_data,
     normalize_form_data_batch,
     ValidationError,
+    format_filing_date,
 )
 from tests.fixtures.phase1_samples import SIMPLE_CASE, COMPLEX_CASE, EDGE_CASE
 
@@ -626,3 +627,17 @@ class TestIntegration:
         assert normalized["case_info"]["city"] == original_data["Full_Address"]["City"]
         assert normalized["case_info"]["state"] == original_data["Full_Address"]["State"]
         assert normalized["case_info"]["zip"] == original_data["Full_Address"]["PostalCode"]
+
+
+def test_format_filing_date_valid():
+    assert format_filing_date("2026-01-15") == "January 15, 2026"
+
+
+def test_format_filing_date_empty():
+    assert format_filing_date("") == ""
+    assert format_filing_date(None) == ""
+
+
+def test_format_filing_date_malformed():
+    assert format_filing_date("not-a-date") == ""
+    assert format_filing_date("2026/01/15") == ""
