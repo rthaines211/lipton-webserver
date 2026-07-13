@@ -25,6 +25,77 @@ except ImportError:
         print("⚠️  Dropbox service not available (utils.dropbox_service not found)")
 
 
+def sanitize_path_text(text: str, default: str = "document") -> str:
+    """Convert a label into a filesystem-safe string while preserving spaces."""
+    if not text:
+        return default
+    safe = text.replace("_", " ")
+    safe = re.sub(r"[^A-Za-z0-9.\- ]+", " ", safe)
+    safe = re.sub(r"\s+", " ", safe).strip()
+    return safe or default
+
+
+def strip_unit(address: Optional[str]) -> Optional[str]:
+    """Remove trailing unit designators (Unit, Apt, #, Suite) from address."""
+    if not address:
+        return address
+    pattern = r"(?:,?\s+)?(?:Unit|Apt\.?|Apartment|Suite|Ste\.?|#)\s*[A-Za-z0-9-]+$"
+    return re.sub(pattern, "", address, flags=re.IGNORECASE).strip()
+
+
+def document_type_folder(raw_type: Optional[str]) -> str:
+    """Map dataset document type into configured folder names."""
+    if not raw_type:
+        return "unknown"
+    normalized = raw_type.strip().lower()
+    mapping = {
+        "admissions": "ADMISSIONS",
+        "pods": "PODS",
+        "pod": "PODS",
+        "srogs": "SROGs",
+        "shrogs": "SROGs"
+    }
+    return mapping.get(normalized, sanitize_path_text(raw_type, "other"))
+
+
+def compute_output_directory(base_dir: Path, dataset: Optional[Dict[str, Any]], set_data: Dict[str, Any]) -> Path:
+    """Build nested output directory from dataset/set metadata.
+
+    Module-level (was nested resolve_output_directory) so the orchestrator
+    can reuse it to clear directories before writing.
+    """
+    if not dataset:
+        return base_dir
+
+    case_meta = dataset.get('case_metadata', {}) if dataset else {}
+    address = (
+        case_meta.get('property_address')
+        or case_meta.get('property_address_with_unit')
+        or set_data.get('Case', {}).get('FullAddress', '')
+    )
+    address = strip_unit(address)
+    hoh = set_data.get('HeadOfHousehold') or dataset.get('metadata', {}).get('head_of_household', '')
+    doc_folder = document_type_folder(dataset.get('doc_type'))
+
+    address_segment = sanitize_path_text(address, "Unknown Address")
+    hoh_segment = sanitize_path_text(hoh, "Unknown HoH")
+    doc_segment = sanitize_path_text(doc_folder, "discovery")
+
+    path_segments = [
+        base_dir,
+        Path(address_segment),
+        Path(hoh_segment),
+        Path("Discovery Propounded"),
+        Path(doc_segment)
+    ]
+
+    output_path = Path(path_segments[0])
+    for segment in path_segments[1:]:
+        output_path = output_path / segment
+
+    return output_path
+
+
 def load_webhook_config(config_path: str = "webhook_config.json") -> Dict[str, Any]:
     """
     Load webhook configuration from JSON file.
@@ -129,15 +200,6 @@ def send_set_to_webhook(
     # Build payload
     payload = build_webhook_payload(set_data, access_key)
 
-    def sanitize_path_text(text: str, default: str = "document") -> str:
-        """Convert a label into a filesystem-safe string while preserving spaces."""
-        if not text:
-            return default
-        safe = text.replace("_", " ")
-        safe = re.sub(r"[^A-Za-z0-9.\- ]+", " ", safe)
-        safe = re.sub(r"\s+", " ", safe).strip()
-        return safe or default
-
     def determine_extension(content_type: str, template_name: str) -> str:
         """Pick a reasonable file extension based on content-type or template."""
         content_type_map = {
@@ -152,60 +214,6 @@ def send_set_to_webhook(
             return content_type_map[content_type]
         template_ext = Path(template_name).suffix if template_name else ""
         return template_ext or ".bin"
-
-    def strip_unit(address: Optional[str]) -> Optional[str]:
-        """Remove trailing unit designators (Unit, Apt, #, Suite) from address."""
-        if not address:
-            return address
-        pattern = r"(?:,?\s+)?(?:Unit|Apt\.?|Apartment|Suite|Ste\.?|#)\s+[A-Za-z0-9-]+$"
-        return re.sub(pattern, "", address, flags=re.IGNORECASE).strip()
-
-    def document_type_folder(raw_type: Optional[str]) -> str:
-        """Map dataset document type into configured folder names."""
-        if not raw_type:
-            return "unknown"
-        normalized = raw_type.strip().lower()
-        mapping = {
-            "admissions": "ADMISSIONS",
-            "pods": "PODS",
-            "pod": "PODS",
-            "srogs": "SROGs",
-            "shrogs": "SROGs"
-        }
-        return mapping.get(normalized, sanitize_path_text(raw_type, "other"))
-
-    def resolve_output_directory(base_dir: Path) -> Path:
-        """Build nested directory path from dataset metadata if available."""
-        if not dataset:
-            return base_dir
-
-        case_meta = dataset.get('case_metadata', {}) if dataset else {}
-        address = (
-            case_meta.get('property_address')
-            or case_meta.get('property_address_with_unit')
-            or set_data.get('Case', {}).get('FullAddress', '')
-        )
-        address = strip_unit(address)
-        hoh = set_data.get('HeadOfHousehold') or dataset.get('metadata', {}).get('head_of_household', '')
-        doc_folder = document_type_folder(dataset.get('doc_type'))
-
-        address_segment = sanitize_path_text(address, "Unknown Address")
-        hoh_segment = sanitize_path_text(hoh, "Unknown HoH")
-        doc_segment = sanitize_path_text(doc_folder, "discovery")
-
-        path_segments = [
-            base_dir,
-            Path(address_segment),
-            Path(hoh_segment),
-            Path("Discovery Propounded"),
-            Path(doc_segment)
-        ]
-
-        output_path = Path(path_segments[0])
-        for segment in path_segments[1:]:
-            output_path = output_path / segment
-
-        return output_path
 
     try:
         # Build request headers. The node-server /api/render proxy is gated
@@ -249,7 +257,7 @@ def send_set_to_webhook(
 
                 if save_documents and (not is_json) and (save_plain_text or not is_plain_text):
                     base_dir = Path(config.get('output_directory', 'webhook_documents'))
-                    output_dir = resolve_output_directory(base_dir)
+                    output_dir = compute_output_directory(base_dir, dataset, set_data)
                     output_dir.mkdir(parents=True, exist_ok=True)
 
                     base_name = sanitize_path_text(set_data.get('OutputName', ''), "document")
