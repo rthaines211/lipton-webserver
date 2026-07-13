@@ -37,14 +37,24 @@ Caption block today (all three templates):
 ## Data Flow
 
 ```
-Form (forms/docs/index.html + JS)
-  → submission JSON  { CaseNumber, FilingDate (ISO YYYY-MM-DD), ... }
+Form (forms/docs/index.html; FormData auto-collects named inputs)
+  → raw keys { case-number, filing-date, ... }
+  → services/form-transformer.js
+       transformFormData()        (case-number → CaseNumber, filing-date → FilingDate)
+       revertToOriginalFormat()   (CaseNumber → "Case number", FilingDate → "Filing date")
   → phase1/input_parser.py       (case_info gains case_number, filing_date)
   → phase1/normalizer.py         (_build_case_context: labels + case fields + formatted date)
   → phase5/set_splitter.py       (surfaces values into enriched set / Case dict)
   → webhook payload
   → Docmosis templates (.docx)
 ```
+
+**Note:** The Node `FormTransformer` (`services/form-transformer.js`) sits between the
+form and the Python pipeline. It runs on `node-server`, not the Python pipeline, so this
+layer deploys via `node-server` (ci-cd-main), separate from the pipeline deploy. Raw form
+keys are mapped twice (transform → revert to original human-readable keys), and the Python
+parser reads the human-readable keys. The form itself needs no JS change — `FormData`
+auto-collects any named input.
 
 `case_context` is built **once** in `normalizer.py::_build_case_context()` (which has the
 raw `plaintiffs`/`defendants` lists) and flows into `set_splitter.py`. These two pipeline
