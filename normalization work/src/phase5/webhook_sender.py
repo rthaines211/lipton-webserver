@@ -96,6 +96,30 @@ def compute_output_directory(base_dir: Path, dataset: Optional[Dict[str, Any]], 
     return output_path
 
 
+def clear_output_directory(output_dir: Path, base_dir: Path) -> int:
+    """Delete generated files directly inside output_dir (regeneration = replace).
+
+    Safety: only clears a directory that resolves under base_dir. Top-level files
+    only — never recurses, never removes directories. Returns count deleted.
+    """
+    output_dir = Path(output_dir)
+    base_dir = Path(base_dir)
+    try:
+        # Python 3.9: is_relative_to not available; use relative_to + try/except.
+        output_dir.resolve().relative_to(base_dir.resolve())
+    except ValueError:
+        print(f"⚠️  Refusing to clear directory outside base: {output_dir}")
+        return 0
+    if not output_dir.exists():
+        return 0
+    deleted = 0
+    for entry in output_dir.iterdir():
+        if entry.is_file():
+            entry.unlink()
+            deleted += 1
+    return deleted
+
+
 def load_webhook_config(config_path: str = "webhook_config.json") -> Dict[str, Any]:
     """
     Load webhook configuration from JSON file.
