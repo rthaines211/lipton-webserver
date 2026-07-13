@@ -123,8 +123,27 @@ def test_build_webhook_payload_values(sample_set):
 
     assert payload['accessKey'] == 'test-key-123'
     assert payload['templateName'] == 'SROGsMaster.docx'
-    assert payload['outputName'] == 'John Doe vs ABC Corp - Discovery Propounded SROGs Set 1 of 2'
+    # Docmosis requires a .docx extension on outputName; OutputName is stored bare.
+    assert payload['outputName'] == 'John Doe vs ABC Corp - Discovery Propounded SROGs Set 1 of 2.docx'
     assert payload['data'] == sample_set
+
+
+def test_build_webhook_payload_adds_docx_extension():
+    """outputName gets a .docx extension for Docmosis when OutputName is bare."""
+    payload = build_webhook_payload({'OutputName': 'Case A - SROGs Set 1 of 1'}, 'k')
+    assert payload['outputName'] == 'Case A - SROGs Set 1 of 1.docx'
+
+
+def test_build_webhook_payload_does_not_double_extension():
+    """An OutputName that already ends in .docx is not doubled."""
+    payload = build_webhook_payload({'OutputName': 'Case A.docx'}, 'k')
+    assert payload['outputName'] == 'Case A.docx'
+
+
+def test_build_webhook_payload_empty_output_name_stays_empty():
+    """Empty OutputName stays empty (no bare '.docx')."""
+    payload = build_webhook_payload({'OutputName': ''}, 'k')
+    assert payload['outputName'] == ''
 
 
 def test_build_webhook_payload_data_includes_all_fields(sample_set):
