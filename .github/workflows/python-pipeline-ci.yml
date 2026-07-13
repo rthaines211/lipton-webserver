@@ -230,13 +230,25 @@ jobs:
       - name: 🚀 Deploy Python Pipeline
         run: |
           echo "Deploying Python pipeline to Cloud Run..."
+          # Deploy from source: Cloud Build builds + pushes + deploys server-side.
+          # The separate build-pipeline job only builds/scans locally and never
+          # pushes to the registry, so --image=... 404s. --source avoids that
+          # (and the cross-job image handoff) entirely. Dockerfile is in
+          # "normalization work/", so run from there.
+          cd "normalization work"
           gcloud run deploy python-pipeline \
-            --image=${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/python-pipeline:${{ github.sha }} \
+            --source=. \
             --region=${{ env.GCP_REGION }} \
             --project=${{ env.GCP_PROJECT_ID }} \
             --platform=managed \
             --timeout=3600 \
             --min-instances=1
+          # Break any lingering traffic pin (an 'auth-fix' tagged revision has
+          # stranded traffic on an old 300s revision before). Force 100% to latest.
+          gcloud run services update-traffic python-pipeline \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --to-latest
           echo "✅ Python pipeline deployed"
 
 #=============================================================================
