@@ -13,7 +13,7 @@
 
 const path = require('path');
 const fs = require('fs').promises;
-const { getDropboxClient, isEnabled } = require('../dropbox-service');
+const { getDropboxClient, isEnabled, whenPathRootReady } = require('../dropbox-service');
 
 const SUPPORTED_EXTENSIONS = new Set(['pdf', 'png', 'jpg', 'jpeg', 'tiff', 'tif', 'heic']);
 const HIDDEN_FILES = new Set(['.ds_store', 'thumbs.db', '.thumbs', 'desktop.ini']);
@@ -36,6 +36,7 @@ const _cache = new Map();
 async function listFolder(folderPath, { refresh = false } = {}) {
     const dbx = getDropboxClient();
     if (!dbx) return null;
+    await whenPathRootReady(); // ensure team-space path root is set before path ops
 
     const cacheKey = folderPath.toLowerCase();
     if (!refresh && _cache.has(cacheKey)) {
@@ -82,6 +83,7 @@ async function listFolder(folderPath, { refresh = false } = {}) {
 async function downloadFile(dropboxPath, localDir) {
     const dbx = getDropboxClient();
     if (!dbx) throw new Error('Dropbox client not initialized');
+    await whenPathRootReady();
 
     const response = await dbx.filesDownload({ path: dropboxPath });
     const fileName = response.result.name;

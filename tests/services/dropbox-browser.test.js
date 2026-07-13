@@ -8,6 +8,7 @@ jest.mock('../../dropbox-service', () => {
     };
     return {
         getDropboxClient: () => mockClient,
+        whenPathRootReady: () => Promise.resolve(),
         getConfig: () => ({ basePath: '/Current Clients', enabled: true }),
         isEnabled: () => true,
         _mockClient: mockClient,

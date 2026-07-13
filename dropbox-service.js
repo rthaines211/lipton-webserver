@@ -60,6 +60,30 @@ const DROPBOX_CONFIG = {
 let _dbxInstance = null;
 let _dbxInitialized = false;
 
+// Resolves when the team-space path root has been applied (or determined N/A).
+// Callers that need paths to resolve on a team account should await this.
+let _pathRootReady = Promise.resolve();
+
+/**
+ * On Dropbox Business team accounts the member-folder namespace differs from the
+ * team space, so shared team folders (e.g. /Current Clients) 404 by path unless
+ * requests carry the Dropbox-API-Path-Root header pointing at the team space root.
+ * Sets dbx.pathRoot in place. No-op for personal accounts.
+ */
+function _applyTeamSpacePathRoot(dbx) {
+    _pathRootReady = dbx.usersGetCurrentAccount()
+        .then(({ result }) => {
+            const ns = result.root_info || {};
+            if (ns.root_namespace_id && ns.root_namespace_id !== ns.home_namespace_id) {
+                dbx.pathRoot = JSON.stringify({ '.tag': 'root', root: ns.root_namespace_id });
+                console.log(`   🏢 Team space root applied (ns=${ns.root_namespace_id})`);
+            }
+        })
+        .catch(err => {
+            console.warn(`   ⚠️  Could not determine team space root: ${err.message} (using member-folder root)`);
+        });
+}
+
 function getDropboxClient() {
     if (_dbxInitialized) return _dbxInstance;
     _dbxInitialized = true;
@@ -82,6 +106,11 @@ function getDropboxClient() {
             console.log(`   App key: ${DROPBOX_CONFIG.appKey.substring(0, 4)}...${DROPBOX_CONFIG.appKey.slice(-4)}`);
             console.log(`   Refresh token length: ${DROPBOX_CONFIG.refreshToken.length} chars`);
             console.log('   🔄 Token auto-refresh enabled (never expires)');
+            // Team accounts: member-folder root differs from team space, so paths like
+            // /Current Clients 404 unless we operate against the team space root. Set the
+            // Dropbox-API-Path-Root header once so all path ops match the web UI namespace.
+            // ponytail: best-effort — if this fails, fall back to member-folder root.
+            _applyTeamSpacePathRoot(_dbxInstance);
         }
         // Fall back to legacy access token (will expire)
         else if (DROPBOX_CONFIG.accessToken) {
@@ -267,6 +296,7 @@ async function uploadFile(localFilePath, fileContent = null) {
         result.error = 'Dropbox client not initialized';
         return result;
     }
+    await _pathRootReady; // team-space path root must be set before any path op
 
     try {
         // Map local path to Dropbox path
@@ -392,6 +422,7 @@ async function createSharedLink(folderPath) {
         console.log('ℹ️  Dropbox disabled, cannot create shared link');
         return null;
     }
+    await _pathRootReady; // team-space path root must be set before any path op
 
     try {
         console.log(`📎 Creating team-only shared link for: ${folderPath}`);
@@ -470,6 +501,7 @@ module.exports = {
     getAccountInfo,
     createSharedLink,
     getDropboxClient,
+    whenPathRootReady: () => _pathRootReady,
     getConfig: () => DROPBOX_CONFIG,
     isEnabled: () => DROPBOX_CONFIG.enabled && getDropboxClient() !== null,
     config: DROPBOX_CONFIG

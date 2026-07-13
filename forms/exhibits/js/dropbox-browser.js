@@ -4,7 +4,7 @@
  * Provides a file explorer for browsing Dropbox and assigning files to exhibit letters.
  */
 const DropboxBrowserUI = (() => {
-    let currentPath = '/';
+    let currentPath = '/Current Clients';
     const exhibitAssignments = new Map(); // letter -> [{dropboxPath, name}]
     const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     const checkedFiles = new Set(); // Dropbox paths of checked files in current folder
