@@ -69,6 +69,21 @@ if DROPBOX_CONFIG['enabled']:
 
             # Test connection (this will auto-refresh token if needed)
             account = _dbx_client.users_get_current_account()
+
+            # Team accounts: the member-folder namespace differs from the team
+            # space, so team-shared folders (e.g. /Current Clients) 404 by path
+            # unless we operate against the team space root. Rebind the client to
+            # the team space root so paths resolve like the web UI. No-op for
+            # personal accounts (root == home).
+            root_info = account.root_info
+            root_ns = getattr(root_info, 'root_namespace_id', None)
+            home_ns = getattr(root_info, 'home_namespace_id', None)
+            if root_ns and root_ns != home_ns:
+                _dbx_client = _dbx_client.with_path_root(
+                    dropbox.common.PathRoot.root(root_ns)
+                )
+                logger.info(f"   🏢 Team space root applied (ns={root_ns})")
+
             logger.info(f"✅ Dropbox service initialized (OAuth)")
             logger.info(f"   Account: {account.name.display_name}")
             logger.info(f"   Email: {account.email}")
