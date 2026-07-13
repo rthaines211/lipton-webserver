@@ -287,12 +287,8 @@ def send_set_to_webhook(
                     base_name = sanitize_path_text(set_data.get('OutputName', ''), "document")
                     extension = determine_extension(content_type, set_data.get('Template', ''))
                     candidate = output_dir / f"{base_name}{extension}"
-
-                    counter = 1
-                    while candidate.exists():
-                        candidate = output_dir / f"{base_name}_{counter}{extension}"
-                        counter += 1
-
+                    # No dedup suffix: the orchestrator clears the dir once per run,
+                    # so writing the clean name replaces any prior file of the same name.
                     with open(candidate, 'wb') as f:
                         f.write(response.content)
 
@@ -459,7 +455,12 @@ def send_all_sets_with_progress(
     succeeded = 0
     failed = 0
     total_sets = 0
-    
+
+    # Regeneration = replace: clear each target output dir once before writing,
+    # so a rerun overwrites the prior run's files instead of accumulating _N copies.
+    base_dir = Path(config.get('output_directory', 'webhook_documents'))
+    cleared_dirs = set()
+
     # Count total sets first
     for dataset in phase5_output.get('datasets', []):
         total_sets += len(dataset.get('sets', []))
@@ -482,6 +483,14 @@ def send_all_sets_with_progress(
             if case_id:
                 update_progress(case_id, len(results), total_sets, f"Generating {output_name}...")
             
+            # Clear-once: remove stale files from prior runs before writing
+            target_dir = compute_output_directory(base_dir, dataset, set_data)
+            if target_dir != base_dir and target_dir not in cleared_dirs:
+                removed = clear_output_directory(target_dir, base_dir)
+                if verbose and removed:
+                    print(f"🧹 Cleared {removed} stale file(s) from {target_dir}")
+                cleared_dirs.add(target_dir)
+
             # Send the set
             result = send_set_to_webhook(set_data, config, dataset=dataset)
             results.append(result)
