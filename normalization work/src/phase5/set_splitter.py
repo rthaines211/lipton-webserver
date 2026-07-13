@@ -353,10 +353,12 @@ class SetSplitter:
             total_sets: Total number of sets
 
         Returns:
-            Formatted filename string with .docx extension
+            Formatted filename string WITHOUT extension. The extension is added
+            once by webhook_sender from the response content-type; baking .docx
+            in here caused a double extension ("...Set 1 of 2.docx.docx").
 
         Example:
             >>> self._generate_output_name('John Doe', 'ABC Corp', 'Discovery Propounded SROGs', 1, 2)
-            'John Doe vs ABC Corp - Discovery Propounded SROGs Set 1 of 2.docx'
+            'John Doe vs ABC Corp - Discovery Propounded SROGs Set 1 of 2'
         """
-        return f"{plaintiff_name} vs {defendant_name} - {filename_suffix} Set {set_number} of {total_sets}.docx"
+        return f"{plaintiff_name} vs {defendant_name} - {filename_suffix} Set {set_number} of {total_sets}"
