@@ -25,6 +25,101 @@ except ImportError:
         print("⚠️  Dropbox service not available (utils.dropbox_service not found)")
 
 
+def sanitize_path_text(text: str, default: str = "document") -> str:
+    """Convert a label into a filesystem-safe string while preserving spaces."""
+    if not text:
+        return default
+    safe = text.replace("_", " ")
+    safe = re.sub(r"[^A-Za-z0-9.\- ]+", " ", safe)
+    safe = re.sub(r"\s+", " ", safe).strip()
+    return safe or default
+
+
+def strip_unit(address: Optional[str]) -> Optional[str]:
+    """Remove trailing unit designators (Unit, Apt, #, Suite) from address."""
+    if not address:
+        return address
+    pattern = r"(?:,?\s+)?(?:Unit|Apt\.?|Apartment|Suite|Ste\.?|#)\s*[A-Za-z0-9-]+$"
+    return re.sub(pattern, "", address, flags=re.IGNORECASE).strip()
+
+
+def document_type_folder(raw_type: Optional[str]) -> str:
+    """Map dataset document type into configured folder names."""
+    if not raw_type:
+        return "unknown"
+    normalized = raw_type.strip().lower()
+    mapping = {
+        "admissions": "ADMISSIONS",
+        "pods": "PODS",
+        "pod": "PODS",
+        "srogs": "SROGs",
+        "shrogs": "SROGs"
+    }
+    return mapping.get(normalized, sanitize_path_text(raw_type, "other"))
+
+
+def compute_output_directory(base_dir: Path, dataset: Optional[Dict[str, Any]], set_data: Dict[str, Any]) -> Path:
+    """Build nested output directory from dataset/set metadata.
+
+    Module-level (was nested resolve_output_directory) so the orchestrator
+    can reuse it to clear directories before writing.
+    """
+    if not dataset:
+        return base_dir
+
+    case_meta = dataset.get('case_metadata', {}) if dataset else {}
+    address = (
+        case_meta.get('property_address')
+        or case_meta.get('property_address_with_unit')
+        or set_data.get('Case', {}).get('FullAddress', '')
+    )
+    address = strip_unit(address)
+    hoh = set_data.get('HeadOfHousehold') or dataset.get('metadata', {}).get('head_of_household', '')
+    doc_folder = document_type_folder(dataset.get('doc_type'))
+
+    address_segment = sanitize_path_text(address, "Unknown Address")
+    hoh_segment = sanitize_path_text(hoh, "Unknown HoH")
+    doc_segment = sanitize_path_text(doc_folder, "discovery")
+
+    path_segments = [
+        base_dir,
+        Path(address_segment),
+        Path(hoh_segment),
+        Path("Discovery Propounded"),
+        Path(doc_segment)
+    ]
+
+    output_path = Path(path_segments[0])
+    for segment in path_segments[1:]:
+        output_path = output_path / segment
+
+    return output_path
+
+
+def clear_output_directory(output_dir: Path, base_dir: Path) -> int:
+    """Delete generated files directly inside output_dir (regeneration = replace).
+
+    Safety: only clears a directory that resolves under base_dir. Top-level files
+    only — never recurses, never removes directories. Returns count deleted.
+    """
+    output_dir = Path(output_dir)
+    base_dir = Path(base_dir)
+    try:
+        # Python 3.9: is_relative_to not available; use relative_to + try/except.
+        output_dir.resolve().relative_to(base_dir.resolve())
+    except ValueError:
+        print(f"⚠️  Refusing to clear directory outside base: {output_dir}")
+        return 0
+    if not output_dir.exists():
+        return 0
+    deleted = 0
+    for entry in output_dir.iterdir():
+        if entry.is_file():
+            entry.unlink()
+            deleted += 1
+    return deleted
+
+
 def load_webhook_config(config_path: str = "webhook_config.json") -> Dict[str, Any]:
     """
     Load webhook configuration from JSON file.
@@ -129,15 +224,6 @@ def send_set_to_webhook(
     # Build payload
     payload = build_webhook_payload(set_data, access_key)
 
-    def sanitize_path_text(text: str, default: str = "document") -> str:
-        """Convert a label into a filesystem-safe string while preserving spaces."""
-        if not text:
-            return default
-        safe = text.replace("_", " ")
-        safe = re.sub(r"[^A-Za-z0-9.\- ]+", " ", safe)
-        safe = re.sub(r"\s+", " ", safe).strip()
-        return safe or default
-
     def determine_extension(content_type: str, template_name: str) -> str:
         """Pick a reasonable file extension based on content-type or template."""
         content_type_map = {
@@ -152,60 +238,6 @@ def send_set_to_webhook(
             return content_type_map[content_type]
         template_ext = Path(template_name).suffix if template_name else ""
         return template_ext or ".bin"
-
-    def strip_unit(address: Optional[str]) -> Optional[str]:
-        """Remove trailing unit designators (Unit, Apt, #, Suite) from address."""
-        if not address:
-            return address
-        pattern = r"(?:,?\s+)?(?:Unit|Apt\.?|Apartment|Suite|Ste\.?|#)\s+[A-Za-z0-9-]+$"
-        return re.sub(pattern, "", address, flags=re.IGNORECASE).strip()
-
-    def document_type_folder(raw_type: Optional[str]) -> str:
-        """Map dataset document type into configured folder names."""
-        if not raw_type:
-            return "unknown"
-        normalized = raw_type.strip().lower()
-        mapping = {
-            "admissions": "ADMISSIONS",
-            "pods": "PODS",
-            "pod": "PODS",
-            "srogs": "SROGs",
-            "shrogs": "SROGs"
-        }
-        return mapping.get(normalized, sanitize_path_text(raw_type, "other"))
-
-    def resolve_output_directory(base_dir: Path) -> Path:
-        """Build nested directory path from dataset metadata if available."""
-        if not dataset:
-            return base_dir
-
-        case_meta = dataset.get('case_metadata', {}) if dataset else {}
-        address = (
-            case_meta.get('property_address')
-            or case_meta.get('property_address_with_unit')
-            or set_data.get('Case', {}).get('FullAddress', '')
-        )
-        address = strip_unit(address)
-        hoh = set_data.get('HeadOfHousehold') or dataset.get('metadata', {}).get('head_of_household', '')
-        doc_folder = document_type_folder(dataset.get('doc_type'))
-
-        address_segment = sanitize_path_text(address, "Unknown Address")
-        hoh_segment = sanitize_path_text(hoh, "Unknown HoH")
-        doc_segment = sanitize_path_text(doc_folder, "discovery")
-
-        path_segments = [
-            base_dir,
-            Path(address_segment),
-            Path(hoh_segment),
-            Path("Discovery Propounded"),
-            Path(doc_segment)
-        ]
-
-        output_path = Path(path_segments[0])
-        for segment in path_segments[1:]:
-            output_path = output_path / segment
-
-        return output_path
 
     try:
         # Build request headers. The node-server /api/render proxy is gated
@@ -249,18 +281,14 @@ def send_set_to_webhook(
 
                 if save_documents and (not is_json) and (save_plain_text or not is_plain_text):
                     base_dir = Path(config.get('output_directory', 'webhook_documents'))
-                    output_dir = resolve_output_directory(base_dir)
+                    output_dir = compute_output_directory(base_dir, dataset, set_data)
                     output_dir.mkdir(parents=True, exist_ok=True)
 
                     base_name = sanitize_path_text(set_data.get('OutputName', ''), "document")
                     extension = determine_extension(content_type, set_data.get('Template', ''))
                     candidate = output_dir / f"{base_name}{extension}"
-
-                    counter = 1
-                    while candidate.exists():
-                        candidate = output_dir / f"{base_name}_{counter}{extension}"
-                        counter += 1
-
+                    # No dedup suffix: the orchestrator clears the dir once per run,
+                    # so writing the clean name replaces any prior file of the same name.
                     with open(candidate, 'wb') as f:
                         f.write(response.content)
 
@@ -427,7 +455,12 @@ def send_all_sets_with_progress(
     succeeded = 0
     failed = 0
     total_sets = 0
-    
+
+    # Regeneration = replace: clear each target output dir once before writing,
+    # so a rerun overwrites the prior run's files instead of accumulating _N copies.
+    base_dir = Path(config.get('output_directory', 'webhook_documents'))
+    cleared_dirs = set()
+
     # Count total sets first
     for dataset in phase5_output.get('datasets', []):
         total_sets += len(dataset.get('sets', []))
@@ -450,6 +483,14 @@ def send_all_sets_with_progress(
             if case_id:
                 update_progress(case_id, len(results), total_sets, f"Generating {output_name}...")
             
+            # Clear-once: remove stale files from prior runs before writing
+            target_dir = compute_output_directory(base_dir, dataset, set_data)
+            if target_dir != base_dir and target_dir not in cleared_dirs:
+                removed = clear_output_directory(target_dir, base_dir)
+                if verbose and removed:
+                    print(f"🧹 Cleared {removed} stale file(s) from {target_dir}")
+                cleared_dirs.add(target_dir)
+
             # Send the set
             result = send_set_to_webhook(set_data, config, dataset=dataset)
             results.append(result)
