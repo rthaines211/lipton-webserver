@@ -4,7 +4,8 @@
  * Provides a file explorer for browsing Dropbox and assigning files to exhibit letters.
  */
 const DropboxBrowserUI = (() => {
-    let currentPath = '/Current Clients';
+    const ROOT_PATH = '/Current Clients'; // browser is jailed to this folder; no navigating above it
+    let currentPath = ROOT_PATH;
     const exhibitAssignments = new Map(); // letter -> [{dropboxPath, name}]
     const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     const checkedFiles = new Set(); // Dropbox paths of checked files in current folder
@@ -27,12 +28,16 @@ const DropboxBrowserUI = (() => {
             selectAllCb.addEventListener('change', toggleSelectAll);
         }
 
-        // Auto-load Dropbox root and exhibit slots on page load
-        loadFolder('/');
+        // Auto-load the jailed root folder and exhibit slots on page load
+        loadFolder(ROOT_PATH);
         renderExhibitSlots();
     }
 
     async function loadFolder(folderPath, refresh = false) {
+        // Jail: never navigate above ROOT_PATH
+        if (folderPath !== ROOT_PATH && !folderPath.startsWith(ROOT_PATH + '/')) {
+            folderPath = ROOT_PATH;
+        }
         currentPath = folderPath;
         const fileList = document.getElementById('dropbox-file-list');
         fileList.innerHTML = '<div class="loading-placeholder">Loading...</div>';
@@ -65,13 +70,16 @@ const DropboxBrowserUI = (() => {
 
     function renderBreadcrumb(folderPath) {
         const breadcrumb = document.getElementById('dropbox-breadcrumb');
-        const parts = folderPath === '/' ? ['/'] : ['/', ...folderPath.split('/').filter(Boolean)];
-        let accumulated = '';
+        // Breadcrumb is relative to ROOT_PATH — the jailed root shows as "Home",
+        // and there is no crumb above it to click.
+        const relative = folderPath === ROOT_PATH ? '' : folderPath.slice(ROOT_PATH.length + 1);
+        const parts = ['Home', ...(relative ? relative.split('/') : [])];
+        let accumulated = ROOT_PATH;
 
         breadcrumb.innerHTML = parts.map((part, i) => {
-            accumulated = i === 0 ? '/' : accumulated + '/' + part;
+            if (i > 0) accumulated += '/' + part;
             const pathAttr = accumulated;
-            return `<span class="breadcrumb-item" data-path="${escapeAttr(pathAttr)}">${escapeHtml(part === '/' ? 'Dropbox' : part)}</span>`;
+            return `<span class="breadcrumb-item" data-path="${escapeAttr(pathAttr)}">${escapeHtml(part)}</span>`;
         }).join(' / ');
 
         breadcrumb.querySelectorAll('.breadcrumb-item').forEach(item => {
