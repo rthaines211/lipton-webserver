@@ -424,12 +424,24 @@ class TestIntegration:
             "Full_Address": {"City": "Test", "State": "Test", "PostalCode": "12345"}
             # Missing PlaintiffDetails and DefendantDetails2
         }
-        
+
         parsed = parse_form_json(incomplete_data)
         case_info = extract_case_info(parsed)
         plaintiffs = extract_plaintiffs(parsed)
         defendants = extract_defendants(parsed)
-        
+
         assert case_info["case_id"] == "test"
         assert plaintiffs == []
         assert defendants == []
+
+
+def test_extract_case_info_reads_case_number_and_filing_date():
+    info = extract_case_info({"Case number": "BC123456", "Filing date": "2026-01-15"})
+    assert info["case_number"] == "BC123456"
+    assert info["filing_date"] == "2026-01-15"
+
+
+def test_extract_case_info_defaults_case_fields_empty():
+    info = extract_case_info({})
+    assert info["case_number"] == ""
+    assert info["filing_date"] == ""
