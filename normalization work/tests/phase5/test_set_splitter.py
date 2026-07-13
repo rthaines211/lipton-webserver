@@ -325,3 +325,37 @@ class TestEdgeCases:
         # Should handle gracefully
         assert 'ZeroFlag' in result['sets'][0]['flags']
         assert result['sets'][0]['total_interrogatories'] == 0
+
+
+def _minimal_profiled_dataset():
+    return {
+        'case_context': {
+            'filing_county': 'Los Angeles',
+            'all_plaintiffs_upper_with_types': 'CLARK KENT, AN INDIVIDUAL',
+            'all_defendants_upper_with_types': 'TONY STARK, MANAGER',
+            'plaintiffs_array': [],
+            'case_number': 'BC123456',
+            'filing_date': 'January 15, 2026',
+            'plaintiff_label': 'Plaintiffs',
+            'defendant_label': 'Defendant',
+        },
+        'plaintiff': {'full_name': 'Clark Kent'},
+        'defendant': {'full_name': 'Tony Stark'},
+        'case_metadata': {},
+        'template': 'SROGsMaster.docx',
+        'filename_suffix': '',
+        'interrogatory_counts': {'SROGsGeneral': 5},
+        'flags': {'SROGsGeneral': True},
+        'doc_type': 'SROGs',
+        'dataset_id': 'test-dataset-001',
+    }
+
+
+def test_enriched_set_carries_case_fields_and_labels():
+    splitter = SetSplitter(max_interrogatories_per_set=35)
+    result = splitter.split_into_sets(_minimal_profiled_dataset())
+    first = result['sets'][0]
+    assert first['Case']['CaseNumber'] == 'BC123456'
+    assert first['Case']['FilingDate'] == 'January 15, 2026'
+    assert first['PlaintiffLabel'] == 'Plaintiffs'
+    assert first['DefendantLabel'] == 'Defendant'

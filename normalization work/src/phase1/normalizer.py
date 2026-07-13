@@ -5,6 +5,7 @@ This module provides the main normalization pipeline that orchestrates
 input parsing, discovery flattening, and validation.
 """
 
+from datetime import datetime
 from typing import Any, Optional, List
 
 from .discovery_flattener import flatten_discovery
@@ -15,6 +16,21 @@ from .input_parser import (
     parse_form_json,
 )
 from .validators import validate_normalized_data
+
+
+def format_filing_date(iso_str: str) -> str:
+    """Format an ISO date (YYYY-MM-DD) as long form 'January 15, 2026'.
+
+    Returns '' for empty, None, or malformed input (never raises).
+    """
+    if not iso_str:
+        return ""
+    try:
+        dt = datetime.strptime(iso_str, "%Y-%m-%d")
+    except (ValueError, TypeError):
+        return ""
+    # %-d is not portable (fails on Windows); strip leading zero manually.
+    return f"{dt.strftime('%B')} {dt.day}, {dt.year}"
 
 
 def _build_plaintiffs_upper_with_types(plaintiffs: list[dict[str, Any]]) -> str:
@@ -148,7 +164,11 @@ def _build_case_context(
         'all_plaintiffs_upper_with_types': _build_plaintiffs_upper_with_types(plaintiffs),
         'all_defendants_upper_with_types': _build_defendants_upper_with_types(defendants),
         'plaintiffs_array': _build_plaintiffs_array(plaintiffs),
-        'filing_county': case_info.get('filing_county', '')
+        'filing_county': case_info.get('filing_county', ''),
+        'plaintiff_label': 'Plaintiff' if len(plaintiffs) <= 1 else 'Plaintiffs',
+        'defendant_label': 'Defendant' if len(defendants) <= 1 else 'Defendants',
+        'case_number': case_info.get('case_number', ''),
+        'filing_date': format_filing_date(case_info.get('filing_date', '')),
     }
 
 

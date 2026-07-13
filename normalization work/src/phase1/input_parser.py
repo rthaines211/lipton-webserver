@@ -79,6 +79,18 @@ def extract_case_info(json_data: dict[str, Any]) -> dict[str, Any]:
         or ""
     )
 
+    case_number = (
+        json_data.get("Case number")
+        or json_data.get("CaseNumber")
+        or ""
+    )
+
+    filing_date = (
+        json_data.get("Filing date")
+        or json_data.get("FilingDate")
+        or ""
+    )
+
     # Generate case_id from Form.Id or use a placeholder
     form_info = json_data.get("Form", {})
     case_id = form_info.get("Id", "unknown")
@@ -91,6 +103,8 @@ def extract_case_info(json_data: dict[str, Any]) -> dict[str, Any]:
         "zip": zip_code,
         "filing_city": filing_city,
         "filing_county": filing_county,
+        "case_number": case_number,
+        "filing_date": filing_date,
     }
 
 

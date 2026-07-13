@@ -315,12 +315,16 @@ class SetSplitter:
                 # Case information (nested under Case key)
                 'Case': {
                     'FilingCounty': case_context.get('filing_county', ''),
-                    'FullAddress': _build_full_address(case_metadata)
+                    'FullAddress': _build_full_address(case_metadata),
+                    'CaseNumber': case_context.get('case_number', ''),
+                    'FilingDate': case_context.get('filing_date', ''),
                 },
 
                 # Aggregate plaintiff/defendant information
                 'AllPlaintiffsUpperWithTypes': case_context.get('all_plaintiffs_upper_with_types', ''),
                 'AllDefendantsUpperWithTypes': case_context.get('all_defendants_upper_with_types', ''),
+                'PlaintiffLabel': case_context.get('plaintiff_label', 'Plaintiff'),
+                'DefendantLabel': case_context.get('defendant_label', 'Defendant'),
                 'Plaintiffs': case_context.get('plaintiffs_array', []),
             }
 

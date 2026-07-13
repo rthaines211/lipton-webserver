@@ -141,6 +141,8 @@ function transformFormData(rawData) {
         Full_Address: fullAddress,
         FilingCity: rawData['Filing city'] || rawData['filing-city'] || null,
         FilingCounty: rawData['Filing county'] || rawData['filing-county'] || null,
+        CaseNumber: rawData['Case number'] || rawData['case-number'] || null,
+        FilingDate: rawData['Filing date'] || rawData['filing-date'] || null,
         NotificationEmailOptIn: Boolean(rawData.notificationEmailOptIn),
         NotificationEmail: rawData.notificationEmail || null
     };
@@ -599,6 +601,8 @@ function revertToOriginalFormat(obj) {
     const keyMappings = {
         'FilingCity': 'Filing city',
         'FilingCounty': 'Filing county',
+        'CaseNumber': 'Case number',
+        'FilingDate': 'Filing date',
         'HealthHazard': 'Health hazard',
         'SecurityDeposit': 'Security Deposit',
         'FireHazard': 'Fire Hazard',
