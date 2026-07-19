@@ -380,7 +380,8 @@ jobs:
             --cpu=1 \
             --timeout=300 \
             --max-instances=10 \
-            --min-instances=0
+            --min-instances=0 \
+            --session-affinity
 
           echo "✅ Deployed to staging environment"
 
@@ -444,7 +445,8 @@ jobs:
             --cpu=1 \
             --timeout=300 \
             --max-instances=10 \
-            --min-instances=1
+            --min-instances=1 \
+            --session-affinity
 
           echo "✅ Deployed to production environment"
 
