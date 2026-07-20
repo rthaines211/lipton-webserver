@@ -192,6 +192,9 @@ const pool = new Pool({
     allowExitOnIdle: true             // Allow pool to exit process when idle
 });
 
+// Give the pipeline service the shared pool so it can persist job status across instances
+pipelineService.setPool(pool);
+
 // Test database connection on startup
 pool.query('SELECT NOW()', (err, res) => {
     if (err) {
