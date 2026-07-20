@@ -37,9 +37,6 @@ const emailService = require('../email-service');
  *   }
  * }
  */
-const pipelineStatusCache = new Map();
-const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
-
 class PipelineService {
     constructor() {
         this.config = {
@@ -51,59 +48,82 @@ class PipelineService {
             continueOnFailure: process.env.PIPELINE_CONTINUE_ON_FAILURE !== 'false'
         };
 
+        this.pool = null;
+        this._fallback = new Map(); // instance-local safety net, used only on DB error
+
         // Start periodic cache cleanup
         this.startCacheCleanup();
     }
 
     /**
-     * Store pipeline status in cache
-     * @param {string} caseId - Case identifier
-     * @param {Object} statusData - Status information
+     * Inject the shared pg Pool. Called once from server.js after the pool is created.
+     * @param {import('pg').Pool} pool
      */
-    setPipelineStatus(caseId, statusData) {
-        pipelineStatusCache.set(caseId, {
-            ...statusData,
-            expiresAt: Date.now() + CACHE_TTL
-        });
+    setPool(pool) {
+        this.pool = pool;
     }
 
     /**
-     * Retrieve pipeline status from cache
-     * @param {string} caseId - Case identifier
-     * @returns {Object|null} Status data or null if not found/expired
+     * Store pipeline status. Upserts to Postgres; falls back to an instance-local
+     * Map on DB error so the pipeline never crashes on a status write.
+     * @param {string} caseId
+     * @param {Object} statusData
      */
-    getPipelineStatus(caseId) {
-        const status = pipelineStatusCache.get(caseId);
-        if (!status) {
-            return null;
+    async setPipelineStatus(caseId, statusData) {
+        try {
+            if (!this.pool) throw new Error('pipeline status pool not initialized');
+            await this.pool.query(
+                `INSERT INTO pipeline_status (case_id, status, expires_at)
+                 VALUES ($1, $2, NOW() + interval '15 minutes')
+                 ON CONFLICT (case_id) DO UPDATE
+                   SET status = $2, expires_at = NOW() + interval '15 minutes'`,
+                [caseId, JSON.stringify(statusData)]
+            );
+        } catch (err) {
+            // ponytail: in-memory fallback is instance-local; DB is source of truth, covers DB blips only
+            console.warn(`⚠️  pipeline status DB write failed for ${caseId}, using fallback: ${err.message}`);
+            this._fallback.set(caseId, { ...statusData, expiresAt: Date.now() + 15 * 60 * 1000 });
         }
-
-        // Check if expired
-        if (Date.now() > status.expiresAt) {
-            pipelineStatusCache.delete(caseId);
-            return null;
-        }
-
-        return status;
     }
 
     /**
-     * Clean up expired cache entries
-     * Runs periodically to prevent memory leaks
+     * Retrieve pipeline status. Reads from Postgres; on DB error, reads the
+     * instance-local fallback. Returns null if neither has a live entry.
+     * @param {string} caseId
+     * @returns {Promise<Object|null>}
      */
-    cleanupExpiredCache() {
-        const now = Date.now();
-        let cleaned = 0;
-
-        for (const [caseId, status] of pipelineStatusCache.entries()) {
-            if (now > status.expiresAt) {
-                pipelineStatusCache.delete(caseId);
-                cleaned++;
+    async getPipelineStatus(caseId) {
+        try {
+            if (!this.pool) throw new Error('pipeline status pool not initialized');
+            const { rows } = await this.pool.query(
+                `SELECT status FROM pipeline_status WHERE case_id = $1 AND expires_at > NOW()`,
+                [caseId]
+            );
+            return rows[0] ? rows[0].status : null;
+        } catch (err) {
+            console.warn(`⚠️  pipeline status DB read failed for ${caseId}, using fallback: ${err.message}`);
+            const fb = this._fallback.get(caseId);
+            if (fb && Date.now() <= fb.expiresAt) {
+                const { expiresAt, ...status } = fb;
+                return status;
             }
+            return null;
         }
+    }
 
-        if (cleaned > 0) {
-            console.log(`🧹 Cleaned ${cleaned} expired pipeline status entries`);
+    /**
+     * Delete expired status rows. Idempotent; safe to run from every instance.
+     */
+    async cleanupExpiredCache() {
+        try {
+            if (!this.pool) return;
+            // ponytail: every instance runs the sweep; idempotent DELETE, no lock needed
+            const { rowCount } = await this.pool.query(
+                `DELETE FROM pipeline_status WHERE expires_at < NOW()`
+            );
+            if (rowCount > 0) console.log(`🧹 Cleaned ${rowCount} expired pipeline status rows`);
+        } catch (err) {
+            console.warn(`⚠️  pipeline status cleanup failed: ${err.message}`);
         }
     }
 
@@ -112,7 +132,7 @@ class PipelineService {
      */
     startCacheCleanup() {
         setInterval(() => {
-            this.cleanupExpiredCache();
+            this.cleanupExpiredCache().catch(() => {});
         }, 5 * 60 * 1000);
     }
 
@@ -300,10 +320,10 @@ class PipelineService {
                     console.log(`📊 Document progress: ${docProgress.completed}/${docProgress.total} - ${docProgress.current}`);
 
                     // Update cache with document progress
-                    const currentStatus = this.getPipelineStatus(caseId);
+                    const currentStatus = await this.getPipelineStatus(caseId);
                     if (currentStatus) {
                         console.log(`✅ Updating pipeline status cache with document progress`);
-                        this.setPipelineStatus(caseId, {
+                        await this.setPipelineStatus(caseId, {
                             ...currentStatus,
                             documentProgress: docProgress,
                             currentPhase: `Generating legal documents... (${docProgress.completed}/${docProgress.total} completed)`,
@@ -339,7 +359,7 @@ class PipelineService {
     async callNormalizationPipeline(structuredData, caseId, documentTypes = ['srogs', 'pods', 'admissions']) {
         // Check if pipeline is enabled
         if (!this.config.enabled || !this.config.executeOnSubmit) {
-            this.setPipelineStatus(caseId, {
+            await this.setPipelineStatus(caseId, {
                 status: 'skipped',
                 phase: 'complete',
                 progress: 100,
@@ -359,7 +379,7 @@ class PipelineService {
             const startTime = Date.now();
 
             // Store initial processing status in cache
-            this.setPipelineStatus(caseId, {
+            await this.setPipelineStatus(caseId, {
                 status: 'processing',
                 phase: 'pipeline_started',
                 progress: 40,
@@ -429,7 +449,7 @@ class PipelineService {
                     // Store success status in cache
                     const outputUrl = webhookSummary?.output_url || response.data?.output_url || '';
                     console.log(`🔗 Dropbox output_url for ${caseId}: ${outputUrl}`);
-                    this.setPipelineStatus(caseId, {
+                    await this.setPipelineStatus(caseId, {
                         status: 'success',
                         phase: 'complete',
                         progress: 100,
@@ -458,7 +478,7 @@ class PipelineService {
                     const errorMessage = response.data.error || 'Unknown pipeline error';
                     console.error(`❌ Pipeline failed: ${errorMessage}`);
 
-                    this.setPipelineStatus(caseId, {
+                    await this.setPipelineStatus(caseId, {
                         status: 'failed',
                         phase: 'failed',
                         progress: 0,
@@ -497,7 +517,7 @@ class PipelineService {
             }
 
             // Store error status in cache
-            this.setPipelineStatus(caseId, {
+            await this.setPipelineStatus(caseId, {
                 status: 'failed',
                 phase: 'failed',
                 progress: 0,
