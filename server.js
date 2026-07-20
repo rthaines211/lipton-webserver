@@ -189,7 +189,14 @@ const pool = new Pool({
     idleTimeoutMillis: 30000,         // Close idle clients after 30 seconds
     connectionTimeoutMillis: 2000,    // Return error after 2 seconds if connection not available
     maxUses: 7500,                    // Close and replace connection after 7500 uses
-    allowExitOnIdle: true             // Allow pool to exit process when idle
+    allowExitOnIdle: true,            // Allow pool to exit process when idle
+    keepAlive: true                   // TCP keepalive so Cloud SQL doesn't silently drop idle connections
+});
+
+// A dead idle connection emits 'error' on the pool. Without a listener Node treats it
+// as an unhandled error and can crash the process. Log and let the pool evict it.
+pool.on('error', (err) => {
+    console.error('⚠️  idle pg client error (evicted):', err.message);
 });
 
 // Give the pipeline service the shared pool so it can persist job status across instances
