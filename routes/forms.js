@@ -118,7 +118,7 @@ router.post('/', asyncHandler(async (req, res) => {
     const tempCaseId = `temp-${formData.id}`;
 
     // Step 1: Saving form to file (10% progress)
-    pipelineService.setPipelineStatus(tempCaseId, {
+    await pipelineService.setPipelineStatus(tempCaseId, {
         status: 'processing',
         phase: 'saving_form',
         progress: 10,
@@ -186,7 +186,7 @@ router.post('/', asyncHandler(async (req, res) => {
     */
 
     // Step 2: Saving to database (20% progress)
-    pipelineService.setPipelineStatus(tempCaseId, {
+    await pipelineService.setPipelineStatus(tempCaseId, {
         status: 'processing',
         phase: 'saving_database',
         progress: 20,
@@ -206,9 +206,9 @@ router.post('/', asyncHandler(async (req, res) => {
         console.log(`✅ Form entry saved to database with case ID: ${dbCaseId}`);
 
         // Copy the status from temp ID to actual DB case ID
-        const tempStatus = pipelineService.getPipelineStatus(tempCaseId);
+        const tempStatus = await pipelineService.getPipelineStatus(tempCaseId);
         if (tempStatus) {
-            pipelineService.setPipelineStatus(dbCaseId, {
+            await pipelineService.setPipelineStatus(dbCaseId, {
                 ...tempStatus,
                 progress: 30,
                 currentPhase: 'Database saved, starting pipeline...'
