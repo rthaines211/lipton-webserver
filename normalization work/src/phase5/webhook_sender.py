@@ -176,11 +176,18 @@ def build_webhook_payload(set_data: Dict[str, Any], access_key: str) -> Dict[str
         >>> payload['templateName']
         'SROGsMaster.docx'
     """
+    # Docmosis requires outputName to carry a known extension (or an explicit
+    # outputFormat), else it 400s. OutputName is stored bare (the double-.docx
+    # fix removed the baked-in extension for Dropbox/log use), so add .docx here
+    # for the render call only.
+    output_name = set_data.get("OutputName", "")
+    if output_name and not output_name.lower().endswith(".docx"):
+        output_name += ".docx"
     return {
         "data": set_data,
         "accessKey": access_key,
         "templateName": set_data.get("Template", ""),
-        "outputName": set_data.get("OutputName", "")
+        "outputName": output_name
     }
 
 
