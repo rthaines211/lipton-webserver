@@ -321,7 +321,10 @@ class PipelineService {
 
                     // Update cache with document progress
                     const currentStatus = await this.getPipelineStatus(caseId);
-                    if (currentStatus) {
+                    // ponytail: never let a slow poller tick clobber a terminal status.
+                    // The success/failed write can land while this callback is awaiting;
+                    // without this guard it overwrites 'success' back to 'processing'.
+                    if (currentStatus && currentStatus.status !== 'success' && currentStatus.status !== 'failed') {
                         console.log(`✅ Updating pipeline status cache with document progress`);
                         await this.setPipelineStatus(caseId, {
                             ...currentStatus,
@@ -445,6 +448,11 @@ class PipelineService {
                             console.log(`   - ${phase}:`, JSON.stringify(results));
                         });
                     }
+
+                    // ponytail: stop the progress poller BEFORE writing success so no
+                    // in-flight poller tick can overwrite the terminal status. The finally
+                    // block calls stopPolling() again — clearInterval is idempotent.
+                    stopPolling();
 
                     // Store success status in cache
                     const outputUrl = webhookSummary?.output_url || response.data?.output_url || '';
