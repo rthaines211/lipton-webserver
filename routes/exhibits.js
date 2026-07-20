@@ -497,8 +497,14 @@ router.post('/generate-from-dropbox', async (req, res) => {
             } catch (error) {
                 logger.error('Dropbox processing error:', error);
                 job.status = 'failed';
-                job.message = error.message;
-                broadcastJobEvent(jobId, 'error', { error: error.message });
+                // A Dropbox path/not_found 409 means a selected file was moved/deleted
+                // between browsing and generating — surface something the user can act on.
+                const notFound = error?.error?.error?.path?.['.tag'] === 'not_found';
+                const userMessage = notFound
+                    ? 'A selected Dropbox file no longer exists (it may have been moved or deleted). Refresh and reselect your files.'
+                    : error.message;
+                job.message = userMessage;
+                broadcastJobEvent(jobId, 'error', { error: userMessage });
             } finally {
                 // Clean up temp dir (skip if paused for duplicate resolution)
                 const currentJob = jobs.get(jobId);
