@@ -182,6 +182,15 @@ class JobProgressStream {
         this.clearSilenceTimeout();
         this.clearReconnectTimeout(); // Cancel any pending reconnection attempts
 
+        // Mark terminal in the manager NOW, before onComplete runs. onComplete
+        // (loadSubmissions / UI refresh) can synchronously trigger another
+        // getConnection for this job; if we wait for close() below, terminalJobIds
+        // isn't populated yet and a fresh connection is built → infinite loop of
+        // complete → refresh → reconnect → complete.
+        if (typeof sseManager !== 'undefined' && sseManager.markTerminal) {
+            sseManager.markTerminal(this.jobId);
+        }
+
         try {
             const data = JSON.parse(event.data);
             console.log(`✅ Job completed for ${this.jobId}:`, data);

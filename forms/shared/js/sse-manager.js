@@ -70,6 +70,25 @@ class SSEConnectionManager {
     }
 
     /**
+     * Mark a job terminal immediately (called from handleCompleteEvent, before
+     * close(), so a synchronous re-track during onComplete can't rebuild a stream).
+     * @param {string} jobId - The job/case ID
+     */
+    markTerminal(jobId) {
+        this.terminalJobIds.add(jobId);
+    }
+
+    /**
+     * Clear the terminal marker so a genuinely NEW run for this job/case ID can be
+     * tracked again (the user re-regenerating the same submission).
+     * @param {string} jobId - The job/case ID
+     */
+    resetJob(jobId) {
+        this.terminalJobIds.delete(jobId);
+        this.closeConnection(jobId);
+    }
+
+    /**
      * Check if a connection exists for a job
      * @param {string} jobId - The job/case ID
      * @returns {boolean} True if an active connection exists
