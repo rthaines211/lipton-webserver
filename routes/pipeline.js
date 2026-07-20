@@ -89,7 +89,7 @@ router.get('/pipeline-status/:caseId', async (req, res) => {
     }
 
     // Retrieve status from cache
-    const status = pipelineService.getPipelineStatus(caseId);
+    const status = await pipelineService.getPipelineStatus(caseId);
 
     if (!status) {
         console.log(`⚠️  No pipeline status found for case: ${caseId}`);
@@ -120,7 +120,7 @@ router.get('/pipeline-status/:caseId', async (req, res) => {
  * Server-Sent Events endpoint for real-time progress updates.
  * The frontend SSE client connects here to receive pipeline progress updates.
  */
-router.get('/jobs/:jobId/stream', (req, res) => {
+router.get('/jobs/:jobId/stream', async (req, res) => {
     const { jobId } = req.params;
 
     // ============================================================
@@ -142,7 +142,7 @@ router.get('/jobs/:jobId/stream', (req, res) => {
     console.log(`📡 SSE connection established for job: ${jobId}`);
 
     // Check if job exists before setting up stream
-    const initialStatus = pipelineService.getPipelineStatus(jobId);
+    const initialStatus = await pipelineService.getPipelineStatus(jobId);
 
     // If no status found, the job either doesn't exist, expired from cache,
     // or hasn't started yet. Send an error event so the client doesn't
@@ -189,15 +189,18 @@ router.get('/jobs/:jobId/stream', (req, res) => {
     // This prevents "Cannot access before initialization" error
     let interval = null;
     let heartbeat = null;
+    let fetchingStatus = false; // re-entrancy guard: don't overlap DB reads
 
     // Function to send progress updates
-    const sendProgress = () => {
+    const sendProgress = async () => {
         // PHASE 1B: Skip if complete event already sent
         if (completeSent) {
             return;
         }
-
-        const status = pipelineService.getPipelineStatus(jobId);
+        if (fetchingStatus) return; // re-entrancy guard: don't overlap DB reads
+        fetchingStatus = true;
+        try {
+        const status = await pipelineService.getPipelineStatus(jobId);
         if (status) {
             const event = status.status === 'success' ? 'complete' :
                          status.status === 'failed' ? 'error' : 'progress';
@@ -259,14 +262,17 @@ router.get('/jobs/:jobId/stream', (req, res) => {
                 }, 500);
             }
         }
+        } finally {
+            fetchingStatus = false;
+        }
     };
 
     // Track last sent progress to avoid sending duplicates
     let lastSentProgress = null;
 
     // Modified sendProgress to only send when progress changes
-    const sendProgressIfChanged = () => {
-        const status = pipelineService.getPipelineStatus(jobId);
+    const sendProgressIfChanged = async () => {
+        const status = await pipelineService.getPipelineStatus(jobId);
         if (status) {
             const currentProgress = JSON.stringify({
                 status: status.status,
@@ -277,17 +283,17 @@ router.get('/jobs/:jobId/stream', (req, res) => {
             // Only send if progress actually changed
             if (currentProgress !== lastSentProgress) {
                 lastSentProgress = currentProgress;
-                sendProgress();
+                await sendProgress();
             }
         }
     };
 
     // Send current status immediately
-    sendProgressIfChanged();
+    sendProgressIfChanged().catch(() => {});
 
     // Set up interval to send updates every 2 seconds (only if changed)
-    interval = setInterval(() => {
-        const status = pipelineService.getPipelineStatus(jobId);
+    interval = setInterval(async () => {
+        const status = await pipelineService.getPipelineStatus(jobId);
         if (!status || status.status === 'success' || status.status === 'failed') {
             clearInterval(interval);
             clearInterval(heartbeat);
@@ -295,7 +301,7 @@ router.get('/jobs/:jobId/stream', (req, res) => {
                 res.end();
             }
         } else {
-            sendProgressIfChanged();
+            await sendProgressIfChanged();
         }
     }, 2000);
 
