@@ -18,12 +18,12 @@ describe('PipelineService', () => {
     });
 
     describe('getPipelineStatus', () => {
-        it('should return null for non-existent case', () => {
-            const status = pipelineService.getPipelineStatus('non-existent-case-id');
+        it('should return null for non-existent case', async () => {
+            const status = await pipelineService.getPipelineStatus('non-existent-case-id');
             expect(status).toBeNull();
         });
 
-        it('should return status for existing case', () => {
+        it('should return status for existing case', async () => {
             const testCaseId = 'test-case-123';
             const testStatus = {
                 status: 'processing',
@@ -31,15 +31,15 @@ describe('PipelineService', () => {
                 message: 'Test message'
             };
 
-            pipelineService.setPipelineStatus(testCaseId, testStatus);
-            const status = pipelineService.getPipelineStatus(testCaseId);
+            await pipelineService.setPipelineStatus(testCaseId, testStatus);
+            const status = await pipelineService.getPipelineStatus(testCaseId);
 
             expect(status).toEqual(testStatus);
         });
     });
 
     describe('setPipelineStatus', () => {
-        it('should store pipeline status with TTL', () => {
+        it('should store pipeline status with TTL', async () => {
             const caseId = 'test-case-456';
             const statusData = {
                 status: 'completed',
@@ -47,8 +47,8 @@ describe('PipelineService', () => {
                 message: 'All done'
             };
 
-            pipelineService.setPipelineStatus(caseId, statusData);
-            const retrieved = pipelineService.getPipelineStatus(caseId);
+            await pipelineService.setPipelineStatus(caseId, statusData);
+            const retrieved = await pipelineService.getPipelineStatus(caseId);
 
             expect(retrieved).toEqual(statusData);
         });
