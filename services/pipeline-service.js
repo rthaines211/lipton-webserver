@@ -72,12 +72,17 @@ class PipelineService {
     async setPipelineStatus(caseId, statusData) {
         try {
             if (!this.pool) throw new Error('pipeline status pool not initialized');
+            // ponytail: Postgres jsonb rejects the null-byte escape (valid JSON,
+            // illegal in jsonb). The final 'success' write carries the pipeline
+            // result (Dropbox URLs, raw webhook data) that can contain it; strip it
+            // or the whole write fails and status never persists (job froze at N-1/N).
+            const json = JSON.stringify(statusData).replace(/\\u0000/g, '');
             await this.pool.query(
                 `INSERT INTO pipeline_status (case_id, status, expires_at)
                  VALUES ($1, $2, NOW() + interval '15 minutes')
                  ON CONFLICT (case_id) DO UPDATE
                    SET status = $2, expires_at = NOW() + interval '15 minutes'`,
-                [caseId, JSON.stringify(statusData)]
+                [caseId, json]
             );
         } catch (err) {
             // ponytail: in-memory fallback is instance-local; DB is source of truth, covers DB blips only
