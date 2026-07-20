@@ -362,8 +362,22 @@ function startRegenerationTracking(result) {
     }
 
     try {
+        // A new regeneration is starting for this job/case ID — clear any prior
+        // completed marker so the manager will track this fresh run.
+        if (window.sseManager && typeof window.sseManager.resetJob === 'function') {
+            window.sseManager.resetJob(jobId);
+        }
+
         // Create SSE stream
         currentJobStream = createJobStream(jobId);
+
+        // Defensive: if no stream came back, don't throw setting handlers on it.
+        // (resetJob above clears any terminal marker, so a real stream is expected.)
+        if (!currentJobStream) {
+            console.log(`⛔ No SSE stream for ${jobId} — skipping tracking`);
+            isRegenerating = false;
+            return;
+        }
 
         // ============================================================
         // STEP 3: CONFIGURE EVENT HANDLERS
