@@ -75,6 +75,18 @@ class JobProgressStream {
         // Clear any pending reconnect timeout since we're connecting now
         this.clearReconnectTimeout();
 
+        // Close any existing socket before opening a new one. Without this, the
+        // reconnect path orphans the previous EventSource — its native listeners
+        // stay live but this.eventSource is overwritten, so close() can never reach
+        // it and the browser auto-reconnects it forever (infinite completion loop).
+        if (this.eventSource) {
+            this.eventSource.onopen = null;
+            this.eventSource.onerror = null;
+            this.eventSource.onmessage = null;
+            this.eventSource.close();
+            this.eventSource = null;
+        }
+
         try {
             this.eventSource = new EventSource(this.sseUrl);
             this.setupEventHandlers();
@@ -181,6 +193,15 @@ class JobProgressStream {
         this.jobCompleted = true;
         this.clearSilenceTimeout();
         this.clearReconnectTimeout(); // Cancel any pending reconnection attempts
+
+        // Mark terminal in the manager NOW, before onComplete runs. onComplete
+        // (loadSubmissions / UI refresh) can synchronously trigger another
+        // getConnection for this job; if we wait for close() below, terminalJobIds
+        // isn't populated yet and a fresh connection is built → infinite loop of
+        // complete → refresh → reconnect → complete.
+        if (typeof sseManager !== 'undefined' && sseManager.markTerminal) {
+            sseManager.markTerminal(this.jobId);
+        }
 
         try {
             const data = JSON.parse(event.data);
