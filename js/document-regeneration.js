@@ -104,8 +104,10 @@ function showCaseForRegeneration(caseId, caseData) {
         regenerateBtn.onclick = handleRegenerateDocuments;
     }
 
-    // Reset progress header title
-    const progressTitle = document.querySelector('.regeneration-progress-header .progress-title');
+    // Reset progress header title. Target by id — the class selector also matches
+    // the dead submissionProgressModal, and querySelector returns THAT one first,
+    // so the real modal's title never updated (stuck on "Regeneration in Progress").
+    const progressTitle = document.getElementById('regen-progress-title');
     if (progressTitle) {
         progressTitle.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Regeneration in Progress';
     }
@@ -458,8 +460,9 @@ function handleRegenerationComplete(data) {
     // Update progress to 100%
     updateProgressUI(100, '✅ Documents regenerated successfully!');
 
-    // Update progress header title to "Generation Completed"
-    const progressTitle = document.querySelector('.regeneration-progress-header .progress-title');
+    // Update progress header title to "Generation Completed" — target by id so we
+    // update the real modal, not the dead submissionProgressModal's matching title.
+    const progressTitle = document.getElementById('regen-progress-title');
     if (progressTitle) {
         progressTitle.innerHTML = '<i class="fas fa-check-circle"></i> Generation Completed';
     }
