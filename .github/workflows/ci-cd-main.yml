@@ -381,7 +381,8 @@ jobs:
             --timeout=300 \
             --max-instances=10 \
             --min-instances=0 \
-            --session-affinity
+            --session-affinity \
+            --no-cpu-throttling
 
           echo "✅ Deployed to staging environment"
 
@@ -446,7 +447,8 @@ jobs:
             --timeout=300 \
             --max-instances=10 \
             --min-instances=1 \
-            --session-affinity
+            --session-affinity \
+            --no-cpu-throttling
 
           echo "✅ Deployed to production environment"
 
