@@ -75,6 +75,18 @@ class JobProgressStream {
         // Clear any pending reconnect timeout since we're connecting now
         this.clearReconnectTimeout();
 
+        // Close any existing socket before opening a new one. Without this, the
+        // reconnect path orphans the previous EventSource — its native listeners
+        // stay live but this.eventSource is overwritten, so close() can never reach
+        // it and the browser auto-reconnects it forever (infinite completion loop).
+        if (this.eventSource) {
+            this.eventSource.onopen = null;
+            this.eventSource.onerror = null;
+            this.eventSource.onmessage = null;
+            this.eventSource.close();
+            this.eventSource = null;
+        }
+
         try {
             this.eventSource = new EventSource(this.sseUrl);
             this.setupEventHandlers();
