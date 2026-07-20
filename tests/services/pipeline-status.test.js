@@ -50,6 +50,19 @@ describe('pipeline status store (Postgres-backed)', () => {
         expect(mockQuery.mock.calls.at(-1)[0]).toMatch(/SELECT status FROM pipeline_status/i);
     });
 
+    it('strips null-byte escapes so Postgres jsonb accepts the write', async () => {
+        // Real webhook/result payloads carried a NUL char. JSON.stringify emits a
+        // backslash-u-0000 escape for it, which valid JSON allows but Postgres jsonb
+        // rejects ("unsupported Unicode escape sequence") — which froze jobs at N-1/N.
+        mockQuery.mockResolvedValue({ rows: [] });
+        const nul = String.fromCharCode(0);
+        await pipelineService.setPipelineStatus('case-nul', { status: 'success', result: { note: 'a' + nul + 'b' } });
+        const [, params] = mockQuery.mock.calls[0];
+        const escape = '\\u' + '0000';           // build the escape without embedding a literal NUL
+        expect(params[1]).not.toContain(escape);  // escape stripped from the JSON string
+        expect(JSON.parse(params[1]).result.note).toBe('ab');
+    });
+
     it('fail-soft: DB error on set writes to fallback, get reads it back, no throw', async () => {
         mockQuery.mockRejectedValue(new Error('db down'));
         await expect(
