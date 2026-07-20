@@ -190,7 +190,8 @@ const pool = new Pool({
     connectionTimeoutMillis: 2000,    // Return error after 2 seconds if connection not available
     maxUses: 7500,                    // Close and replace connection after 7500 uses
     allowExitOnIdle: true,            // Allow pool to exit process when idle
-    keepAlive: true                   // TCP keepalive so Cloud SQL doesn't silently drop idle connections
+    keepAlive: true,                  // TCP keepalive so Cloud SQL doesn't silently drop idle connections
+    keepAliveInitialDelayMillis: 10000 // Start probes at 10s; keepAlive:true alone uses an ambiguous 0 default
 });
 
 // A dead idle connection emits 'error' on the pool. Without a listener Node treats it
